@@ -89,11 +89,14 @@ with tempfile.TemporaryDirectory() as temporary:
         reset()
         marker = "DET8_FAKE_PROVIDER_SECRET"
         def reflected_failure(action, payload):
+            if action == "countTokens":
+                return {"totalTokens": 100}
             raise RuntimeError(marker + " held-review-output")
         module.remote = reflected_failure
         assert request(body) == 400
         encoded = json.dumps(module.REPORT)
         assert marker not in encoded and "held-review-output" not in encoded
+        assert module.RESERVED > 0 and module.REPORT["calls"][0]["status"] == "DISPATCHED"
         assert module.HALTED and module.REPORT["last_error"] == "provider proxy refused or failed request"
         assert marker not in (module.OUT / "manifest.json").read_text()
         print("PASS: budget and request controls; provider failure canaries absent from manifest")

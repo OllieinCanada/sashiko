@@ -1,4 +1,4 @@
-name: Bounded Sashiko model review
+name: Bounded Sashiko model review follow-up
 'on':
   push:
     branches: [codex/held-series-ci-20261019]
@@ -22,6 +22,7 @@ jobs:
       CARGO_BUILD_JOBS: 2
       CARGO_NET_RETRY: 0
       CARGO_HTTP_TIMEOUT: 20
+      SASHIKO_REVIEW_MODEL: gemini-3.6-flash
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -53,7 +54,7 @@ jobs:
           test -z "$(git diff --name-only \
             bd59059f1864aea81b11b5de0eb97e5d2ec53667 HEAD -- \
             src docs designs MAINTAINERS_GUIDE.md Cargo.toml Cargo.lock)"
-      - name: One bounded real review attempt
+      - name: Single separately authorized follow-up
         timeout-minutes: 14
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
@@ -62,6 +63,17 @@ jobs:
             /tmp/adaptive-model-source \
             f6e2e172e1e669b6767a4c74fe91d062b41fd71c \
             6667a81cd25a69feca76e65d94aacb4c83b2ce72
+      - name: Record concise result without retrying
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("adaptive-model-review-results/manifest.json")
+          if path.exists():
+              data = json.loads(path.read_text())
+              print(json.dumps(data, indent=2))
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
