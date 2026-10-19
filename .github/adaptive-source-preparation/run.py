@@ -99,6 +99,18 @@ def checked_commit(directory, message, phase):
 
 
 def main():
+    # Keep the candidate reviewable even if required checks block commits.
+    source_paths = ["src", "docs", "designs", "MAINTAINERS_GUIDE.md"]
+    patch = subprocess.check_output(
+        ["git", "diff", "--binary", "--full-index", BASE, CANDIDATE, "--"] + source_paths,
+        cwd=ROOT)
+    (OUT / "candidate-source-unchecked.patch").write_bytes(patch)
+    REPORT["unchecked_source_patch_sha256"] = hashlib.sha256(patch).hexdigest()
+    REPORT["unchecked_source_patch_scope"] = output(
+        ["git", "diff", "--name-only", BASE, CANDIDATE, "--"] + source_paths,
+        ROOT).splitlines()
+    REPORT["unchecked_source_patch_warning"] = "Review artifact only; not a checked contribution or completed model review"
+    save()
     run(["git", "fetch", "--no-tags", "origin", BASE, PREREQUISITE], "fetch-snapshots", timeout=60)
     with tempfile.TemporaryDirectory(prefix="adaptive-source-only-") as temporary:
         directory = Path(temporary) / "source"
