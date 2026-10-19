@@ -1,0 +1,43 @@
+name: Stop superseded adaptive validation runs
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths: ['.github/workflows/adaptive-stop-superseded.yml']
+permissions:
+  actions: write
+  contents: read
+jobs:
+  stop-superseded:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Cancel only older validation runs for this fork branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.error, urllib.request
+          base = "https://api.github.com/repos/OllieinCanada/sashiko"
+          keep = "877e739748dc6a135384942412d59880999f4f38"
+          names = set(["Adaptive focused mutation controls","Adaptive focused gap validation","Adaptive expiry and worker restart","Adaptive filesystem and crash recovery","Adaptive concurrent admission replay","Adaptive old-version access rehearsal","Prepare checked source-only contribution","Adaptive formatting patch capture","Adaptive writer observability","Adaptive SQLite recovery and pruning controls","Adaptive matched upstream performance","Adaptive hosted performance and gap validation","Adaptive cooldown validation"])
+          headers = {"Authorization": "Bearer " + os.environ["GH_TOKEN"], "Accept": "application/vnd.github+json"}
+          cancelled = []
+          for page in (1, 2):
+              url = base + "/actions/runs?branch=codex%2Fheld-series-ci-20261019&per_page=100&page=" + str(page)
+              with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=20) as response:
+                  runs = json.load(response)["workflow_runs"]
+              for run in runs:
+                  if (run["head_sha"] == keep or run["name"] not in names
+                          or run["status"] == "completed"):
+                      continue
+                  request = urllib.request.Request(base + "/actions/runs/" + str(run["id"]) + "/cancel",
+                                                   headers=headers, data=b"", method="POST")
+                  try:
+                      with urllib.request.urlopen(request, timeout=20) as response:
+                          if response.status == 202:
+                              cancelled.append(run["id"])
+                  except urllib.error.HTTPError as error:
+                      if error.code not in (409, 422):
+                          raise
+          print(json.dumps({"kept_source_checkpoint": keep, "cancelled_superseded_run_ids": cancelled}))
+          PY
