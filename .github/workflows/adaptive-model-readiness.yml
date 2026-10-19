@@ -1,0 +1,23 @@
+name: Adaptive review authentication readiness
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths: ['.github/workflows/adaptive-model-readiness.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  provider-readiness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Check configured provider secret without exposing it
+        env:
+          REVIEW_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          if [ -n "$REVIEW_KEY" ]; then
+            echo "READY: LLM_API_KEY is configured; no provider call made"
+          else
+            echo "BLOCKED: LLM_API_KEY is not configured; no provider call made"
+            exit 1
+          fi
