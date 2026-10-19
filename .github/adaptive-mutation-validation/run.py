@@ -37,6 +37,10 @@ CASES = [
      "test_cooldown_same_message_concurrent_replay_preserves_owner", "lib"),
     ("source-correction", "src/db.rs", "placeholder == 0", "placeholder == 1",
      "test_cooldown_source_correction_quarantine_survives_expiry", "lib"),
+    ("snapshot-quarantine", "src/db/cooldown.rs",
+     "WHEN b.patchset_id IS NOT NULL THEN 'blocked'",
+     "WHEN b.patchset_id IS NULL AND 0 THEN 'blocked'",
+     "test_cooldown_patch_binding_snapshot_keeps_collision_and_quarantine", "lib"),
 ]
 REPORT = {
     "status": "RUNNING",
