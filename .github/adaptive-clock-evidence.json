@@ -1,0 +1,37 @@
+{
+  "run": 39328125251,
+  "job": 118319127092,
+  "artifact": 12222538821,
+  "status": "PASS",
+  "production_base": "bd59059f1864aea81b11b5de0eb97e5d2ec53667",
+  "checkpoint": "ce22d185f20acb98284eaf026849a589c6b3962b",
+  "source_sha256": "953d9d47014fc6d43d68db0dee93838b271e863f88b0623888a309b7bc7e86b7",
+  "checks": [
+    {
+      "timezone": "UTC",
+      "status": "PASS",
+      "wall_clock_states": 6,
+      "natural_deadline_release": 1,
+      "post_release_replay_jumps": 2
+    },
+    {
+      "timezone": "America/New_York",
+      "status": "PASS",
+      "wall_clock_states": 6,
+      "natural_deadline_release": 1,
+      "post_release_replay_jumps": 2
+    }
+  ],
+  "limitations": [
+    "LD_PRELOAD changes wall-clock APIs only in the owned test process and its recording MTA; no host-clock change.",
+    "Monotonic time remains real; child process groups have bounded external timeouts.",
+    "Review output is a fixture and delivery is local recording only.",
+    "This does not establish arbitrary host/kernel clock behavior or remove fixed-deadline policy tradeoffs."
+  ],
+  "reviewer_source_sha256": "dd5b9a6906ed05775907834191c39b75bdf9e430c0fdd619ab7314c0bf0baccb",
+  "fixture_sha256": "9c4d2d4cc2d76c024c313c3567893cc56d41de430041b34abca0e1649336272b",
+  "shim_sha256": "f2a1c1e752b204a38fef7bcab4ec3dc0345773223966324e6bac5ba54909fd11",
+  "release_query_observer": "records actual now and selected count after production query",
+  "binary_sha256": "a08aaa6ab799ffcef09f52aa164151c7cec915ce0f2f90c571629f401b5cfca2",
+  "source_restored": true
+}
