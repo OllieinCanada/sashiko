@@ -7577,6 +7577,26 @@ impl Database {
                     return Err(error);
                 }
             };
+        if old_patch.is_none()
+            && matches!(binding, cooldown::CooldownBinding::Owned { decided: true })
+        {
+            let replayed = {
+                let mut rows = tx
+                    .query(
+                        "SELECT 1 FROM patches WHERE patchset_id = ? AND message_id = ?",
+                        libsql::params![patchset_id, message_id],
+                    )
+                    .await?;
+                rows.next().await?.is_some()
+            };
+            if replayed {
+                // Another writer committed this message after the pre-lock
+                // snapshot. Retry with its current patch ID and content state;
+                // a genuinely new part must still be quarantined below.
+                tx.rollback().await?;
+                return Ok(PatchWriteOutcome::SnapshotChanged);
+            }
+        }
         if let cooldown::CooldownBinding::Owned { decided } = binding {
             let mut source = tx
                 .query(

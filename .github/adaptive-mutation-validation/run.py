@@ -32,6 +32,9 @@ CASES = [
      "if source != crate::events::MessageSource::Nntp {",
      "if source == crate::events::MessageSource::Nntp {",
      "test_cooldown_config_to_real_release_and_sendmail", "bin"),
+    ("same-message-stale-snapshot", "src/db.rs",
+     "        if old_patch.is_none()\n            && matches!(binding, cooldown::CooldownBinding::Owned { decided: true })\n        {\n            let replayed = {\n                let mut rows = tx\n                    .query(\n                        \"SELECT 1 FROM patches WHERE patchset_id = ? AND message_id = ?\",\n                        libsql::params![patchset_id, message_id],\n                    )\n                    .await?;\n                rows.next().await?.is_some()\n            };\n            if replayed {\n                // Another writer committed this message after the pre-lock\n                // snapshot. Retry with its current patch ID and content state;\n                // a genuinely new part must still be quarantined below.\n                tx.rollback().await?;\n                return Ok(PatchWriteOutcome::SnapshotChanged);\n            }\n        }\n", "",
+     "test_cooldown_same_message_concurrent_replay_preserves_owner", "lib"),
 ]
 REPORT = {
     "status": "RUNNING",
