@@ -67,8 +67,8 @@ OBSERVATIONS = r'''
             ).await?;
             let patches_state: String = rows.next().await?.context("missing patch observation")?.get(0)?;
             use sha2::Digest as _;
-            let legacy_patchsets_sha256 = format!("{:x}", sha2::Sha256::digest(patchsets.as_bytes()));
-            let legacy_patches_sha256 = format!("{:x}", sha2::Sha256::digest(patches_state.as_bytes()));
+            let legacy_patchsets_sha256 = sha2::Sha256::digest(patchsets.as_bytes()).iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+            let legacy_patches_sha256 = sha2::Sha256::digest(patches_state.as_bytes()).iter().map(|byte| format!("{byte:02x}")).collect::<String>();
 '''
 
 
