@@ -156,9 +156,13 @@
             let id: i64 = row.get(0)?;
             let before: i64 = row.get(1)?;
             assert_eq!(before, row.get::<i64>(2)?);
+            // Finish this read snapshot before writes through the other connection.
+            drop(row);
+            drop(rows);
             active.create_patch(id, "process-held-1@example.test", 1, "diff").await?;
             assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 2);
-            db.release_patchset_embargo(id, 1).await?;
+            assert!(db.release_patchset_embargo(id, 1).await?);
+            assert_eq!(scalar(&db, &format!("SELECT embargo_until FROM patchsets WHERE id={id}")).await?, 1);
             active.create_patch(id, "process-held-1@example.test", 1, "diff").await?;
             let mut rows = db.conn.query("SELECT embargo_until FROM patchsets WHERE id=?", libsql::params![id]).await?;
             assert_eq!(rows.next().await?.context("missing released owner")?.get::<i64>(0)?, 1);

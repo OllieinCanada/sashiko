@@ -4,7 +4,8 @@ name: Adaptive hosted performance and gap validation
   push:
     branches: [codex/held-series-ci-20261019]
     paths:
-      - '.github/adaptive-validation/**'
+      - '.github/adaptive-validation/native_fixture.rs'
+      - '.github/adaptive-validation/run.py'
       - '.github/workflows/adaptive-performance.yml'
   workflow_dispatch:
 
