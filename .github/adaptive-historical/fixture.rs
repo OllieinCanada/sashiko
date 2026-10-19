@@ -31,7 +31,7 @@ mod hosted_historical_shadow {
             process_parsed_article(
                 &db,
                 ParsedArticle {
-                    group: "org.kernel.vger.linux-ext4".into(),
+                    group: "org.kernel.vger.git".into(),
                     article_id,
                     source: MessageSource::Nntp,
                     metadata: Some(metadata),

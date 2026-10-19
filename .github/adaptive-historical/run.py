@@ -14,17 +14,18 @@ import urllib.request
 ROOT = Path.cwd()
 OUT = ROOT / "adaptive-historical-results"
 OUT.mkdir(exist_ok=True)
-MESSAGE = "20261009-work-fixes-rcu-v1-1-7446d2d335e6@kernel.org"
-URL = "https://lore.kernel.org/all/" + MESSAGE + "/raw"
-SOURCE_COMMIT = "c17b44266a1f9fcb49b894d4611d1254bf1aa313"
+MESSAGE = "u5tacjjdpxq.fsf@lysator.liu.se"
+URL = "https://raw.githubusercontent.com/git/git/ba4324c4e1e32a28381ea1f4835b78e4c9d45575/t/t5100/sample.mbox"
+SOURCE_COMMIT = "b0921331030d52febf52839753eee1b2b9ca1f24"
 MAIN = ROOT / "src/main.rs"
 ORIGINAL = MAIN.read_text()
 REPORT = {
     "status": "RUNNING", "archive_url": URL,
-    "provenance": "https://github.com/torvalds/linux/commit/" + SOURCE_COMMIT,
+    "provenance": "https://github.com/git/git/commit/" + SOURCE_COMMIT,
     "checkpoint": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
     "checks": [], "limitations": [
-        "One public historical singleton; not an exhaustive archive or production activity dataset.",
+        "One real 2005 Gmane mailing-list message preserved in Git test corpus; not a modern activity dataset.",
+        "Git maintains the archived fixture and has adjusted encoding syntax; this is not an untouched direct archive download.",
         "Protected database is an isolated seeded source snapshot, not a supplied production database.",
         "No review model, publication worker, actual email or external integration runs."
     ],
@@ -48,24 +49,34 @@ def run(args, label, env=None, timeout=120):
 
 
 def download():
-    try:
-        with urllib.request.urlopen(URL, timeout=15) as response:
-            data = response.read(512 * 1024 + 1)
-        if len(data) > 512 * 1024 or b"message-id:" not in data.lower() or b"diff --git " not in data:
-            raise RuntimeError("archive did not return a bounded raw patch")
-        REPORT["transport"] = "HTTPS archive"
-        return data
-    except Exception:
-        # One bounded read-only alternate transport; never solve an anti-bot
-        # challenge or repeatedly retry a blocked archive.
-        import nntplib
-        with nntplib.NNTP("nntp.lore.kernel.org", 119, timeout=15) as nntp:
-            _, info = nntp.article("<" + MESSAGE + ">")
-        data = b"\r\n".join(info.lines) + b"\r\n"
-        if len(data) > 512 * 1024 or b"diff --git " not in data:
-            raise RuntimeError("NNTP did not return a bounded raw patch")
-        REPORT["transport"] = "NNTP read-only ARTICLE"
-        return data
+    import email.parser
+    import email.policy
+    import re
+    with urllib.request.urlopen(URL, timeout=20) as response:
+        corpus = response.read(512 * 1024 + 1)
+    if len(corpus) > 512 * 1024:
+        raise RuntimeError("historical corpus exceeds cap")
+    digest = hashlib.sha1(b"blob " + str(len(corpus)).encode() + b"\\0" + corpus).hexdigest()
+    if digest != "4a54ee517198cf218d330bdc4cd93cd279abcf0e":
+        raise RuntimeError("pinned historical corpus blob mismatch")
+    candidates = []
+    for raw in re.split(br"(?m)^From [^\\r\\n]*\\r?\\n", corpus):
+        parsed = email.parser.BytesParser(policy=email.policy.default).parsebytes(raw)
+        if str(parsed.get("Message-ID", "")).strip("<>") == MESSAGE:
+            candidates.append((raw, parsed))
+    if len(candidates) != 1:
+        raise RuntimeError("historical message selection is not unique")
+    raw, parsed = candidates[0]
+    if (str(parsed["Subject"]) != "[PATCH] Fixed two bugs in git-cvsimport-script."
+            or "davidk@lysator.liu.se" not in str(parsed["From"])
+            or str(parsed["Newsgroups"]) != "gmane.comp.version-control.git"
+            or b"diff --git " not in parsed.get_payload(decode=True)):
+        raise RuntimeError("historical fixture identity/provenance control failed")
+    REPORT["transport"] = "pinned Git corpus copy of 2005 Gmane mailing-list message"
+    REPORT["corpus_git_blob"] = digest
+    REPORT["corpus_sha256"] = hashlib.sha256(corpus).hexdigest()
+    REPORT["historical_date"] = str(parsed["Date"])
+    return raw
 
 
 def native(binary, phase, database, raw, policy):
@@ -83,6 +94,10 @@ def native(binary, phase, database, raw, policy):
 
 try:
     save()
+    if subprocess.check_output(["git", "diff", "--name-only",
+        "bd59059f1864aea81b11b5de0eb97e5d2ec53667", "HEAD", "--",
+        "src", "docs", "designs", "MAINTAINERS_GUIDE.md", "Cargo.toml", "Cargo.lock"], text=True).strip():
+        raise RuntimeError("frozen production source changed")
     data = None
     supplied = os.environ.get("HISTORICAL_RAW_INPUT")
     if supplied:
@@ -96,7 +111,7 @@ try:
         try:
             data = download()
         except Exception:
-            REPORT["archive_status"] = "BLOCKED: HTTPS returned 403 and NNTP was unavailable"
+            REPORT["archive_status"] = "BLOCKED: pinned public historical corpus could not be fetched or validated"
     raw = OUT / "public-historical.eml"
     if data is not None:
         raw.write_bytes(data)
@@ -129,8 +144,8 @@ try:
         shadow = directory / "shadow.db"
         policy = directory / "policy.toml"
         policy.write_text(
-            '["linux-ext4@vger.kernel.org"]\nnntp_group="org.kernel.vger.linux-ext4"\n'
-            'embargo_hours=0\n["linux-ext4@vger.kernel.org".adaptive_cooldown]\n'
+            '["git@vger.kernel.org"]\nnntp_group="org.kernel.vger.git"\n'
+            'embargo_hours=0\n["git@vger.kernel.org".adaptive_cooldown]\n'
             'enabled=true\nwindow_seconds=86400\nburst=1\nstep_seconds=3600\nmax_extra_seconds=3600\n')
         native(binary, "prepare", source, raw, policy)
         with sqlite3.connect("file:" + str(source) + "?mode=ro", uri=True) as original:
