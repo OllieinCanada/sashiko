@@ -1,0 +1,890 @@
+{
+  "schema_version": 1,
+  "status": "NOT_READY_FOR_UPSTREAM_PR",
+  "production_source": "bd59059f1864aea81b11b5de0eb97e5d2ec53667",
+  "source_only_bundle": {
+    "status": "PREPARED_WITH_REVIEW_BLOCKED",
+    "base": "f6e2e172e1e669b6767a4c74fe91d062b41fd71c",
+    "candidate_checkpoint": "010274b4d10a4db39cb7de2bcef0108a92bdc82b",
+    "prerequisite_snapshot": "a377db68dbd2c2fabfefe3136aea8b4499e4a648",
+    "identity": {
+      "name": "Ollie Slapinski",
+      "email": "oliverslapinski@hotmail.com"
+    },
+    "model_review": "NOT_RUN: provider calls paused after authenticated smoke generation returned HTTP 503",
+    "commits": [
+      {
+        "phase": "response-lint",
+        "sha": "2f60c6aa845d81aaf11af6f116414a46014bb2da",
+        "author": "Ollie Slapinski <oliverslapinski@hotmail.com>",
+        "changed_files": [
+          "src/server.rs"
+        ]
+      },
+      {
+        "phase": "prerequisite",
+        "sha": "b4bd7b56e491cfae6fd8875c8a7b93d6955cabca",
+        "author": "Ollie Slapinski <oliverslapinski@hotmail.com>",
+        "changed_files": [
+          "src/db.rs",
+          "src/migrations/014_held_series_index.sql",
+          "src/prerequisites.rs"
+        ]
+      },
+      {
+        "phase": "adaptive",
+        "sha": "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
+        "author": "Ollie Slapinski <oliverslapinski@hotmail.com>",
+        "changed_files": [
+          "MAINTAINERS_GUIDE.md",
+          "designs/ADAPTIVE_PUBLICATION_COOLDOWN.md",
+          "docs/configuration.md",
+          "src/cooldown.rs",
+          "src/db.rs",
+          "src/db/cooldown.rs",
+          "src/email_policy.rs",
+          "src/lib.rs",
+          "src/main.rs",
+          "src/migrations/015_publication_cooldown.sql",
+          "src/prerequisites.rs",
+          "src/server.rs"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "name": "make check-pr before response-lint",
+        "status": "PASS"
+      },
+      {
+        "name": "make check-pr before prerequisite",
+        "status": "PASS"
+      },
+      {
+        "name": "make check-pr before adaptive",
+        "status": "PASS"
+      }
+    ],
+    "scope": "source-only preparation artifacts; no upstream PR or push",
+    "unchecked_source_patch_sha256": "14652105528a633814020222d25aff65effe756e9b20980f3c1cd3ba04053ed9",
+    "unchecked_source_patch_scope": [
+      "MAINTAINERS_GUIDE.md",
+      "designs/ADAPTIVE_PUBLICATION_COOLDOWN.md",
+      "docs/configuration.md",
+      "src/cooldown.rs",
+      "src/db.rs",
+      "src/db/cooldown.rs",
+      "src/email_policy.rs",
+      "src/lib.rs",
+      "src/main.rs",
+      "src/migrations/014_held_series_index.sql",
+      "src/migrations/015_publication_cooldown.sql",
+      "src/prerequisites.rs",
+      "src/server.rs"
+    ],
+    "unchecked_source_patch_warning": "Review artifact only; not a checked contribution or completed model review",
+    "head": "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
+    "tree": "d38b668f511e2e0972aa4588174a2c55f3582b30",
+    "patches": {
+      "0001-server-allow-concrete-extractor-rejection-response-s.patch": "8fcd73ae828189badd815813e5f0554ae1b4bf57226a476f79cc8130dabfd959",
+      "0003-mail-add-opt-in-per-author-publication-cooldowns.patch": "1a47b118f01d8c007d04582da3c305eb68105ef43adaa2ebf475c624c1d77cc7",
+      "0002-db-retire-superseded-series-reviews-awaiting-publica.patch": "3f155172449cbd52dc42f8ac42c27e8ec734008736798cc93cbee67ae472a89b"
+    }
+  },
+  "inspection": {
+    "run": 39335945493,
+    "job": 118345351968,
+    "artifact": 12226558113,
+    "manifest": {
+      "candidate": "bd59059f1864aea81b11b5de0eb97e5d2ec53667",
+      "source_only_head": "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
+      "source_only_tree": "d38b668f511e2e0972aa4588174a2c55f3582b30",
+      "status": "PASS",
+      "mutants": [
+        {
+          "name": "author-scope",
+          "status": "KILLED",
+          "failure_context": [
+            "test db::cooldown::tests::test_cooldown_deadline_boundary_clean_exception_and_isolation ... ",
+            "thread 'db::cooldown::tests::test_cooldown_deadline_boundary_clean_exception_and_isolation' (2458) panicked at src/db/cooldown.rs:1963:9:",
+            "assertion `left == right` failed",
+            "  left: 3",
+            " right: 0",
+            "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+            "FAILED",
+            "",
+            "thread 'db::cooldown::tests::test_cooldown_deadline_boundary_clean_exception_and_isolation' (2458) panicked at src/db/cooldown.rs:1963:9:",
+            "assertion `left == right` failed",
+            "  left: 3",
+            " right: 0",
+            "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+            "FAILED",
+            "",
+            "failures:"
+          ]
+        },
+        {
+          "name": "frozen-replay",
+          "status": "KILLED",
+          "failure_context": [
+            "running 1 test",
+            "test db::cooldown::tests::test_cooldown_incomplete_out_of_order_and_duplicate ... Error: adaptive admission disabled while intent remains unresolved",
+            "FAILED",
+            "",
+            "failures:",
+            "",
+            "failures:",
+            "    db::cooldown::tests::test_cooldown_incomplete_out_of_order_and_duplicate"
+          ]
+        },
+        {
+          "name": "deadline",
+          "status": "KILLED",
+          "failure_context": [
+            "test db::cooldown::tests::test_cooldown_deadline_boundary_clean_exception_and_isolation ... ",
+            "thread 'db::cooldown::tests::test_cooldown_deadline_boundary_clean_exception_and_isolation' (2694) panicked at src/db/cooldown.rs:1936:9:",
+            "assertion failed: !db.get_releasable_embargoed_patchsets(1010,",
+            "                        100).await?.iter().any(|p| p.id == held)",
+            "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+            "FAILED",
+            "",
+            "failures:",
+            "thread 'db::cooldown::tests::test_cooldown_deadline_boundary_clean_exception_and_isolation' (2694) panicked at src/db/cooldown.rs:1936:9:",
+            "assertion failed: !db.get_releasable_embargoed_patchsets(1010,",
+            "                        100).await?.iter().any(|p| p.id == held)",
+            "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+            "FAILED",
+            "",
+            "failures:",
+            ""
+          ]
+        },
+        {
+          "name": "release-marker",
+          "status": "KILLED",
+          "failure_context": [
+            "test db::cooldown::tests::test_cooldown_release_before_admission_and_no_rehold ... ",
+            "thread 'db::cooldown::tests::test_cooldown_release_before_admission_and_no_rehold' (2854) panicked at src/db/cooldown.rs:899:9:",
+            "assertion failed: db.release_patchset_embargo(id, 1001).await?",
+            "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+            "FAILED",
+            "",
+            "failures:",
+            "",
+            "thread 'db::cooldown::tests::test_cooldown_release_before_admission_and_no_rehold' (2854) panicked at src/db/cooldown.rs:899:9:",
+            "assertion failed: db.release_patchset_embargo(id, 1001).await?",
+            "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+            "FAILED",
+            "",
+            "failures:",
+            "",
+            "failures:"
+          ]
+        },
+        {
+          "name": "enablement",
+          "status": "KILLED",
+          "failure_context": [
+            "test tests::test_cooldown_config_to_real_release_and_sendmail ... ",
+            "thread 'tests::test_cooldown_config_to_real_release_and_sendmail' (2952) panicked at src/main.rs:4094:9:",
+            "assertion `left == right` failed",
+            "  left: String(\"Reviewed\")",
+            " right: \"Embargoed\"",
+            "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+            "FAILED",
+            "",
+            "thread 'tests::test_cooldown_config_to_real_release_and_sendmail' (2952) panicked at src/main.rs:4094:9:",
+            "assertion `left == right` failed",
+            "  left: String(\"Reviewed\")",
+            " right: \"Embargoed\"",
+            "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+            "FAILED",
+            "",
+            "failures:"
+          ]
+        },
+        {
+          "name": "same-message-stale-snapshot",
+          "status": "KILLED",
+          "failure_context": [
+            "running 1 test",
+            "test db::cooldown::tests::test_cooldown_same_message_concurrent_replay_preserves_owner ... Error: adaptive patch correction quarantined",
+            "FAILED",
+            "",
+            "failures:",
+            "",
+            "failures:",
+            "    db::cooldown::tests::test_cooldown_same_message_concurrent_replay_preserves_owner"
+          ]
+        },
+        {
+          "name": "source-correction",
+          "status": "KILLED",
+          "failure_context": [
+            "test db::cooldown::tests::test_cooldown_source_correction_quarantine_survives_expiry ... ",
+            "thread 'db::cooldown::tests::test_cooldown_source_correction_quarantine_survives_expiry' (3159) panicked at src/db/cooldown.rs:956:9:",
+            "assertion failed: db.create_message(&msg, thread, None, \"victim@example.test\",",
+            "            \"[PATCH] altered\", 1, \"changed\", \"list@example.test\", \"\", None,",
+            "            None).await.is_err()",
+            "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+            "FAILED",
+            "",
+            "thread 'db::cooldown::tests::test_cooldown_source_correction_quarantine_survives_expiry' (3159) panicked at src/db/cooldown.rs:956:9:",
+            "assertion failed: db.create_message(&msg, thread, None, \"victim@example.test\",",
+            "            \"[PATCH] altered\", 1, \"changed\", \"list@example.test\", \"\", None,",
+            "            None).await.is_err()",
+            "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+            "FAILED",
+            "",
+            "failures:"
+          ]
+        },
+        {
+          "name": "snapshot-quarantine",
+          "status": "KILLED",
+          "failure_context": [
+            "test db::cooldown::tests::test_cooldown_patch_binding_snapshot_keeps_collision_and_quarantine ... ",
+            "thread 'db::cooldown::tests::test_cooldown_patch_binding_snapshot_keeps_collision_and_quarantine' (3261) panicked at src/db/cooldown.rs:2608:9:",
+            "assertion failed: Database::bind_cooldown_patch_tx(&tx, id, &message, None,",
+            "            Some(1)).await.is_err()",
+            "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+            "FAILED",
+            "",
+            "failures:",
+            "thread 'db::cooldown::tests::test_cooldown_patch_binding_snapshot_keeps_collision_and_quarantine' (3261) panicked at src/db/cooldown.rs:2608:9:",
+            "assertion failed: Database::bind_cooldown_patch_tx(&tx, id, &message, None,",
+            "            Some(1)).await.is_err()",
+            "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+            "FAILED",
+            "",
+            "failures:",
+            ""
+          ]
+        },
+        {
+          "name": "ignore-ingestion",
+          "status": "KILLED",
+          "log_sha256": "381c7a2c6107b8383610e3d16d972ec2f75d95af190ddd444c703dbd856270be"
+        },
+        {
+          "name": "review-privacy",
+          "status": "KILLED",
+          "log_sha256": "8ae65bec5a9cf3172e74337e2f24b76ba6426ee307151f7d5687b7bf6661d872"
+        },
+        {
+          "name": "cancel-watch",
+          "status": "KILLED",
+          "log_sha256": "4056b01dba6c24569c1d543838a85f4995989167f95aed2f05f77b05140a2443"
+        },
+        {
+          "name": "task-abort",
+          "status": "KILLED",
+          "log_sha256": "227f77e7af913113ef28c9fc25794de9dc51594d79708fd8d48c1b7bb292eaab"
+        }
+      ],
+      "source_checks": [
+        {
+          "phase": "response-lint",
+          "summaries": [
+            "test result: ok. 989 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 7.00s",
+            "test result: ok. 46 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s",
+            "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+            "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s"
+          ]
+        },
+        {
+          "phase": "prerequisite",
+          "summaries": [
+            "test result: ok. 995 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 6.55s",
+            "test result: ok. 46 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s",
+            "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+            "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s"
+          ]
+        },
+        {
+          "phase": "adaptive",
+          "summaries": [
+            "test result: ok. 1032 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 10.95s",
+            "test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s",
+            "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+            "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s"
+          ]
+        }
+      ],
+      "source_equivalence": "PASS: complete production paths match",
+      "patch_hashes": {
+        "0001-server-allow-concrete-extractor-rejection-response-s.patch": "8fcd73ae828189badd815813e5f0554ae1b4bf57226a476f79cc8130dabfd959",
+        "0003-mail-add-opt-in-per-author-publication-cooldowns.patch": "1a47b118f01d8c007d04582da3c305eb68105ef43adaa2ebf475c624c1d77cc7",
+        "0002-db-retire-superseded-series-reviews-awaiting-publica.patch": "3f155172449cbd52dc42f8ac42c27e8ec734008736798cc93cbee67ae472a89b"
+      }
+    }
+  },
+  "historical": {
+    "run": 39336256859,
+    "job": 118346385157,
+    "artifact": 12226673831,
+    "manifest": {
+      "status": "PASS",
+      "archive_url": "https://raw.githubusercontent.com/git/git/ba4324c4e1e32a28381ea1f4835b78e4c9d45575/t/t5100/sample.mbox",
+      "provenance": "https://github.com/git/git/commit/b0921331030d52febf52839753eee1b2b9ca1f24",
+      "checkpoint": "8d86c4937f17864e6cfb162ca992971b8cc379fb",
+      "checks": [
+        {
+          "name": "prepare",
+          "status": "PASS"
+        },
+        {
+          "name": "read-only write negative control",
+          "status": "PASS"
+        },
+        {
+          "name": "replay-0",
+          "status": "PASS"
+        },
+        {
+          "name": "replay-1",
+          "status": "PASS"
+        },
+        {
+          "name": "replay-2",
+          "status": "PASS"
+        },
+        {
+          "name": "read-only write negative control",
+          "status": "PASS"
+        },
+        {
+          "name": "source DB unchanged",
+          "status": "PASS"
+        },
+        {
+          "name": "tracked repository unchanged",
+          "status": "PASS"
+        },
+        {
+          "name": "frozen admission unchanged across three restarted replays",
+          "status": "PASS"
+        }
+      ],
+      "limitations": [
+        "One real 2005 Gmane mailing-list message preserved in Git test corpus; not a modern activity dataset.",
+        "Git maintains the archived fixture and has adjusted encoding syntax; this is not an untouched direct archive download.",
+        "Protected database is an isolated seeded source snapshot, not a supplied production database.",
+        "No review model, publication worker, actual email or external integration runs."
+      ],
+      "transport": "pinned Git corpus copy of 2005 Gmane mailing-list message",
+      "corpus_git_blob": "4a54ee517198cf218d330bdc4cd93cd279abcf0e",
+      "corpus_sha256": "c1b7fc338ed7f0f3dbf6de5108f80355f3966f41cc88b6b169c25ae9185db1bc",
+      "historical_date": "Mon, 15 Aug 2005 20:18:25 +0200",
+      "archive_sha256": "a191fcedd79cb128e8e01287ce811e47cd1220e37fea775b62cee67f3ae3570c",
+      "binary_sha256": "dfff1abad579100a17f2b0ce0c21097da845fd34128eee16edaaec26c0e3f108",
+      "protected_source_sha256_before_and_after": "c938c2335564c80934a58cfb4a037dc3ce7aa4ab8846e891ffed85f4a8d1e0be",
+      "replay_performed": true
+    }
+  },
+  "strict_native": {
+    "run": 39336545890,
+    "job": 118347358926,
+    "artifact": 12227336043,
+    "manifest": {
+      "status": "PASS",
+      "checkpoint": "ab5c5685d04e7e3134cd28f767a9a94a1dad99df",
+      "production_base": "bd59059f1864aea81b11b5de0eb97e5d2ec53667",
+      "source_sha256": {
+        "src/main.rs": "953d9d47014fc6d43d68db0dee93838b271e863f88b0623888a309b7bc7e86b7",
+        "src/reviewer.rs": "dd5b9a6906ed05775907834191c39b75bdf9e430c0fdd619ab7314c0bf0baccb",
+        "src/db/cooldown.rs": "e06cc36cc4d9a4f63e69dff3ab98876fc40cbb64e51c096097da21ba29aa3882",
+        "src/cooldown.rs": "d4ab167d27628783ae25d5d47af2e4ae88e4cf45a8c8d4503cecd733004b024e",
+        "src/server.rs": "1c1116e7057fb611267f2b73a7c693cac4e9d86d34d9165b656a6756a0c51a05"
+      },
+      "fixture_sha256": {
+        "main_fixture.rs": "2ad96c5658c1ce36701b2da17ee78ef6ee0e6bba27e5258d718f1e56fbd1f99e",
+        "cancel_fixture.rs": "607d3e05976d252584fc42e541eccd0107322cf438352903de8d4968877236e4",
+        "reviewer_fixture.rs": "ccdafabef2cd25ad47c4f7f231b36ac045d850b8547acb0808913c8a82a3b1c1",
+        "db_fixture.rs": "cf0a442e67de178094ade9e47c9a39fdb63ea2ef745c0e676284efbeff1d1bf8",
+        "pure_fixture.rs": "4cd0894af7521e69c4131dd5653fc753a7a615c1560ba5cd8e079cdc2e1aa4ec",
+        "server_fixture.rs": "182def9492d0ca36651fc93ba6ce6c0471554b707acb2b4a289c411d5aa8050e"
+      },
+      "checks": [
+        {
+          "name": "ingestion-crosspost-ignore",
+          "test": "tests::test_det6_ingestion_crosspost_and_ignore_matrix",
+          "seconds": 0.5155796650000042,
+          "status": "PASS",
+          "case_markers": [
+            "ingestion=19 replay_each=2"
+          ]
+        },
+        {
+          "name": "enabled-routing",
+          "test": "reviewer::tests::test_det6_enabled_routing_and_integration_matrix",
+          "seconds": 0.565335599000008,
+          "status": "PASS",
+          "case_markers": [
+            "notification_policy=16 earned_hold_each=3600"
+          ]
+        },
+        {
+          "name": "clock-jumps",
+          "test": "db::cooldown::tests::test_det6_forward_clock_release_is_irreversible",
+          "seconds": 0.06419079300000874,
+          "status": "PASS",
+          "case_markers": [
+            "selector_clock_instants=7 forward_admission=1 backward_rejection=1"
+          ]
+        },
+        {
+          "name": "cancel-admission",
+          "test": "db::cooldown::tests::test_det6_cancel_uncommitted_admission_releases_writer",
+          "seconds": 0.11428689599999586,
+          "status": "PASS",
+          "case_markers": []
+        },
+        {
+          "name": "bound-sql",
+          "test": "db::cooldown::tests::test_det6_bound_sql_payloads_preserve_schema_and_dedup",
+          "seconds": 0.6656492740000033,
+          "status": "PASS",
+          "case_markers": []
+        },
+        {
+          "name": "malformed-canaries",
+          "test": "cooldown::tests::test_det6_malformed_identity_and_id_errors_do_not_echo_inputs",
+          "seconds": 0.007909318999992365,
+          "status": "PASS",
+          "case_markers": []
+        },
+        {
+          "name": "private-routes-traces",
+          "test": "server::tests::test_det6_held_and_quarantined_canaries_stay_private",
+          "seconds": 0.11424486399999978,
+          "status": "PASS",
+          "case_markers": [
+            "visibility_states=2 public_paths=6 authorized_paths=3 trace_canaries=3"
+          ]
+        },
+        {
+          "name": "abort-transport-recover",
+          "test": "tests::test_det6_abort_adaptive_transport_then_recover",
+          "seconds": 0.2646597350000093,
+          "status": "PASS",
+          "case_markers": [
+            "transport_abort=1 child_reaped=1 fresh_lease_preserved=1 expired_lease_recovered=1 accepted=1"
+          ]
+        },
+        {
+          "name": "negative-ignore-ingestion",
+          "test": "tests::test_det6_ingestion_crosspost_and_ignore_matrix",
+          "seconds": 0.4651630520000083,
+          "status": "KILLED",
+          "case_markers": []
+        },
+        {
+          "name": "unrelated-under-ignore-ingestion",
+          "test": "cooldown::tests::test_det6_malformed_identity_and_id_errors_do_not_echo_inputs",
+          "seconds": 0.007889508000005208,
+          "status": "PASS",
+          "case_markers": []
+        },
+        {
+          "name": "negative-review-privacy",
+          "test": "server::tests::test_det6_held_and_quarantined_canaries_stay_private",
+          "seconds": 0.06423715900001525,
+          "status": "KILLED",
+          "case_markers": []
+        },
+        {
+          "name": "unrelated-under-review-privacy",
+          "test": "cooldown::tests::test_det6_malformed_identity_and_id_errors_do_not_echo_inputs",
+          "seconds": 0.007897315999969123,
+          "status": "PASS",
+          "case_markers": []
+        },
+        {
+          "name": "restored-privacy",
+          "test": "server::tests::test_det6_held_and_quarantined_canaries_stay_private",
+          "seconds": 0.11426658800002087,
+          "status": "PASS",
+          "case_markers": [
+            "visibility_states=2 public_paths=6 authorized_paths=3 trace_canaries=3"
+          ]
+        }
+      ],
+      "mutants": [
+        {
+          "name": "ignore-ingestion",
+          "status": "KILLED",
+          "target": "tests::test_det6_ingestion_crosspost_and_ignore_matrix",
+          "binary_sha256": "17c0744ed97c37733aeb003726aaf7a1c8361c3520a3ceba676b4c025862d330"
+        },
+        {
+          "name": "review-privacy",
+          "status": "KILLED",
+          "target": "server::tests::test_det6_held_and_quarantined_canaries_stay_private",
+          "binary_sha256": "b6b051bd75b9895949399daaf648c3ee33b441e509dc03b955ee27c679516e8b"
+        }
+      ],
+      "limitations": [
+        "Temporary databases, fixed fixture review outputs, local recording sendmail; no model calls or external delivery.",
+        "Clock tests drive explicit scheduling/admission time parameters, not the host wall clock.",
+        "Resource tests cover bounded corpus and configured ceilings, not a universal allocation bound.",
+        "Privacy test covers public review/details/summary routes and captured handler tracing; actual model-provider logs are not exercised.",
+        "Cancellation covers uncommitted admission and pre-acceptance sendmail, not every detached review-task or SMTP acknowledgement window.",
+        "Policy agreement, permanent storage and indivisible ownership-group limitations remain open."
+      ],
+      "initial_binary_sha256": {
+        "bin": "786b9c17cfcd8370d51c8bf6a3fd487c4b2464fe6f5fa817d409eeb489d7f611",
+        "lib": "4324e53dc3f126c51b0c0e98524fdae9df7aa958c291e7d3981e6005b7b24ce9"
+      },
+      "source_restored": true
+    },
+    "full_suite": {
+      "passed": 1111,
+      "ignored": 2,
+      "fmt": "PASS",
+      "clippy_profiles": 3
+    }
+  },
+  "operational": {
+    "run": 39338177473,
+    "job": 118352815564,
+    "artifact": 12227831905,
+    "manifest": {
+      "status": "PASS",
+      "base": "7f92f869a960a20f7d395550b4879d897ebdf4ea",
+      "checks": [
+        {
+          "phase": "prepare",
+          "status": "PASS"
+        },
+        {
+          "phase": "candidate-before-stop",
+          "status": "PASS",
+          "actual_daemon": true,
+          "http_health": 200,
+          "review_concurrency": 0,
+          "dry_run": true
+        },
+        {
+          "phase": "unsafe-copy",
+          "status": "PASS"
+        },
+        {
+          "phase": "quiesce",
+          "status": "PASS"
+        },
+        {
+          "phase": "old-after-quiesce",
+          "status": "PASS",
+          "actual_daemon": true,
+          "http_health": 200,
+          "review_concurrency": 0,
+          "dry_run": true
+        },
+        {
+          "phase": "safe-old-access",
+          "status": "PASS"
+        },
+        {
+          "phase": "verify",
+          "status": "PASS"
+        },
+        {
+          "phase": "candidate-after-restore",
+          "status": "PASS",
+          "actual_daemon": true,
+          "http_health": 200,
+          "review_concurrency": 0,
+          "dry_run": true
+        },
+        {
+          "phase": "resume",
+          "status": "PASS"
+        }
+      ],
+      "checkpoint": "80f53560be72fd206514d63130d5061b9434ed6f",
+      "limitations": [
+        "Runs actual old/new daemon binaries on loopback plus native database fixtures; not a deployment.",
+        "Review concurrency zero is a test-only pause; all transports are dry-run and runtime network proxies refuse egress.",
+        "Unsafe claims are demonstrated only on a copied native fixture; daemon delivery workers run in dry-run with guarded pending work and no external service access.",
+        "Restoration assumes all ingestion, review and delivery processes are stopped and no new work was accepted during old-version access.",
+        "Stopped-system backup/restore includes old/new daemon cold starts; no live rolling upgrade or real remote acknowledgement is exercised."
+      ],
+      "candidate_binary_sha256": "4776a86bd23e5568e1a435ac472481ad1858aa229b156b65631cfd438113c6be",
+      "candidate_daemon_sha256": "45a0764992b8c26aa0089715afb24bc7eea417c0857efe30fb2e80cb30221ed6",
+      "old_binary_sha256": "0349804dca2fd9226a027423aa8c0b26426e9970298045b92c3b70952288283c",
+      "old_daemon_sha256": "dcbb6242202bdd76206c66d22733e025c9aec94f57b86e3df803b31dbae093aa",
+      "preserved_pending_state_sha256": "876d550bf49cc927115d13f14c860ea3dd9adb2ff79d8a7a54213e732e99cc22",
+      "pending_work_restore": "PASS: complete recorded pending state restored before candidate resume"
+    }
+  },
+  "model": {
+    "complete": false,
+    "initial": {
+      "run": 39336060768,
+      "artifact": 12225604864,
+      "diagnosis": {
+        "status": "INCOMPLETE",
+        "model": "gemini-3.8-flash",
+        "error": "model review did not complete all patches",
+        "last_error": "provider proxy refused or failed request",
+        "agent_status": "error",
+        "reserved_usd": "0.06647850",
+        "calls": [
+          {
+            "number": 1,
+            "counted_input_tokens": 1835,
+            "reserved_input_tokens": 3883,
+            "maximum_output_tokens": 8192,
+            "reserved_usd": "0.03363225",
+            "status": "RETURNED",
+            "usage": {
+              "promptTokenCount": 1835,
+              "candidatesTokenCount": 49,
+              "thoughtsTokenCount": 640,
+              "cachedContentTokenCount": null,
+              "totalTokenCount": 2524
+            }
+          },
+          {
+            "number": 2,
+            "counted_input_tokens": 787,
+            "reserved_input_tokens": 2835,
+            "maximum_output_tokens": 8192,
+            "reserved_usd": "0.03284625",
+            "status": "DISPATCHED"
+          }
+        ],
+        "head": "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
+        "base": "f6e2e172e1e669b6767a4c74fe91d062b41fd71c",
+        "maximum_usd_this_attempt": "2.25",
+        "agent": {
+          "status": "error",
+          "error": "patch 1: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n\nCaused by:\n    0: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n    1: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}; patch 2: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n\nCaused by:\n    0: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n    1: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}; patch 3: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n\nCaused by:\n    0: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n    1: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}",
+          "partial": true,
+          "findings": [],
+          "concerns": []
+        }
+      }
+    },
+    "followup": {
+      "run": 39336513028,
+      "artifact": 12227036289,
+      "manifest": {
+        "status": "INCOMPLETE",
+        "model": "gemini-3.6-flash",
+        "maximum_usd_this_attempt": "2.25",
+        "maximum_seconds_this_attempt": 600,
+        "overall_authorization": "initial plus at most one follow-up; $4.50 and 20 minutes total",
+        "pricing_source": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricing_checked_utc": "2026-10-19",
+        "input_usd_per_million": "0.75",
+        "output_usd_per_million_including_thinking": "3.75",
+        "reserved_usd": "0.03363225",
+        "calls": [
+          {
+            "number": 1,
+            "counted_input_tokens": 1835,
+            "reserved_input_tokens": 3883,
+            "maximum_output_tokens": 8192,
+            "reserved_usd": "0.03363225",
+            "status": "DISPATCHED"
+          }
+        ],
+        "limitations": [
+          "Model review is advisory; deterministic checks remain required.",
+          "A timeout, exhausted budget, partial result or missing patch result is not a clean review."
+        ],
+        "base": "f6e2e172e1e669b6767a4c74fe91d062b41fd71c",
+        "head": "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
+        "command": [
+          "/home/runner/work/sashiko/sashiko/target/debug/sashiko",
+          "--project",
+          "sashiko",
+          "review",
+          "--settings",
+          "/home/runner/work/sashiko/sashiko/adaptive-model-review-results/review-settings.toml",
+          "--agent",
+          "f6e2e172e1e669b6767a4c74fe91d062b41fd71c..6667a81cd25a69feca76e65d94aacb4c83b2ce72"
+        ],
+        "provider_failure": {
+          "action": "generateContent",
+          "http_status": 503
+        },
+        "last_error": "provider proxy refused or failed request",
+        "agent_status": "error",
+        "findings": [],
+        "concerns": [],
+        "agent_sha256": "d3b5cd4a75fa02be9e79d72328aa134a61f3ff3ed35e5dcbef83d0b5651485d6",
+        "error": "model review did not complete all patches"
+      }
+    },
+    "attempts_used": 2,
+    "combined_reserved_usd": "0.10011075",
+    "actual_billing": "UNKNOWN",
+    "calls_disabled": true,
+    "returned_generation_responses": 1,
+    "uncertain_generation_requests": 2,
+    "earlier_smoke_requests": "separate historical requests;not included in this round's reservations"
+  },
+  "maintainer_policy": {
+    "posted": false,
+    "agreed": false,
+    "repository": "sashiko-dev/sashiko",
+    "result": "403 Resource not accessible by integration",
+    "proposal": ".github/ADAPTIVE_MAINTAINER_POLICY_RFC.md"
+  },
+  "partial_scenario_assessments": [
+    {
+      "id": "A02",
+      "decision": "Maintainer policy decision",
+      "technical": "Omitted and explicit false cases pass through real ingestion. Numeric defaults never enable a list. Explicit enablement is a per-list decision.",
+      "limitation": "This deliberately does not inherit an enabled flag. The condensed requirement does not determine a different boolean-inheritance policy.",
+      "required": "Accept explicit per-list enablement and false/omitted behavior, or specify a different inheritance rule.",
+      "evidence": [
+        "CONFIG",
+        "FOCUS",
+        "ROUTING"
+      ]
+    },
+    {
+      "id": "A03",
+      "decision": "Maintainer policy decision",
+      "technical": "Existing fixed-embargo zero/NULL and inherited numeric settings pass. Invalid enabled adaptive limits are rejected.",
+      "limitation": "Enabled adaptive window/step/cap must be positive; permitting zero is a policy change, not a missing arithmetic test.",
+      "required": "Accept positive-only adaptive parameters or define zero meanings before changing validation.",
+      "evidence": [
+        "CONFIG",
+        "FOCUS"
+      ]
+    },
+    {
+      "id": "A06",
+      "decision": "Maintainer policy decision",
+      "technical": "Nineteen actual ingestion cases, each replayed twice, include To/Cc/NNTP matches, ignored authors, cross-posts and opt-outs.",
+      "limitation": "Multiple configured matches deliberately select shared legacy handling; they do not choose the strongest adaptive policy.",
+      "required": "Accept cross-post legacy fallback, including one opted-out list, or choose an explicit precedence rule.",
+      "evidence": [
+        "ROUTING"
+      ]
+    },
+    {
+      "id": "D06",
+      "decision": "Unresolved resource exception",
+      "technical": "Paused external transport permits unrelated writes; independent-writer contention controls pass. Ordinary bounded accounting uses indexed history and bounded part validation.",
+      "limitation": "An indivisible canonical ownership group is quarantined in one writer transaction. Its size and writer-hold time do not have a general finite bound.",
+      "required": "Maintainer acceptance of this explicit exception or a designed, validated reconciliation/quarantine redesign. Existing ordinary-workload timings do not waive it.",
+      "evidence": [
+        "PROBE",
+        "ROUTE",
+        "NATIVE"
+      ]
+    },
+    {
+      "id": "F02",
+      "decision": "Unresolved adversarial identity policy",
+      "technical": "Normalized author/list scope and capped frozen time delay are tested; malformed identities do not share an unknown key.",
+      "limitation": "From is not authenticated. Spoofing a victim address can affect that scope. Conflicting source/Message-ID ownership is fail-closed and can remain quarantined until operator repair; the time-delay cap is not a quarantine-duration cap.",
+      "required": "Accept the trust/quarantine tradeoff for opt-in lists or require authenticated identity/provenance and define conflict recovery. Do not claim spoof-resistant attribution.",
+      "evidence": [
+        "SUITE",
+        "MUT",
+        "BOUNDED"
+      ]
+    },
+    {
+      "id": "F04",
+      "decision": "Unresolved retention/resource policy",
+      "technical": "Maximum supported parts, bounded indexed history, pruning and 10,000 archived owners are exercised. Replays retain frozen deduplication ownership.",
+      "limitation": "Permanent tombstones grow with unique revisions; indivisible quarantine groups remain unbounded. There is no fixed global storage guarantee.",
+      "required": "Accept retention growth/operational capacity planning, or specify safe expiration/replay-horizon semantics and redesign. Deleting tombstones to make a test pass would break replay protection.",
+      "evidence": [
+        "NATIVE",
+        "PERF",
+        "PROBE",
+        "SQLITE"
+      ]
+    },
+    {
+      "id": "F05",
+      "decision": "Bounded validation; broader input bound unresolved",
+      "technical": "64 SQL-like payloads replay without schema change; 41 invalid authors and six invalid IDs reject, with valid controls. Compact-source facts and a 1 MiB subject are exercised.",
+      "limitation": "This is not exhaustive MIME fuzzing or a universal allocation proof. Parsing, hashing/compression and preprocessing still do work proportional to untrusted input before the writer lock.",
+      "required": "Accept the recorded incremental-feature scope, or define upstream ingestion size/time budgets and run a wider parser/allocation audit before claiming the full requirement.",
+      "evidence": [
+        "BOUNDED",
+        "NATIVE"
+      ]
+    },
+    {
+      "id": "F06",
+      "decision": "VERIFIED within recorded affected-workflow scope",
+      "technical": "Strict transport PID disappearance, lease/reopen/single recording, admission abort/rollback/retry, and active-review provider-future/permit/child cleanup pass. Full restored-source1111 tests and required profiles pass.",
+      "limitation": "Remote delivery accepted before cancellation cannot be recalled; this does not prove every possible unrelated detached-task interleaving.",
+      "required": "Preserve the tested scope and remote acknowledgement limitation; no current cancellation-fixture gap remains.",
+      "evidence": [
+        "CANCEL",
+        "STRICT"
+      ]
+    },
+    {
+      "id": "F07",
+      "decision": "Bounded diagnostic audit; broader logging scope unresolved",
+      "technical": "Held/quarantined public handlers and tracing pass three fake canaries, with authorized positive views. Budget proxy self-tests keep reflected provider secret/private canaries out of manifests.",
+      "limitation": "This is not an exhaustive audit of every upstream provider/debug logging path. Existing Gemini error classification can log provider error bodies after secret-pattern redaction; arbitrary private text is not universally removed.",
+      "required": "Accept a defined new-feature diagnostic scope or separately audit/change broader provider logging. Do not equate token-pattern redaction with complete content privacy.",
+      "evidence": [
+        "BOUNDED",
+        "MODEL"
+      ]
+    },
+    {
+      "id": "H07",
+      "decision": "VERIFIED within stopped-system rehearsal scope",
+      "technical": "Actual candidate/old/candidate daemons reached health and reviewer startup,then stopped. Exact pending-state equality held before backup and after untouched restore/restart;native resume selection passes.",
+      "limitation": "Review concurrency0 is a controlled pause;transports dry-run and runtime egress refused. No new work during old access;not a live rolling downgrade or remote delivery acknowledgement test.",
+      "required": "Use only the documented stopped-system procedure;preserve the operational assumptions.",
+      "evidence": [
+        "DAEMON"
+      ]
+    }
+  ],
+  "acceptance_counts": {
+    "VERIFIED": 55,
+    "PARTIAL": 8,
+    "BLOCKED": 1
+  },
+  "negative_results": [
+    {
+      "run": 39336225271,
+      "status": "FAIL",
+      "reason": "Generated Python byte/regex escapes invalidated corpus hashing. It was an invalid fixture,not archive unavailability;corrected before successful8d replay."
+    },
+    {
+      "run": 39336822289,
+      "status": "FAIL",
+      "reason": "Rehearsal public_base_url used loopback;daemon correctly rejected mail-link configuration. Fixed to reserved example hostname while listener stays loopback."
+    },
+    {
+      "run": 39337623161,
+      "status": "FAIL",
+      "reason": "Zero-part incomplete fixture correctly became Failed during interrupted-fetch recovery;quiesce rejected it. Fixed with one actual part and added unchanged-state assertions."
+    }
+  ],
+  "upstream_pr_opened": false,
+  "real_email_sent": false,
+  "deployed": false,
+  "ready": false,
+  "observed_upstream": "f6e2e172e1e669b6767a4c74fe91d062b41fd71c",
+  "observed_upstream_at_utc": "2026-10-19T22:58:52Z",
+  "pr685": {
+    "state": "open",
+    "merged": false,
+    "head": "bc3f5439ddb65f7d13908afb35c477aca00b280f"
+  },
+  "recorded_at_utc": "2026-10-19T22:58:52Z",
+  "final_metadata": {
+    "status": "PENDING",
+    "workflow": ".github/workflows/adaptive-final-readiness.yml"
+  }
+}

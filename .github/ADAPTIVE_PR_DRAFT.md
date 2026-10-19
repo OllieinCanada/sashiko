@@ -55,14 +55,13 @@ The checked source-only bundle contains three signed-off commits ending at
 6667a81cd25a69feca76e65d94aacb4c83b2ce72, tree
 d38b668f511e2e0972aa4588174a2c55f3582b30. Bundle HEAD is not a published branch.
 
-The final restored-source run39333925430 at d9cc305c8e000add224b93800d21e3edcefc8f11
+The final restored-source run 39336545890 at ab5c5685d04e7e3134cd28f767a9a94a1dad99df
 passes formatting, three Clippy feature profiles and the all-feature suite:
-1,111 tests passed and two ignored. All eight new focused fixtures pass.
-See .github/ADAPTIVE_DETERMINISTIC_EVIDENCE.md for exact hashes and scopes. Each source-only commit passed
+1, 111 tests passed and two ignored. All eight new focused fixtures pass.
+See .github/ADAPTIVE_COMPLETION_GATES.md for exact hashes and scopes. Each source-only commit passed
 make check-pr before creation and sign-off validation afterward. Independent
-artifact inspection verified the earlier bundle's source equivalence, patch
-hashes and actual test summaries. The refreshed documentation-only bundle
-passed its native checks; independent artifact inspection has not been repeated. Fork-only evidence/checkpoint files are excluded.
+artifact inspection verified the refreshed bundle's source equivalence, all
+three patch hashes and native check summaries, plus twelve mutation negatives. Fork-only evidence/checkpoint files are excluded.
 
 Focused regressions cover identical concurrent submissions and stale snapshots,
 failed/mixed/incomplete reviews, eligible work behind held queue heads,
@@ -83,22 +82,27 @@ Matched upstream performance passes unchanged ratio-of-medians limits:
 | Archived owners | Disabled / upstream | Enabled / disabled |
 | --- | ---: | ---: |
 | 0 | 1.1500 | 1.1137 |
-| 10,000 | 1.1486 | 1.1531 |
+| 10, 000 | 1.1486 | 1.1531 |
 
 These are 3-sample medians of an instrumentation-free debug synthetic workload,
 not production guarantees. Disabled mode retains about 15% measured overhead.
 A final individual fresh pair exceeds 20%; two earlier revisions failed the
 median budget. Their 18 samples each are retained alongside the final 18.
-Calibrated query API counts fell from 8,750 to 1,250 extra calls over baseline;
+Calibrated query API counts fell from 8, 750 to 1, 250 extra calls over baseline;
 this is not physical SQL statement count. Prior 844.91 ms and final-baseline
 150.31 ms writer outliers are preserved without assigning an unproven cause.
 No email-volume or model-token savings are claimed.
 
-The historical replay harness compiles and rejects writes to its read-only
-source fixture, but no actual archive replay ran: HTTPS returned 403 and NNTP
-timed out. The source fixture is not a production database.
+Historical replay now passes using one real2005 Gmane message preserved in
+Git's immutable test corpus. Three separate processes preserve one frozen
+admission and leave the protected source DB and tracked repository unchanged.
+The corpus has maintained encoding syntax; this is not a direct modern archive
+download or a full activity dataset. The protected source fixture is not a
+production database. Actual candidate/old/candidate daemon boots, quiesce,
+untouched backup restore and pending-work selection also pass on loopback,
+with review paused and transport dry-run.
 
-The 64-row matrix records 52 VERIFIED, 10 PARTIAL and two BLOCKED scenarios.
+The 64-row matrix records 55 VERIFIED, 8 PARTIAL and one BLOCKED scenarios.
 The new clock/routing/privacy/admission/transport and mock-provider cancellation
 checks pass within their documented scopes. Policy agreement, actual model
 self-review and the remaining feature-specific
@@ -106,11 +110,17 @@ coverage/operational gaps prevent a readiness claim.
 
 ## Self-review and publication gates
 
-The required Sashiko model review has not run. The repository secret is now
-present and provider authentication/model listing succeeded. Two tiny generation
-probes returned HTTP 503 without usage metadata. Calls remain paused; no charge,
-completed review or clean result is claimed. Initial plus at most one follow-up
-remain bounded by the user's authorization.
+Two real source-built Sashiko agent attempts on the checked bundle remain
+incomplete. Gemini 3.8 Flash returned one response before a later proxy failure;
+the single Gemini 3.6 follow-up returned generateContent HTTP 503. The combined
+conservative reservation is $0.10011075, not actual billing. No clean review is
+claimed; both bounded attempts are used and provider execution is disabled.
+
+The eight remaining partial scenarios have explicit technical justifications
+and required decisions in .github/ADAPTIVE_REMAINING_GATES.md. Documentation
+does not waive them. Posting the RFC upstream failed 403; there is no maintainer
+agreement. PR #685 remains open with migration 014 overlap; rebase, renumber and
+repeat applicable checks if it lands first.
 
 Before publication: record final checks and exact hashes, obtain maintainer
 policy agreement, complete model review and fix valid findings, refresh the

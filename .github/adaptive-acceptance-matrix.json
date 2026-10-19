@@ -7,7 +7,8 @@
   "observed_upstream_commits_since_base": 1,
   "pr685": {
     "state": "open",
-    "merged": false
+    "merged": false,
+    "head": "bc3f5439ddb65f7d13908afb35c477aca00b280f"
   },
   "source_only_bundle": {
     "head": "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
@@ -17,12 +18,12 @@
     "run": 39330032302,
     "artifact": 12224277238,
     "remote_branch_published": false,
-    "independent_bundle_inspection": "not repeated for refreshed documentation-only upstream bundle"
+    "independent_bundle_inspection": "PASS run39335945493 artifact12226558113"
   },
   "counts": {
-    "VERIFIED": 52,
-    "PARTIAL": 10,
-    "BLOCKED": 2
+    "VERIFIED": 55,
+    "PARTIAL": 8,
+    "BLOCKED": 1
   },
   "status_definitions": {
     "VERIFIED": "Direct executed evidence supports the scenario on the audited source within its stated scope; this is not proof of all inputs or current upstream.",
@@ -32,8 +33,8 @@
   },
   "evidence": {
     "SUITE": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39333925430",
-      "scope": "Exact checkpoint d9cc305c: all 8 focused fixtures, 2 compiled semantic mutants plus controls, injected-fixture Clippy, source restoration; make check-pr with fmt, Clippy all/minimal/cache, 1032 library +49 main +7 CLI +23 integration =1111 pass,2 ignored."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39336545890/artifacts/12227336043",
+      "scope": "PASS at ab5c568:all8 focused fixtures,2 compiled guard mutants and controls,strict transport PID disappearance,source restored;make check-pr fmt,three Clippy profiles and1111 tests passed/2 ignored."
     },
     "FOCUS": {
       "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285627",
@@ -84,27 +85,27 @@
       "scope": "Refreshed three-commit source-only bundle on f6e2e1 (PRESS.md-only upstream update); native make check-pr before each commit, DCO after each; clean checkout; model review blocked."
     },
     "INSPECT": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39321984128/artifacts/12219849932",
-      "scope": "Verified bundle HEAD/tree/source equivalence, patch SHA256, DCO trailers, all3 makecheck-pr summaries and8 semantic mutation failure contexts; no rebuilding/model calls. Historical inspection covers prior fa8a326 bundle, not refreshed 6667a81 bundle."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39335945493/artifacts/12226558113",
+      "scope": "Independent refreshed-bundle verification: HEAD6667a81/tree d38b668,all production paths equal bd59059,three patch digests and native before-commit check summaries verified;all12 compiled mutation negatives inspected."
     },
     "HISTORICAL": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320939517/artifacts/12219539032",
-      "scope": "Harness compiles; source fixture readonly write-negative passes. Actual archive replay BLOCKED: HTTPS403 and NNTP timeout on prior bounded attempt; replay_performed=false."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39336256859/artifacts/12226673831",
+      "scope": "PASS: real2005 Gmane singleton preserved in immutable Git test corpus;blob4a54ee5 identity control;three restarted ingestion replays;one frozen admission;query-only write negative;protected source DB and tracked repository unchanged. Curated encoding syntax;not direct modern archive download or production DB."
     },
     "RFC": {
       "url": "https://github.com/OllieinCanada/sashiko/blob/codex/held-series-ci-20261019/.github/ADAPTIVE_MAINTAINER_POLICY_RFC.md",
-      "scope": "Ready-to-post policy proposal; posting403; no issue/agreement."
+      "scope": "Complete policy proposal prepared;explicit upstream issue creation returned403 Resource not accessible by integration. No issue or maintainer agreement exists."
     },
     "MODEL": {
-      "scope": "LLM_API_KEY present; authenticated Gemini model listing accepted, intended model available. Two tiny generation probes returned HTTP 503, no usage returned. Actual Sashiko review NOT_RUN; calls paused.",
-      "url": "https://github.com/OllieinCanada/sashiko/blob/codex/held-series-ci-20261019/.github/ADAPTIVE_KEY_CHECK.md"
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39336513028/artifacts/12227036289",
+      "scope": "Two actual Sashiko agent attempts on checked bundle remain INCOMPLETE. Initial 3.8 Flash returned one response before later proxy failure (original HTTP status not recorded). Follow-up 3.6 Flash generateContent HTTP503. Reservations0.06647850+0.03363225=0.10011075 USD,not billing. Both attempts exhausted;workflow execution disabled."
     },
     "CLOCK": {
       "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39328125251",
       "scope": "Actual wall-clock shim with unchanged monotonic time: six process instants under UTC and America/New_York; actual ingestion/release/recording transport; observer confirms production eligibility now/count; source restored; all-feature Clippy passed."
     },
     "ROUTING": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39333925430/artifacts/12226376491",
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39336545890/artifacts/12227336043",
       "scope": "19 actual-ingestion cases, each replayed twice;16 earned-3600-second-hold notification policies: ignored/self/mute/empty, recipients, absent SMTP,dry-run,positive cases,Patchwork counts/payloads/recipients. All PASS, no external delivery."
     },
     "CANCEL": {
@@ -112,12 +113,20 @@
       "scope": "Persisted adaptive owner;actual stdio RPC loop and cancellation watcher with pending in-process mock provider. Child PID disappears,provider future drops,permit restores,no outbox,frozen decision stable. Two compiled mutants killed,unrelated/restored controls and fixture Clippy PASS. Overall workflow failed a separate invalid clock fixture."
     },
     "BOUNDED": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39333925430/artifacts/12226376491",
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39336545890/artifacts/12227336043",
       "scope": "Final PASS:7 explicit selector clock instants;64 SQL-like ID payloads replayed with exact schema/count equality;41 malformed authors and6 IDs;2 held/quarantined privacy states/public6 paths/authorized3 paths and3 handler-trace canaries;admission abort/rollback/retry;transport abort/lease/reopen/one accepted recording."
     },
     "NEWMUT": {
       "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39333925430/artifacts/12226376491",
       "scope": "Ignored-author ingestion and private-review embargo guard mutants compile and fail the intended assertions;unrelated controls and restored privacy PASS. CANCEL supplies two more compiled cancellation mutants. Twelve semantic mutants total including the earlier eight."
+    },
+    "STRICT": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39336545890/artifacts/12227336043",
+      "scope": "PASS at ab5c568:all8 focused fixtures,2 compiled guard mutants and controls,strict transport PID disappearance,source restored;make check-pr fmt,three Clippy profiles and1111 tests passed/2 ignored."
+    },
+    "DAEMON": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39338177473/artifacts/12227831905",
+      "scope": "PASS actual candidate/old/candidate daemon cold starts with HTTP health and reviewer-service startup;review concurrency0,dry-run transport,loopback listener,refused egress. Pending state unchanged before backup and after restored candidate restart;native unsafe-copy/quiesce/old-access/verify/resume controls pass. Not live rolling downgrade."
     }
   },
   "scenarios": [
@@ -439,9 +448,9 @@
     {
       "id": "F06",
       "requirement": "Cancellation cleans up tasks and prevents indefinite hangs.",
-      "status": "PARTIAL",
-      "evidence": "CANCEL actual active-review RPC positive,two semantic mutants,unrelated/restored controls;BOUNDED admission rollback/retry and transport abort/lease/reopen. All pass.",
-      "remaining_or_scope": "Scoped admission/review/transport cleanup demonstrated. Transport termination check permits dead/zombie, so immediate reaping is not proven there despite its historical marker; active-review child must disappear. Every detached-task path and remote SMTP acknowledgement remain outside scope."
+      "status": "VERIFIED",
+      "evidence": "STRICT requires full transport PID disappearance and lease/reopen/single recording;admission abort/rollback/retry;CANCEL actual active-review child/provider future/semaphore cleanup plus compiled mutants.",
+      "remaining_or_scope": "Affected local DB,active-review and recording-transport paths are exercised with bounded waits. No universal interleaving proof;remote acceptance already completed cannot be undone."
     },
     {
       "id": "F07",
@@ -453,9 +462,9 @@
     {
       "id": "F08",
       "requirement": "Read-only replay cannot alter real database or repository state.",
-      "status": "BLOCKED",
-      "evidence": "HISTORICAL read-only write-negative and compiled shadow harness; actual archive HTTPS403/NNTPtimeout.",
-      "remaining_or_scope": "No historical email replay performed. Requires an accessible actual public raw message/corpus; readonly source fixture is not real production state."
+      "status": "VERIFIED",
+      "evidence": "HISTORICAL actual maintained copy of archived2005 mail;three restarted replays,one unchanged admission,read-only write rejection,source DB hash and tracked-tree equality.",
+      "remaining_or_scope": "One Git-maintained Gmane fixture with adjusted encoding syntax;not a direct contemporary kernel archive download or full activity dataset. Protected DB is an isolated source fixture;no production DB was supplied."
     },
     {
       "id": "G01",
@@ -503,7 +512,7 @@
       "id": "G07",
       "requirement": "Run the required test suites on the exact final code revision.",
       "status": "VERIFIED",
-      "evidence": "SUITE exact d9cc305c checkpoint after fixture source restoration:1111 pass/2 ignored,fmt,three Clippy profiles. PREP checks three native source-only commits on f6 documentation-only refresh.",
+      "evidence": "STRICT exact audit checkpoint ab5c568 after source restoration:1111 passed/2 ignored,fmt,3 Clippy profiles. PREP checks each native source-only commit;INSPECT validates hashes/equivalence.",
       "remaining_or_scope": "Production runtime is unchanged bd59059;hashes/source guards recorded. Fork-only fixture/workflow changes do not alter the runtime. Any future production-source change requires fresh validation."
     },
     {
@@ -517,7 +526,7 @@
       "id": "H01",
       "requirement": "Record tested commit, command, environment, logs, and outcome.",
       "status": "VERIFIED",
-      "evidence": "SUITE plus .github/ADAPTIVE_DETERMINISTIC_EVIDENCE.md and adaptive-deterministic-evidence.json;prior analytical/performance evidence preserved.",
+      "evidence": "Current completion-gate report plus STRICT,HISTORICAL,DAEMON,INSPECT,MODEL;prior raw performance summaries and negative outcomes preserved.",
       "remaining_or_scope": "Exact source/base/tree/commands/environment/outcomes recorded. Artifacts expire after14days; analytical samples and summaries preserved in fork."
     },
     {
@@ -525,14 +534,14 @@
       "requirement": "Distinguish upstream failures from newly introduced failures.",
       "status": "VERIFIED",
       "evidence": "Untouched7f stable-Rust1.99.1 four result_large_err errors isolated;1.90 baseline does not reproduce. PREP first compatibility commit passes1065tests; final1111tests pass.",
-      "remaining_or_scope": "Upstream lint compatibility patch is separate and function-scoped. Invalid Date cursor/config fixture and packaging failures are retained as harness defects, not production regressions. New clock-retention,release-state and stale-WAL-cursor failures were harness defects;no production change was needed."
+      "remaining_or_scope": "Upstream lint compatibility patch is separate and function-scoped. Invalid Date cursor/config fixture and packaging failures are retained as harness defects, not production regressions. New clock-retention,release-state and stale-WAL-cursor failures were harness defects;no production change was needed. Daemon fixture first used a forbidden loopback link base,then a zero-part interrupted fetch;both production validations behaved correctly and corrected fixtures pass."
     },
     {
       "id": "H03",
       "requirement": "Refresh against upstream and revalidate the final diff.",
       "status": "VERIFIED",
-      "evidence": "Upstream f6e2e1 compared to7f92f8: PRESS.md only; merged f6d1a756; refreshed PREP checks pass before each of three native commits. Production runtime remains bd59059.",
-      "remaining_or_scope": "Upstream still f6e2e1 at22:25UTC. Performance is measured against7f runtime;PRESS.md-only refresh does not imply new performance measurement. Independent refreshed-bundle inspection is not repeated."
+      "evidence": "Upstream f6 documentation-only update merged and source bundle prepared;INSPECT verifies current bundle;STRICT full native and DAEMON/HISTORICAL source guards pass.",
+      "remaining_or_scope": "Upstream still f6e2e1 at22:58UTC;PRESS.md-only refresh. PR685 remains open with migration014 overlap;rebase,renumber and revalidate if it lands first."
     },
     {
       "id": "H04",
@@ -552,22 +561,22 @@
       "id": "H06",
       "requirement": "Required model-assisted self-review is completed or explicitly marked blocked.",
       "status": "BLOCKED",
-      "evidence": "MODEL authenticated model listing accepted;both tiny generation probes HTTP503;required model self-review NOT_RUN.",
-      "remaining_or_scope": "Provider authentication works; generation availability blocked the probes. No substitute mock/no-AI result counted as self-review. Calls currently paused."
+      "evidence": "MODEL actual source-built Sashiko agent commands ran but returned partial/error results;follow-up HTTP503.",
+      "remaining_or_scope": "Required complete model-assisted self-review remains blocked by provider failure. No clean result or complete finding assessment is claimed. Provider workflow is disabled after both bounded attempts."
     },
     {
       "id": "H07",
       "requirement": "Rehearse dry-run, rollback, and pending-work preservation.",
-      "status": "PARTIAL",
-      "evidence": "ROUTE local recording transport; OLD unsafe negative, stopped quiescence, exact backup restore, pending resume. New no-SMTP/dry-run queueing and adaptive admission/review/transport cancellation fixtures pass.",
-      "remaining_or_scope": "Pending-state preservation is now demonstrated in stopped DB rehearsal. Full production-daemon rollback, operational dry-run and in-flight cancellation matrix remain unverified."
+      "status": "VERIFIED",
+      "evidence": "DAEMON actual binaries healthy/stopped in candidate-old-candidate sequence,untouched backup restored with exact recorded pending-state equality;native pending selector resume;ROUTING dry-run and strict cancellation evidence.",
+      "remaining_or_scope": "Controlled stopped-system rehearsal on isolated SQLite fixtures. Reviews paused with concurrency0 and delivery dry-run;no work accepted during old access. No live deployment,rolling downgrade or remote acknowledgement proof."
     },
     {
       "id": "H08",
       "requirement": "No unauthorized emails, pushes, deployment changes, secret leaks, or paid calls.",
       "status": "VERIFIED",
-      "evidence": "Authorized fork checkpoints and two bounded provider smoke attempts; local recording transports; no upstream PR or deployment.",
-      "remaining_or_scope": "Two authorized tiny probes returned HTTP503 without usage metadata; no charge or savings claim. No provider call in deterministic coverage round; source publication separately gated."
+      "evidence": "Authorized fork checkpoints,read-only inspections,local recording/dry-run transports and two bounded model attempts;no upstream PR,deployment or real email.",
+      "remaining_or_scope": "Three generation requests in these2 review attempts:one returned usage,two uncertain failures;conservative reservations0.10011075 USD. Earlier2 smoke failures are separate;actual billing unknown. No extra calls or unauthorized publication."
     }
   ],
   "completion_gates": [
@@ -579,12 +588,12 @@
     {
       "requirement": "Recover historical tests and identify coverage gaps.",
       "status": "PARTIAL",
-      "assessment": "Existing regressions mapped and extended;64rows reconciled. Public archive replay blocked despite compiled readonly shadow harness."
+      "assessment": "Historical Gmane message preserved in pinned Git corpus replayed in3 native processes;protected source and tracked tree unchanged. All10 prior partial scenarios individually assessed;single curated historical sample is not a modern full activity corpus."
     },
     {
       "requirement": "Get maintainer agreement on the intended cooldown policy.",
       "status": "OPEN",
-      "assessment": "Policy RFC prepared. Posting403; no issue or agreement. Zero values/crosspost/fairness/storage/atomic ownership exception require decisions."
+      "assessment": "RFC prepared with policy,resource,identity and migration-coordination decisions. Upstream issue creation403;no posted issue or maintainer acceptance. This gate is open."
     },
     {
       "requirement": "Implement the smallest defensible change.",
@@ -594,7 +603,7 @@
     {
       "requirement": "Run all applicable regression and integration tests.",
       "status": "PARTIAL",
-      "assessment": "Required suite1111 pass/2 ignored,three Clippy profiles;8 new focused fixtures and4 new compiled guard mutants pass;clock run passes both time zones.52 VERIFIED/10 PARTIAL/2 BLOCKED scenarios remain scoped."
+      "assessment": "Required1111 tests/2 ignored,3 Clippy profiles,8 focused fixtures,12 semantic mutation guards,actual-clock tests,historical replay and actual-daemon stopped rollback pass.55 VERIFIED/8 PARTIAL/1 BLOCKED scenarios remain scoped;policy/resource/privacy decisions stay open."
     },
     {
       "requirement": "Validate performance and document tradeoffs.",
@@ -604,7 +613,7 @@
     {
       "requirement": "Complete applicable Sashiko self-review requirements.",
       "status": "BLOCKED",
-      "assessment": "Provider authentication accepted;generation probes HTTP503;required Sashiko review NOT_RUN and calls paused. Upstream bot review waits for separately approved PR."
+      "assessment": "Two actual source-built Sashiko agent attempts were incomplete. First returned one response then proxy failure;follow-up generateContent HTTP503. No clean/complete review;both bounded attempts used and workflow disabled."
     },
     {
       "requirement": "Confirm no regressions against upstream.",
@@ -614,33 +623,27 @@
     {
       "requirement": "Produce reproducible evidence with exact commit hashes.",
       "status": "VERIFIED",
-      "assessment": "Exact commits,commands,environment,hashes and outcomes preserved. Refreshed3-commit source-only bundle passes native checks and has patch hashes;independent inspection covers the previous bundle only. Raw artifacts expire after14days."
+      "assessment": "Refreshed bundle independently verified with exact source tree,three patches/native checks and12 mutation negatives;STRICT/HISTORICAL/DAEMON manifests preserve source,binary/input identities. Raw logs are artifacts with14-day retention;analytical summaries persist."
     },
     {
       "requirement": "Prepare a clean PR for separate approval before publishing.",
       "status": "PARTIAL",
-      "assessment": "Clean three-commit source bundle and .github/ADAPTIVE_PR_DRAFT.md prepared. Policy/model/coverage blockers remain. No upstream PR opened."
+      "assessment": "Checked3-commit source bundle and updated draft prepared. Required model review and maintainer decisions unresolved. PR685 migration014 overlap requires rebase/renumber/revalidation if it lands first. No upstream code PR opened."
     }
   ],
   "overall_ready_for_maintainer_review": false,
   "checklist_reconciliation_complete": true,
-  "historical_shadow_replay_performed": false,
+  "historical_shadow_replay_performed": true,
   "model_review_performed": false,
   "definition_of_complete": "The applicable tests pass, limitations are documented, existing behavior is preserved when disabled, and the implementation is ready for maintainer review—not merely that the checklist has been ticked.",
-  "observed_upstream_at_utc": "2026-10-19T22:25:15Z",
+  "observed_upstream_at_utc": "2026-10-19T22:58:52Z",
   "native_suite_checkpoint": {
-    "sha": "d9cc305c8e000add224b93800d21e3edcefc8f11",
+    "sha": "ab5c5685d04e7e3134cd28f767a9a94a1dad99df",
     "production_equivalent": true,
-    "production_paths_compared": [
-      "src",
-      "docs",
-      "designs",
-      "MAINTAINERS_GUIDE.md",
-      "Cargo.toml",
-      "Cargo.lock"
-    ],
-    "source_guard": "Both isolated runners reject differences from bd59059 on production paths and restore injected sources; full make check-pr follows restoration."
+    "source_guard": "Runtime paths unchanged from bd59059;injected sources restored before full make check-pr.",
+    "run": 39336545890
   },
   "new_focused_checkpoint": "d9cc305c8e000add224b93800d21e3edcefc8f11",
-  "new_focused_run": 39333925430
+  "new_focused_run": 39333925430,
+  "model_review_attempted": true
 }

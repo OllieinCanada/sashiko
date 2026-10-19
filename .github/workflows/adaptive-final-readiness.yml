@@ -1,0 +1,81 @@
+name: Final adaptive readiness metadata
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths: ['.github/workflows/adaptive-final-readiness.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify-final-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate audit metadata and sign-offs
+        run: |
+          python3 -m venv /tmp/adaptive-final-lint
+          /tmp/adaptive-final-lint/bin/pip install yamllint==1.37.1
+          export PATH="/tmp/adaptive-final-lint/bin:$PATH"
+          make check-pr RANGE=HEAD~1..HEAD
+          make sob RANGE=4c241f1569c5581c582b8feb78a7247b07cc2a38..HEAD
+          python3 - <<'PY'
+          import ast, json
+          from pathlib import Path
+          for path in Path(".github").rglob("*.py"):
+              ast.parse(path.read_text(), filename=str(path))
+          matrix = json.loads(Path(
+              ".github/adaptive-acceptance-matrix.json").read_text())
+          assert len(matrix["scenarios"]) == 64
+          assert len({row["id"] for row in matrix["scenarios"]}) == 64
+          counts = {}
+          for row in matrix["scenarios"]:
+              counts[row["status"]] = counts.get(row["status"], 0) + 1
+          assert matrix["counts"] == counts
+          assert matrix["overall_ready_for_maintainer_review"] is False
+          print("PASS Python syntax, JSON, 64 unique scenarios and honest gates")
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: >-
+            adaptive-source-preparation-010274b4d10a4db39cb7de2bcef0108a92bdc82b
+          run-id: 39330032302
+          github-token: ${{ github.token }}
+          path: final-source-artifact
+      - name: Verify entire production tree against exact bundled head
+        run: |
+          git bundle verify final-source-artifact/source-only.bundle
+          git fetch final-source-artifact/source-only.bundle HEAD
+          test "$(git rev-parse FETCH_HEAD)" = \
+            6667a81cd25a69feca76e65d94aacb4c83b2ce72
+          test -z "$(git diff --name-only \
+            6667a81cd25a69feca76e65d94aacb4c83b2ce72 HEAD -- \
+            . ':(exclude).github')"
+          python3 - <<'PY'
+          import json, subprocess
+          result = {
+              "status": "PASS",
+              "audit_checkpoint": subprocess.check_output(
+                  ["git", "rev-parse", "HEAD"], text=True).strip(),
+              "source_only_head":
+                  "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
+              "production_tree_equivalent": True,
+              "excluded_path": ".github",
+              "provider_calls": 0,
+              "upstream_pr_opened": False}
+          from pathlib import Path
+          Path("adaptive-final-metadata.json").write_text(
+              json.dumps(result, indent=2))
+          print(json.dumps(result, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adaptive-final-readiness-${{ github.sha }}
+          path: adaptive-final-metadata.json
+          retention-days: 14
+          if-no-files-found: warn

@@ -1,5 +1,10 @@
 # Adaptive cooldown deterministic coverage update
 
+> Historical snapshot before the completion-gate round. Current counts,
+> provider outcomes, refreshed inspection and actual-daemon rollback are in
+> [the completion-gate report](ADAPTIVE_COMPLETION_GATES.md).
+
+
 **Not ready for submission.** This report records additional deterministic
 coverage on unchanged production source. It does not complete maintainer policy
 agreement, historical archive replay, or the required Sashiko model review.

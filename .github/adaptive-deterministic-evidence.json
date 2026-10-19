@@ -444,5 +444,7 @@
     "make check-pr RANGE=HEAD~1..HEAD"
   ],
   "transport_scope_correction": "Transport fixture accepts dead/zombie as termination; its child_reaped marker is not immediate-reaping proof. Active-review fixture requires PID disappearance.",
-  "status": "PASS_WITH_COMPLETION_GAPS"
+  "status": "PASS_WITH_COMPLETION_GAPS",
+  "superseded_by": "adaptive-completion-gates.json",
+  "snapshot_note": "Preserved previous-round outcomes and negatives;current provider, historical replay, daemon rehearsal and acceptance status are in the completion-gate report."
 }
