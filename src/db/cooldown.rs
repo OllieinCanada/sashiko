@@ -200,8 +200,9 @@ impl Database {
         context: Option<&CooldownContext>,
         new_index: Option<u32>,
     ) -> Result<(CooldownBinding, bool)> {
-        let mut rows = conn.query(
-            "SELECT c.list, c.author, c.policy,
+        let mut rows = conn
+            .query(
+                "SELECT c.list, c.author, c.policy,
                     CASE WHEN b.patchset_id IS NOT NULL THEN 'blocked'
                          WHEN c.patchset_id IS NOT NULL THEN c.state
                          ELSE 'legacy' END,
@@ -210,9 +211,13 @@ impl Database {
              FROM (SELECT 1) seed
              LEFT JOIN review_cooldown_intents c ON c.patchset_id = ?
              LEFT JOIN review_cooldown_blocks b ON b.patchset_id = ?",
-            libsql::params![id, new_index, message, id, id],
-        ).await?;
-        let row = rows.next().await?.context("missing patch binding snapshot")?;
+                libsql::params![id, new_index, message, id, id],
+            )
+            .await?;
+        let row = rows
+            .next()
+            .await?
+            .context("missing patch binding snapshot")?;
         let collision = row.get::<i64>(4)? != 0;
         let binding = if row.get::<String>(3)? == "legacy" {
             CooldownBinding::Legacy
@@ -2609,5 +2614,4 @@ mod tests {
         assert!(db.claim_patchset_for_review(id).await?);
         Ok(())
     }
-
 }
