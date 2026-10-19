@@ -47,9 +47,11 @@ def test_module_end(source):
     return closing - 1
 
 ENV = os.environ.copy()
-ENV.update({"HTTP_PROXY": "http://127.0.0.1:9",
-            "HTTPS_PROXY": "http://127.0.0.1:9",
-            "NO_PROXY": "localhost,127.0.0.1", "RUST_BACKTRACE": "0"})
+ENV.update({"CARGO_NET_RETRY": "0", "CARGO_HTTP_TIMEOUT": "20"})
+TEST_ENV = ENV.copy()
+TEST_ENV.update({"HTTP_PROXY": "http://127.0.0.1:9",
+                 "HTTPS_PROXY": "http://127.0.0.1:9",
+                 "NO_PROXY": "localhost,127.0.0.1", "RUST_BACKTRACE": "0"})
 REPORT = {
     "status": "RUNNING",
     "checkpoint": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
@@ -81,11 +83,11 @@ TESTS = [
 def save():
     (OUT / "manifest.json").write_text(json.dumps(REPORT, indent=2) + "\n")
 
-def command(args, label, timeout, expected=0):
+def command(args, label, timeout, expected=0, runtime=False):
     print("START " + label, flush=True)
     started = time.monotonic()
     with (OUT / (label + ".log")).open("w") as stream:
-        process = subprocess.Popen(args, cwd=ROOT, env=ENV, stdout=stream,
+        process = subprocess.Popen(args, cwd=ROOT, env=TEST_ENV if runtime else ENV, stdout=stream,
                                    stderr=subprocess.STDOUT, start_new_session=True)
         try:
             code = process.wait(timeout=timeout)
@@ -105,7 +107,7 @@ def command(args, label, timeout, expected=0):
 
 def build(label):
     text, _ = command(
-        ["cargo", "test", "--locked", "--all-features", "--lib", "--bin", "sashiko",
+        ["cargo", "test", "--locked", "--offline", "--all-features", "--lib", "--bin", "sashiko",
          "--no-run", "--message-format=json"], label, 900)
     binaries = {}
     for line in text.splitlines():
@@ -128,7 +130,7 @@ def build(label):
 def test(binary, name, label, timeout, negative=False):
     text, seconds = command(
         [binary, name, "--exact", "--nocapture", "--test-threads=1"], label, timeout,
-        expected=101 if negative else 0)
+        expected=101 if negative else 0, runtime=True)
     summary = "0 passed; 1 failed" if negative else "1 passed; 0 failed"
     if "running 1 test" not in text or summary not in text:
         raise RuntimeError(label + ": missing exact-one-test control")
@@ -183,6 +185,7 @@ try:
             addition += "\n" + raw.decode()
         (ROOT / path).write_text(source[:closing] + addition + "\n" + source[closing:])
     save()
+    command(["cargo", "fetch", "--locked"], "fetch-locked-dependencies", 120)
     command(["cargo", "fmt", "--all"], "format-fixtures", 60)
     baseline = {p: (ROOT / p).read_text() for p in PATHS}
     patch = subprocess.check_output(["git", "diff", "--", *PATHS], text=True)
@@ -190,7 +193,7 @@ try:
     binaries = build("build-fixtures")
     for label, kind, target, seconds in TESTS:
         test(binaries[kind], target, label, seconds)
-    command(["cargo", "clippy", "--locked", "--all-targets", "--all-features",
+    command(["cargo", "clippy", "--locked", "--offline", "--all-targets", "--all-features",
              "--", "-D", "warnings"], "clippy-fixtures", 600)
     # Verify that the two new matrices detect removal of their intended guard.
     mutants = [
