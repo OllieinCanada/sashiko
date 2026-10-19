@@ -22,7 +22,10 @@
                 active.create_patch(prior, &msg, 1, "diff").await?;
                 let (held, _, msg) = seed(&active, "rollback-held", 1).await?;
                 let patch = active.create_patch(held, &msg, 1, "diff").await?;
-                seed(&active, "rollback-waiting", 2).await?;
+                let (waiting, _, message) = seed(&active, "rollback-waiting", 2).await?;
+                active.create_patch(waiting, &message, 1, "diff1").await?;
+                assert_eq!(db.get_patchset_status(waiting).await?.as_deref(), Some("Incomplete"));
+                assert_eq!(scalar(&db, "SELECT received_parts FROM patchsets WHERE total_parts=2").await?, 1);
                 db.insert_email_outbox(patch, "Pending", "sink@example.test", "", "held", &msg, "", "fixture").await?;
                 db.insert_patchwork_notification("Pending", "sink@example.test", "held notification", &format!("<{msg}>"), "", "fixture").await?;
                 db.insert_patchwork_outbox(&msg, "https://patchwork.example.test", "warning", "fixture", "https://review.example.test", "review").await?;

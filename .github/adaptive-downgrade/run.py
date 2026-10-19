@@ -133,7 +133,8 @@ def boot_daemon(binary, database, directory, label):
                 try:
                     with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(
                         "http://127.0.0.1:" + str(port) + "/health", timeout=1) as response:
-                        if response.status == 200:
+                        if (response.status == 200 and "Starting Reviewer service" in
+                                (OUT / (label + "-daemon.log")).read_text()):
                             break
                 except (OSError, urllib.error.URLError):
                     pass
@@ -203,7 +204,13 @@ try:
                                   "review_cooldown_exclusions", "review_cooldown_blocks",
                                   "review_cooldown_clock", "meta"]
                 }
+        before_startup = pending_state(database)
         boot_daemon(candidate_daemon, database, directory, "candidate-before-stop")
+        after_startup = pending_state(database)
+        if after_startup != before_startup:
+            REPORT["startup_changed_tables"] = [table for table in before_startup
+                if before_startup[table] != after_startup[table]]
+            raise RuntimeError("candidate startup changed the pending fixture before backup")
         # Back up after the real daemon has fully stopped, including startup metadata.
         with sqlite3.connect(database) as original:
             with sqlite3.connect(snapshot) as backup:
