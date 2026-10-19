@@ -2233,4 +2233,149 @@ mod tests {
         }
         Ok(())
     }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn test_cooldown_same_message_concurrent_replay_preserves_owner() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let settings = DatabaseSettings {
+            url: directory.path().join("same-message.db").to_string_lossy().into_owned(),
+            token: String::new(),
+        };
+        let first = Database::new(&settings).await?;
+        first.migrate().await?;
+        let second = Database::new(&settings).await?;
+        let ctx = context("list@example.test", "dev@example.test");
+        let first = first.with_cooldown_context(Some(ctx.clone()));
+        let second = second.with_cooldown_context(Some(ctx.clone()));
+        for trial in 0..4 {
+            let (id, _, message) = seed(&first, &format!("same-message-{trial}"), 1).await?;
+            let barrier = Arc::new(tokio::sync::Barrier::new(2));
+            let mut tasks = Vec::new();
+            for db in [first.with_cooldown_context(Some(ctx.clone())), second.with_cooldown_context(Some(ctx.clone()))] {
+                let barrier = barrier.clone();
+                let message = message.clone();
+                tasks.push(tokio::spawn(async move {
+                    barrier.wait().await;
+                    db.create_patch(id, &message, 1, "diff").await
+                }));
+            }
+            let a = tokio::time::timeout(std::time::Duration::from_secs(15), tasks.remove(0)).await???;
+            let b = tokio::time::timeout(std::time::Duration::from_secs(15), tasks.remove(0)).await???;
+            assert_eq!(a, b);
+            // Deterministically model a second caller whose pre-lock read saw
+            // no patch before the first writer committed this exact message.
+            let tx = first.begin_immediate_transaction().await?;
+            let outcome = Database::write_patch_transaction(
+                tx, None, id, &message, 1, libsql::Value::Text("diff".into()),
+                None, false, Some(&ctx), &crate::cooldown::content_fingerprint(b"diff"),
+            ).await?;
+            assert!(matches!(outcome, PatchWriteOutcome::SnapshotChanged));
+            assert_eq!(first.create_patch(id, &message, 1, "diff").await?, a);
+            assert_eq!(scalar(&first, "SELECT COUNT(*) FROM review_cooldown_events").await?, trial + 1);
+            assert_eq!(scalar(&first, "SELECT COUNT(*) FROM review_cooldown_intents WHERE state='blocked'").await?, 0);
+            assert_eq!(first.get_patchset_status(id).await?.as_deref(), Some("Pending"));
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_failed_and_partial_reviews_are_not_clean() -> Result<()> {
+        let db = database().await?;
+        let mut ctx = context("list@example.test", "dev@example.test");
+        ctx.policy.burst = 1;
+        let active = db.with_cooldown_context(Some(ctx));
+        let (prior, _, msg) = seed(&active, "unclean-prior", 1).await?;
+        admit_at(&active, prior, &msg, 1000).await?;
+        for (index, review_status, target_count, complete_count) in [
+            (0, "Failed", 1, 1),
+            (1, "Pending", 1, 1),
+            (2, "Reviewed", 2, 1),
+            (3, "Skipped", 1, 1),
+            (4, "Reviewed", 1, 0),
+        ] {
+            let (id, _, msg) = seed(&active, &format!("unclean-{index}"), 1).await?;
+            admit_at(&active, id, &msg, 1001 + index).await?;
+            let patch: i64 = db.conn.query("SELECT id FROM patches WHERE patchset_id=?", libsql::params![id]).await?
+                .next().await?.context("missing unclean patch")?.get(0)?;
+            for _ in 0..complete_count {
+                let review = db.create_review(id, Some(patch), "fixture", "no-model", None, None).await?;
+                if review_status != "Pending" {
+                    db.complete_review(review, review_status, "fixture incomplete output", None, None, None, None).await?;
+                }
+            }
+            db.conn.execute("UPDATE patchsets SET target_review_count=? WHERE id=?", libsql::params![target_count, id]).await?;
+            db.update_patchset_status(id, "Reviewed").await?;
+            assert_eq!(db.get_patchset_review_outcome(id).await?, PatchsetReviewOutcome::Incomplete);
+            assert!(!db.get_releasable_embargoed_patchsets(1006, 100).await?.iter().any(|p| p.id == id));
+            assert!(!db.claim_patchset_embargo_release(id, 1006).await?);
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_held_queue_head_does_not_starve_eligible_work() -> Result<()> {
+        let db = database().await?;
+        let mut ctx = context("list@example.test", "dev@example.test");
+        ctx.policy.burst = 1;
+        let active = db.with_cooldown_context(Some(ctx));
+        let (prior, _, msg) = seed(&active, "queue-prior", 1).await?;
+        active.create_patch(prior, &msg, 1, "diff").await?;
+        db.cancel_patchset(prior, false).await?;
+        let (held, _, held_msg) = seed(&active, "queue-held", 1).await?;
+        let held_patch = active.create_patch(held, &held_msg, 1, "diff").await?;
+        completed_fixture(&db, held, true).await?;
+        db.insert_email_outbox(held_patch, "Pending", "sink@example.test", "", "held", &held_msg, "", "held").await?;
+        db.insert_patchwork_outbox(&held_msg, "https://patchwork.example.test", "warning", "held", "https://review.example.test", "review").await?;
+        let (eligible, _, msg) = seed(&db, "queue-eligible", 1).await?;
+        let patch = db.create_patch(eligible, &msg, 1, "diff").await?;
+        assert_eq!(db.get_pending_patchsets(1).await?[0].id, eligible);
+        db.insert_email_outbox(patch, "Pending", "sink@example.test", "", "eligible", &msg, "", "eligible").await?;
+        db.insert_patchwork_outbox(&msg, "https://patchwork.example.test", "warning", "eligible", "https://review.example.test", "review").await?;
+        assert_eq!(db.lock_pending_email().await?.context("eligible mail was starved")?.patch_id, Some(patch));
+        assert_eq!(db.lock_pending_patchwork().await?.context("eligible patchwork was starved")?.patch_msg_id, msg);
+        completed_fixture(&db, eligible, true).await?;
+        db.set_patchset_embargo_until(eligible, 1).await?;
+        assert_eq!(db.get_releasable_embargoed_patchsets(chrono::Utc::now().timestamp(), 1).await?[0].id, eligible);
+        assert!(!db.claim_patchset_embargo_release(held, chrono::Utc::now().timestamp()).await?);
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn test_cooldown_independent_publication_claims_have_one_winner() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let settings = DatabaseSettings {
+            url: directory.path().join("publication-claims.db").to_string_lossy().into_owned(),
+            token: String::new(),
+        };
+        let first = Database::new(&settings).await?;
+        first.migrate().await?;
+        let second = Database::new(&settings).await?;
+        let mut ctx = context("list@example.test", "dev@example.test");
+        ctx.legacy_deadline = Some(chrono::Utc::now().timestamp() - 1);
+        let active = first.with_cooldown_context(Some(ctx));
+        let (id, _, msg) = seed(&active, "publication-race", 1).await?;
+        let patch = active.create_patch(id, &msg, 1, "diff").await?;
+        completed_fixture(&first, id, true).await?;
+        first.insert_email_outbox(patch, "Pending", "sink@example.test", "", "review", &msg, "", "body").await?;
+        first.insert_patchwork_outbox(&msg, "https://patchwork.example.test", "warning", "fixture", "https://review.example.test", "review").await?;
+        let barrier = Arc::new(tokio::sync::Barrier::new(2));
+        let mut tasks = Vec::new();
+        for db in [first, second] {
+            let barrier = barrier.clone();
+            tasks.push(tokio::spawn(async move {
+                barrier.wait().await;
+                let release = db.claim_patchset_embargo_release(id, chrono::Utc::now().timestamp()).await?;
+                let email = db.lock_pending_email().await?.is_some();
+                let patchwork = db.lock_pending_patchwork().await?.is_some();
+                Ok::<_, anyhow::Error>((release, email, patchwork))
+            }));
+        }
+        let a = tokio::time::timeout(std::time::Duration::from_secs(15), tasks.remove(0)).await???;
+        let b = tokio::time::timeout(std::time::Duration::from_secs(15), tasks.remove(0)).await???;
+        assert_eq!(u8::from(a.0) + u8::from(b.0), 1);
+        assert_eq!(u8::from(a.1) + u8::from(b.1), 1);
+        assert_eq!(u8::from(a.2) + u8::from(b.2), 1);
+        Ok(())
+    }
+
 }
