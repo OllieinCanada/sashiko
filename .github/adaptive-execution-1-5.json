@@ -1678,5 +1678,20 @@
       "python3 .github/adaptive-evidence-inspection/run.py"
     ],
     "model_review": "NOT RUN: sashiko --project sashiko review --settings EXTERNAL_SETTINGS --agent BASE..HEAD"
+  },
+  "fork_checkpoint_validation": {
+    "run": 39322395016,
+    "job": 118299470757,
+    "outcome": "DCO_MISMATCH",
+    "scope": "Historical fork-only API checkpoint commits; authenticated API author differs from native user.name/email. Not a source-only bundle defect. No history rewritten. Final connector checkpoint uses verified account trailer; original configured-user sign-off retained.",
+    "next_check_range": "HEAD~1..HEAD",
+    "source_bundle_signoffs": "PASS: all three actual native source-only commit authors match configured user and trailers",
+    "corrected_final": {
+      "commit": "da17c14ff411bbde8771dec12125d4b649cc7467",
+      "run": 39322533101,
+      "job": 118299951970,
+      "status": "PASS",
+      "scope": "HEAD~1..HEAD sign-off and YAML; artifact source-equivalence/mutation inspection; historical checkpoint DCO not repaired"
+    }
   }
 }
