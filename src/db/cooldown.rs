@@ -5,7 +5,8 @@
 use super::*;
 use crate::cooldown::{CooldownContext, CooldownPolicy, MAX_SERIES_PARTS, message_key};
 
-const COOLDOWN_OWNER_QUERY: &str = "SELECT patchset_id FROM review_cooldown_messages WHERE message_id = ?
+const COOLDOWN_OWNER_QUERY: &str =
+    "SELECT patchset_id FROM review_cooldown_messages WHERE message_id = ?
 UNION ALL
 SELECT p.id FROM patchsets p WHERE p.cover_letter_message_id = ?
 AND (EXISTS (SELECT 1 FROM review_cooldown_intents WHERE patchset_id = p.id)
@@ -685,7 +686,10 @@ mod tests {
         let sql = format!("EXPLAIN QUERY PLAN {COOLDOWN_OWNER_QUERY}");
         let mut rows = db
             .conn
-            .query(&sql, libsql::params![message.clone(), message.clone(), message])
+            .query(
+                &sql,
+                libsql::params![message.clone(), message.clone(), message],
+            )
             .await?;
         let mut plan = String::new();
         while let Some(row) = rows.next().await? {
