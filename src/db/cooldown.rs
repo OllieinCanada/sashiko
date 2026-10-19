@@ -2042,4 +2042,101 @@ mod tests {
         assert!(scalar(&db, "SELECT MAX(length(cooldown_facts)) FROM messages").await? < 512);
         Ok(())
     }
+    #[tokio::test]
+    async fn test_cooldown_seeded_restart_replay_trace() -> Result<()> {
+        for seed_value in [1_u64, 42, 7331] {
+            let directory = tempfile::tempdir()?;
+            let settings = DatabaseSettings {
+                url: directory
+                    .path()
+                    .join("trace.db")
+                    .to_string_lossy()
+                    .into_owned(),
+                token: String::new(),
+            };
+            let mut db = Database::new(&settings).await?;
+            db.migrate().await?;
+            let mut rng = fastrand::Rng::with_seed(seed_value);
+            let mut events: Vec<(String, String, i64)> = Vec::new();
+            let mut now = 1000_i64;
+            for iteration in 0..96 {
+                now += rng.i64(0..=5);
+                let list = format!("list{}@example.test", rng.u32(0..2));
+                let author = format!("dev{}@example.test", rng.u32(0..3));
+                let prior = events
+                    .iter()
+                    .filter(|(l, a, t)| *l == list && *a == author && *t > now - 100 && *t <= now)
+                    .count()
+                    .min(4) as u32;
+                // Independent small-state oracle, separate from the calculator.
+                let extra = match prior {
+                    0 | 1 => 0,
+                    2 => 10,
+                    3 => 20,
+                    _ => 30,
+                };
+                let expected = (extra > 0).then_some(now + extra);
+                let active = db.with_cooldown_context(Some(context(&list, &author)));
+                let (id, _, msg) =
+                    seed(&active, &format!("trace-{seed_value}-{iteration}"), 1).await?;
+                admit_at(&active, id, &msg, now).await?;
+                let mut decision=db.conn.query("SELECT prior_count,extra_seconds,decided_deadline FROM review_cooldown_intents WHERE patchset_id = ?",libsql::params![id]).await?;
+                let row = decision
+                    .next()
+                    .await?
+                    .context("missing generated decision")?;
+                assert_eq!(
+                    row.get::<u32>(0)?,
+                    prior,
+                    "seed {seed_value}, event {iteration}"
+                );
+                assert_eq!(
+                    row.get::<i64>(1)?,
+                    extra,
+                    "seed {seed_value}, event {iteration}"
+                );
+                assert_eq!(
+                    row.get::<Option<i64>>(2)?,
+                    expected,
+                    "seed {seed_value}, event {iteration}"
+                );
+                drop(decision);
+                drop(active);
+                events.push((list, author, now));
+                if iteration % 8 == 0 {
+                    drop(db);
+                    db = Database::new(&settings).await?;
+                    db.migrate().await?;
+                }
+                if extra > 0 && iteration % 10 == 0 {
+                    assert!(db.release_patchset_embargo(id, now).await?);
+                }
+                let snapshot_sql = "SELECT json_array(c.admitted_at,c.prior_count,c.extra_seconds,c.decided_deadline,c.released_at,p.embargo_until) FROM review_cooldown_intents c JOIN patchsets p ON p.id = c.patchset_id WHERE c.patchset_id = ?";
+                let before: String = db
+                    .conn
+                    .query(snapshot_sql, libsql::params![id])
+                    .await?
+                    .next()
+                    .await?
+                    .context("missing replay snapshot")?
+                    .get(0)?;
+                // Context-free replay after disable or a reconstructed process.
+                db.create_patch(id, &msg, 1, "diff").await?;
+                let after: String = db
+                    .conn
+                    .query(snapshot_sql, libsql::params![id])
+                    .await?
+                    .next()
+                    .await?
+                    .context("missing replay snapshot")?
+                    .get(0)?;
+                assert_eq!(before, after, "seed {seed_value}, replay {iteration}");
+                assert_eq!(
+                    scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+                    i64::from(iteration + 1)
+                );
+            }
+        }
+        Ok(())
+    }
 }
