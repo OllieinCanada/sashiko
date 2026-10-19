@@ -21,6 +21,12 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Check fork evidence changes
+        run: |
+          python3 -m venv /tmp/adaptive-evidence-lint
+          /tmp/adaptive-evidence-lint/bin/pip install yamllint==1.37.1
+          export PATH="/tmp/adaptive-evidence-lint/bin:$PATH"
+          make check-pr RANGE=b65433c57f4cb40a0d59778d1afa3a809e694229..HEAD
       - uses: actions/download-artifact@v4
         with:
           name: >-
