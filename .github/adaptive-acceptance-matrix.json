@@ -127,6 +127,10 @@
     "DAEMON": {
       "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39338177473/artifacts/12227831905",
       "scope": "PASS actual candidate/old/candidate daemon cold starts with HTTP health and reviewer-service startup;review concurrency0,dry-run transport,loopback listener,refused egress. Pending state unchanged before backup and after restored candidate restart;native unsafe-copy/quiesce/old-access/verify/resume controls pass. Not live rolling downgrade."
+    },
+    "FINALMETA": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39338897160/artifacts/12227612202",
+      "scope": "PASS all tracked production paths match exact bundled HEAD6667a81 when excluding .github only;YAML lint,all audit Python syntax,64-row JSON/count consistency,and all new audit-commit sign-offs pass. No provider call or PR publication."
     }
   },
   "scenarios": [
@@ -623,7 +627,7 @@
     {
       "requirement": "Produce reproducible evidence with exact commit hashes.",
       "status": "VERIFIED",
-      "assessment": "Refreshed bundle independently verified with exact source tree,three patches/native checks and12 mutation negatives;STRICT/HISTORICAL/DAEMON manifests preserve source,binary/input identities. Raw logs are artifacts with14-day retention;analytical summaries persist."
+      "assessment": "Refreshed bundle independently verified with exact source tree,three patches/native checks and12 mutation negatives;STRICT/HISTORICAL/DAEMON manifests preserve source,binary/input identities. Raw logs are artifacts with14-day retention;analytical summaries persist. FINALMETA proves all tracked production paths match the exact bundle,excluding .github only;final audit metadata/sign-offs pass."
     },
     {
       "requirement": "Prepare a clean PR for separate approval before publishing.",
@@ -634,7 +638,7 @@
   "overall_ready_for_maintainer_review": false,
   "checklist_reconciliation_complete": true,
   "historical_shadow_replay_performed": true,
-  "model_review_performed": false,
+  "model_review_performed": true,
   "definition_of_complete": "The applicable tests pass, limitations are documented, existing behavior is preserved when disabled, and the implementation is ready for maintainer review—not merely that the checklist has been ticked.",
   "observed_upstream_at_utc": "2026-10-19T22:58:52Z",
   "native_suite_checkpoint": {
@@ -645,5 +649,7 @@
   },
   "new_focused_checkpoint": "d9cc305c8e000add224b93800d21e3edcefc8f11",
   "new_focused_run": 39333925430,
-  "model_review_attempted": true
+  "model_review_attempted": true,
+  "model_review_completed": false,
+  "model_review_performed_scope": "Actual source-built agent attempts were executed;both incomplete. This is not a completed required self-review."
 }

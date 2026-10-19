@@ -884,7 +884,18 @@
   },
   "recorded_at_utc": "2026-10-19T22:58:52Z",
   "final_metadata": {
-    "status": "PENDING",
-    "workflow": ".github/workflows/adaptive-final-readiness.yml"
+    "status": "PASS",
+    "run": 39338897160,
+    "job": 118355227668,
+    "artifact": 12227612202,
+    "manifest": {
+      "status": "PASS",
+      "audit_checkpoint": "2f27dc419e39d76874849d0a6c36e01b88546650",
+      "source_only_head": "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
+      "production_tree_equivalent": true,
+      "excluded_path": ".github",
+      "provider_calls": 0,
+      "upstream_pr_opened": false
+    }
   }
 }

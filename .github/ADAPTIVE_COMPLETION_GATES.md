@@ -12,7 +12,7 @@ opened and no deployment or real email was sent.
 | Resolve or explicitly justify partial scenarios | All10 were assessed individually. Strict cancellation and stopped-daemon rollback gaps are closed within their scopes. Eight policy/resource/privacy scenarios remain partial;[technical justifications and required decisions](ADAPTIVE_REMAINING_GATES.md) do not waive them. |
 | Historical replay | Real2005 Gmane message preserved in Git's pinned corpus replayed in3 native processes. One frozen admission, read-only write rejection, source DB hash and tracked tree unchanged. This is a maintained fixture copy, not a modern full archive dataset. |
 | Maintainer agreement | Complete RFC prepared; upstream issue creation returned403 Resource not accessible by integration. No issue or agreement exists. [Proposal ready to post](ADAPTIVE_MAINTAINER_POLICY_RFC.md). |
-| Inspect bundle and verify final candidate | Independent refreshed-bundle inspection passed. Full strict native run passes1,111 tests/2 ignored, fmt and 3 Clippy profiles. Exact final production-tree metadata check is scheduled with this evidence commit. |
+| Inspect bundle and verify final candidate | Independent refreshed-bundle inspection passed. Full strict native run passes1,111 tests/2 ignored, fmt and 3 Clippy profiles. [Final production-tree metadata check passed](https://github.com/OllieinCanada/sashiko/actions/runs/39338897160):all tracked paths match the exact bundle,excluding .github only. YAML,Python syntax,64-row consistency and audit sign-offs pass. |
 
 Acceptance matrix: ** 55 VERIFIED / 8 PARTIAL / 1 BLOCKED**. Each verified row
 has a recorded scope. The single blocked row is model self-review; maintainer
@@ -38,7 +38,9 @@ not a published remote source branch. The refreshed bundle contains three
 properly signed-off native commits and passed make check-pr before each.
 
 Hosted Ubuntu 24.04; Rust 1.99.1; two Cargo build jobs. No production source changed
-in this completion round. Current upstream was rechecked unchanged at
+in this completion round. The final metadata check at
+2f27dc419e39d76874849d0a6c36e01b88546650 proves the complete tracked production
+tree equals the checked bundle;only .github is excluded. Current upstream was rechecked unchanged at
 2026-10-19 22: 58: 52 UTC. [PR 685](https://github.com/sashiko-dev/sashiko/pull/685)
 is still open and introduces migration 014; the candidate uses014/015, so it
 needs renumbering and revalidation if that branch lands first.

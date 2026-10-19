@@ -39,6 +39,8 @@ Bundled commits are not a published source branch.
 - **[STRICT](https://github.com/OllieinCanada/sashiko/actions/runs/39336545890/artifacts/12227336043)** — PASS at ab5c568: all 8 focused fixtures, 2 compiled guard mutants and controls, strict transport PID disappearance, source restored; make check-pr fmt, three Clippy profiles and 1,111 tests passed/2 ignored.
 - **[DAEMON](https://github.com/OllieinCanada/sashiko/actions/runs/39338177473/artifacts/12227831905)** — PASS actual candidate/old/candidate daemon cold starts with HTTP health and reviewer-service startup; review concurrency0, dry-run transport, loopback listener, refused egress. Pending state unchanged before backup and after restored candidate restart; native unsafe-copy/quiesce/old-access/verify/resume controls pass. Not live rolling downgrade.
 
+- **[FINALMETA](https://github.com/OllieinCanada/sashiko/actions/runs/39338897160/artifacts/12227612202)** — All tracked production paths match the exact bundle,excluding .github only;YAML,Python syntax,64-row consistency and audit sign-offs pass.
+
 ## Scenarios
 
 | ID | Requirement | Status | Evidence | Remaining limitation or scope |
