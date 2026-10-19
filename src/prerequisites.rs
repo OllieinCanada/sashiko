@@ -1291,18 +1291,24 @@ mod tests {
             token: String::new(),
         };
         let db = Database::new(&settings).await?;
-        db.conn
-            .execute_batch(
-                "CREATE TABLE patches (
-                    id INTEGER PRIMARY KEY,
-                    patchset_id INTEGER NOT NULL,
-                    message_id TEXT NOT NULL UNIQUE,
-                    part_index INTEGER,
-                    diff TEXT
-                );
-                PRAGMA user_version = 11;",
-            )
-            .await?;
+        // Construct a supported full v11 database. A patches-only mock omits
+        // the tables required by later application migrations.
+        for schema in [
+            include_str!("migrations/001_initial.sql"),
+            include_str!("migrations/002_bugs.sql"),
+            include_str!("migrations/003_email_outbox_kind.sql"),
+            include_str!("migrations/004_retire_folded_bug_pipelines.sql"),
+            include_str!("migrations/005_index_patches_message_id.sql"),
+            include_str!("migrations/006_repair_borrowed_series_names.sql"),
+            include_str!("migrations/007_fold_shadow_cover_rows.sql"),
+            include_str!("migrations/008_meta_table.sql"),
+            include_str!("migrations/009_patchset_maintainer_sections.sql"),
+            include_str!("migrations/010_forge_outbox.sql"),
+            include_str!("migrations/011_index_patchsets_mr_number.sql"),
+        ] {
+            db.execute_batch(schema).await?;
+        }
+        db.execute("PRAGMA user_version = 11", ()).await?;
 
         db.migrate().await?;
 
@@ -1326,7 +1332,7 @@ mod tests {
 
         let mut version = db.conn.query("PRAGMA user_version", ()).await?;
         let version: u32 = version.next().await?.expect("user version row").get(0)?;
-        assert_eq!(version, 13);
+        assert_eq!(version, 14);
         Ok(())
     }
 
