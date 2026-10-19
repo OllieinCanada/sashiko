@@ -68,6 +68,28 @@ fn get_optional_integer(row: &libsql::Row, index: i32) -> Result<Option<i64>> {
 }
 
 #[cfg(feature = "server")]
+const SUPERSEDED_SERIES_CANDIDATE_QUERY: &str =
+    "SELECT id, author, subject, subject_index, total_parts FROM (
+                     SELECT id, author, subject, subject_index, total_parts
+                     FROM patchsets
+                     WHERE id != ?
+                       AND status IN ('Fetching', 'Incomplete', 'Pending', 'In Review')
+                       AND date BETWEEN ? AND ?
+                     ORDER BY date DESC, id DESC
+                     LIMIT 100
+                 )
+                 UNION ALL
+                 SELECT id, author, subject, subject_index, total_parts FROM (
+                     SELECT id, author, subject, subject_index, total_parts
+                     FROM patchsets INDEXED BY idx_patchsets_held_series
+                     WHERE id != ?
+                       AND status = 'Reviewed' AND embargo_until IS NOT NULL
+                       AND date BETWEEN ? AND ?
+                     ORDER BY date DESC, id DESC
+                     LIMIT 100
+                 )";
+
+#[cfg(feature = "server")]
 const PATCH_WRITE_MAX_ATTEMPTS: usize = 3;
 
 #[cfg(feature = "server")]
@@ -2083,7 +2105,20 @@ impl Database {
             tx.commit().await?;
         }
 
+        // The held-series candidate lookup must not walk historical Reviewed
+        // rows that have no publication hold. Build this partial index outside
+        // an explicit transaction, as with earlier large-table index migrations.
         if current_version < 14 {
+            self.execute_batch(include_str!("migrations/014_held_series_index.sql"))
+                .await?;
+            self.execute("PRAGMA user_version = 14", ()).await?;
+        }
+
+        if current_version < 15 {
+            // Interim prototype databases used version 14 for cooldown state.
+            // Ensure the prerequisite index exists without replacing that state.
+            self.execute_batch(include_str!("migrations/014_held_series_index.sql"))
+                .await?;
             let tx = self.begin_immediate_transaction().await?;
             for (table, column) in [
                 ("messages", "cooldown_body_hash"),
@@ -2102,12 +2137,12 @@ impl Database {
                         .await?;
                 }
             }
-            tx.execute_batch(include_str!("migrations/014_publication_cooldown.sql"))
+            tx.execute_batch(include_str!("migrations/015_publication_cooldown.sql"))
                 .await?;
-            tx.execute("PRAGMA user_version = 14", ()).await?;
+            tx.execute("PRAGMA user_version = 15", ()).await?;
             tx.commit().await?;
         }
-        info!("Database schema is up to date at version 14.");
+        info!("Database schema is up to date at version 15.");
 
         Ok(())
     }
@@ -9623,25 +9658,7 @@ impl Database {
             .query(
                 // Preserve the existing active-series allowance independently
                 // of held reviews. Each group remains bounded to 100 rows.
-                "SELECT id, author, subject, subject_index, total_parts FROM (
-                     SELECT id, author, subject, subject_index, total_parts
-                     FROM patchsets
-                     WHERE id != ?
-                       AND status IN ('Fetching', 'Incomplete', 'Pending', 'In Review')
-                       AND date BETWEEN ? AND ?
-                     ORDER BY date DESC, id DESC
-                     LIMIT 100
-                 )
-                 UNION ALL
-                 SELECT id, author, subject, subject_index, total_parts FROM (
-                     SELECT id, author, subject, subject_index, total_parts
-                     FROM patchsets
-                     WHERE id != ?
-                       AND status = 'Reviewed' AND embargo_until IS NOT NULL
-                       AND date BETWEEN ? AND ?
-                     ORDER BY date DESC, id DESC
-                     LIMIT 100
-                 )",
+                SUPERSEDED_SERIES_CANDIDATE_QUERY,
                 libsql::params![
                     current_id,
                     window_start,
@@ -10669,6 +10686,26 @@ fn transactional_email_params(email: &TransactionalEmail<'_>) -> Result<libsql::
 
 #[cfg(all(test, feature = "server"))]
 mod tests {
+
+    #[tokio::test]
+    async fn test_held_series_candidates_use_partial_index() -> Result<()> {
+        let db = setup_db().await;
+        let sql = format!("EXPLAIN QUERY PLAN {SUPERSEDED_SERIES_CANDIDATE_QUERY}");
+        let mut rows = db
+            .conn
+            .query(&sql, libsql::params![0, 0, 2, 0, 0, 2])
+            .await?;
+        let mut plan = String::new();
+        while let Some(row) = rows.next().await? {
+            plan.push_str(&row.get::<String>(3)?);
+            plan.push('\n');
+        }
+        assert!(
+            plan.contains("SEARCH patchsets USING INDEX idx_patchsets_held_series"),
+            "{plan}"
+        );
+        Ok(())
+    }
     /// The message id lookup behind /api/patchset must seek an index.
     ///
     /// UNIQUE(patchset_id, message_id) looks like it covers this query but

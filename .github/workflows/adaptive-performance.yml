@@ -6,6 +6,9 @@ name: Adaptive hosted performance and gap validation
     paths:
       - '.github/adaptive-validation/native_fixture.rs'
       - '.github/adaptive-validation/run.py'
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
       - '.github/workflows/adaptive-performance.yml'
   workflow_dispatch:
 

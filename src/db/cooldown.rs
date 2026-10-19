@@ -706,6 +706,28 @@ mod tests {
         Ok(())
     }
 
+
+    #[tokio::test]
+    async fn test_cooldown_interim_version14_upgrade_preserves_decision() -> Result<()> {
+        let db = database().await?;
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let (id, _, message) = seed(&active, "interim-upgrade", 1).await?;
+        active.create_patch(id, &message, 1, "diff").await?;
+        db.execute_batch("DROP INDEX idx_patchsets_held_series; PRAGMA user_version = 14;")
+            .await?;
+        db.migrate().await?;
+        assert_eq!(scalar(&db, "PRAGMA user_version").await?, 15);
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_patchsets_held_series'").await?,
+            1
+        );
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 1);
+        db.create_patch(id, &message, 1, "diff").await?;
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 1);
+        Ok(())
+    }
+
     #[tokio::test]
     async fn test_cooldown_hand_trace_scope_and_window() -> Result<()> {
         let db = database().await?;
