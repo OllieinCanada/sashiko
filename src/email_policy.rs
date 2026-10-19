@@ -125,6 +125,7 @@ pub struct DefaultListPolicy {
     pub patchwork: PatchworkPolicy,
     #[serde(default)]
     pub embargo_hours: u32,
+    pub adaptive_cooldown: Option<crate::cooldown::CooldownConfig>,
 }
 
 impl Default for DefaultListPolicy {
@@ -138,6 +139,7 @@ impl Default for DefaultListPolicy {
             ignored_emails: Vec::new(),
             patchwork: PatchworkPolicy::default(),
             embargo_hours: 0,
+            adaptive_cooldown: None,
         }
     }
 }
@@ -159,6 +161,7 @@ pub struct MailingListPolicy {
     #[serde(default)]
     pub patchwork: PatchworkPolicy,
     pub embargo_hours: Option<u32>,
+    pub adaptive_cooldown: Option<crate::cooldown::CooldownConfig>,
 }
 
 pub type SubsystemPolicy = MailingListPolicy;
@@ -249,7 +252,18 @@ impl EmailPolicyConfig {
     /// well-formed email address and that no list repeats its own address in
     /// its static `cc` list.
     pub fn validate(&self) -> Result<(), String> {
+        if let Some(defaults) = &self.defaults.adaptive_cooldown {
+            if defaults.enabled {
+                return Err("adaptive cooldown defaults cannot enable lists".into());
+            }
+            defaults.resolve(None).map_err(|e| e.to_string())?;
+        }
         for (key, policy) in &self.lists {
+            if let Some(adaptive) = &policy.adaptive_cooldown {
+                adaptive
+                    .resolve(self.defaults.adaptive_cooldown.as_ref())
+                    .map_err(|e| e.to_string())?;
+            }
             let trimmed = key.trim();
             let Some((local, domain)) = trimmed.split_once('@') else {
                 return Err(format!(
@@ -281,6 +295,74 @@ impl EmailPolicyConfig {
             }
         }
         Ok(())
+    }
+
+    /// Adaptive policy uses actual To/Cc and the configured NNTP source, never
+    /// file-path subsystem labels. Shared publication across lists stays legacy.
+    pub fn adaptive_context(
+        &self,
+        source: crate::events::MessageSource,
+        group: &str,
+        to: &str,
+        cc: &str,
+        author: &str,
+        legacy_deadline: Option<i64>,
+    ) -> anyhow::Result<crate::cooldown::CooldownSelection> {
+        if source != crate::events::MessageSource::Nntp {
+            return Ok(crate::cooldown::CooldownSelection::Legacy);
+        }
+        if !self
+            .lists
+            .values()
+            .any(|p| p.adaptive_cooldown.as_ref().is_some_and(|c| c.enabled))
+        {
+            return Ok(crate::cooldown::CooldownSelection::Legacy);
+        }
+        let raw = format!("To: {to}\r\nCc: {cc}\r\n\r\n");
+        let parsed = mail_parser::MessageParser::default()
+            .parse(raw.as_bytes())
+            .ok_or_else(|| anyhow::anyhow!("invalid adaptive recipient headers"))?;
+        let mut addresses = std::collections::HashSet::new();
+        for header in [parsed.to(), parsed.cc()].into_iter().flatten() {
+            for address in header.iter() {
+                if let Some(address) = address.address() {
+                    addresses.insert(address.to_ascii_lowercase());
+                }
+            }
+        }
+        let mut matched = Vec::new();
+        for (list, policy) in &self.lists {
+            let bare = extract_bare_email(list);
+            let nntp = policy
+                .nntp_group
+                .clone()
+                .unwrap_or_else(|| derive_nntp_group(list));
+            if addresses.contains(&bare) || nntp == group {
+                matched.push((bare, policy));
+            }
+        }
+        if matched.len() > 1 {
+            return Ok(crate::cooldown::CooldownSelection::CrossPost);
+        }
+        if matched.is_empty() {
+            return Ok(crate::cooldown::CooldownSelection::Legacy);
+        }
+        let (list, policy) = matched.remove(0);
+        let Some(config) = &policy.adaptive_cooldown else {
+            return Ok(crate::cooldown::CooldownSelection::Legacy);
+        };
+        let Some(policy) = config.resolve(self.defaults.adaptive_cooldown.as_ref())? else {
+            return Ok(crate::cooldown::CooldownSelection::Legacy);
+        };
+        Ok(crate::cooldown::CooldownSelection::Enabled(
+            crate::cooldown::CooldownContext {
+                list,
+                author: crate::cooldown::author_key(author)?,
+                policy,
+                legacy_deadline,
+                source_snapshot: None,
+            },
+        ))
     }
 
     /// Returns `(short_name, nntp_group)` pairs for all lists in this config
