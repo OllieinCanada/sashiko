@@ -5,6 +5,17 @@
 use super::*;
 use crate::cooldown::{CooldownContext, CooldownPolicy, MAX_SERIES_PARTS, message_key};
 
+const COOLDOWN_OWNER_QUERY: &str = "SELECT patchset_id FROM review_cooldown_messages WHERE message_id = ?
+UNION ALL
+SELECT p.id FROM patchsets p WHERE p.cover_letter_message_id = ?
+AND (EXISTS (SELECT 1 FROM review_cooldown_intents WHERE patchset_id = p.id)
+ OR EXISTS (SELECT 1 FROM review_cooldown_blocks WHERE patchset_id = p.id))
+UNION ALL
+SELECT p.patchset_id FROM patches p WHERE p.message_id = ?
+AND (EXISTS (SELECT 1 FROM review_cooldown_intents WHERE patchset_id = p.patchset_id)
+ OR EXISTS (SELECT 1 FROM review_cooldown_blocks WHERE patchset_id = p.patchset_id))
+LIMIT 1";
+
 impl Database {
     pub fn with_cooldown_context(&self, context: Option<CooldownContext>) -> Self {
         let mut handle =
@@ -46,7 +57,7 @@ impl Database {
         let key = message_key(message).unwrap_or_else(|_| message.to_owned());
         let mut rows = conn
             .query(
-                "SELECT patchset_id FROM review_cooldown_messages WHERE message_id = ? UNION ALL SELECT b.patchset_id FROM review_cooldown_guards b JOIN patchsets p ON p.id = b.patchset_id WHERE p.cover_letter_message_id = ? UNION ALL SELECT b.patchset_id FROM review_cooldown_guards b JOIN patches p ON p.patchset_id = b.patchset_id WHERE p.message_id = ? LIMIT 1",
+                COOLDOWN_OWNER_QUERY,
                 libsql::params![key.clone(), key.clone(), key],
             )
             .await?;
@@ -650,6 +661,45 @@ mod tests {
             .await?
             .context("missing scalar")?
             .get(0)?)
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_owner_lookup_uses_point_guards() -> Result<()> {
+        let db = database().await?;
+        let (legacy, _, message) = seed(&db, "owner-legacy", 1).await?;
+        assert_eq!(Database::cooldown_owner(&db.conn, &message).await?, None);
+        let tx = db.begin_immediate_transaction().await?;
+        Database::block_cooldown(&tx, legacy, "owner lookup fixture").await?;
+        tx.commit().await?;
+        assert_eq!(
+            Database::cooldown_owner(&db.conn, &message).await?,
+            Some(legacy)
+        );
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let (adaptive, _, message) = seed(&active, "owner-adaptive", 1).await?;
+        assert_eq!(
+            Database::cooldown_owner(&db.conn, &message).await?,
+            Some(adaptive)
+        );
+        let sql = format!("EXPLAIN QUERY PLAN {COOLDOWN_OWNER_QUERY}");
+        let mut rows = db
+            .conn
+            .query(&sql, libsql::params![message.clone(), message.clone(), message])
+            .await?;
+        let mut plan = String::new();
+        while let Some(row) = rows.next().await? {
+            plan.push_str(&row.get::<String>(3)?);
+            plan.push('\n');
+        }
+        for table in ["review_cooldown_intents", "review_cooldown_blocks"] {
+            assert!(!plan.contains(&format!("SCAN {table}")), "{plan}");
+            assert!(
+                plan.contains(&format!("SEARCH {table} USING INTEGER PRIMARY KEY")),
+                "{plan}"
+            );
+        }
+        Ok(())
     }
 
     #[tokio::test]
