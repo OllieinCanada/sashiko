@@ -35,7 +35,10 @@
             let active =
                 second.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
             let (id, _, message) = seed(&active, "busy-retry", 1).await?;
-            second.tx_conn.execute("PRAGMA busy_timeout=1", ()).await?;
+            {
+                let mut rows = second.tx_conn.query("PRAGMA busy_timeout=1", ()).await?;
+                while rows.next().await?.is_some() {}
+            }
             let lock = first.begin_immediate_transaction().await?;
             let started = std::time::Instant::now();
             let failed = active.create_patch(id, &message, 1, "diff").await;

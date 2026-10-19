@@ -68,8 +68,13 @@ def add_prerequisite_index(directory):
     text = text.replace(marker, data["migration"] + marker.replace("version 13", "version 14"))
     text = text.replace("mod tests {\n", "mod tests {\n" + data["test"], 1)
     source.write_text(text)
-    restore(CANDIDATE, directory, ["src/migrations/014_held_series_index.sql"])
-    subprocess.run(["git", "add", "--", "src/db.rs"], cwd=directory, env=ENV, check=True)
+    restore(CANDIDATE, directory, ["src/migrations/014_held_series_index.sql", "src/prerequisites.rs"])
+    fixture = directory / "src/prerequisites.rs"
+    fixture_text = fixture.read_text()
+    if fixture_text.count("assert_eq!(version, 15);") != 1:
+        raise RuntimeError("unexpected migration fixture version")
+    fixture.write_text(fixture_text.replace("assert_eq!(version, 15);", "assert_eq!(version, 14);"))
+    subprocess.run(["git", "add", "--", "src/db.rs", "src/prerequisites.rs"], cwd=directory, env=ENV, check=True)
 
 
 def checked_commit(directory, message, phase):
