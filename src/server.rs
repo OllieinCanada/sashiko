@@ -424,6 +424,7 @@ fn generate_synthetic_id(prefix: &str) -> String {
     )
 }
 
+#[allow(clippy::result_large_err)] // Preserve Axum extractor rejection status and body.
 async fn submit_patch(
     auth: crate::auth::OptionalAuthUser,
     // Logged on a refusal to give an operator something to grep for. It is
@@ -1671,6 +1672,7 @@ async fn get_bug_logs(
     }
 }
 
+#[allow(clippy::result_large_err)] // Preserve Axum extractor rejection status and body.
 async fn analyze_bug(
     principal: Principal,
     axum::extract::ConnectInfo(addr): axum::extract::ConnectInfo<std::net::SocketAddr>,
@@ -2207,6 +2209,7 @@ async fn get_config(
     })))
 }
 
+#[allow(clippy::result_large_err)] // Preserve Axum extractor rejection status and body.
 async fn forge_webhook(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     State(state): State<Arc<AppState>>,
@@ -6275,6 +6278,7 @@ async fn refresh_token(
     }
 }
 
+#[allow(clippy::result_large_err)] // Preserve Axum extractor rejection status and body.
 async fn create_auth_token(
     headers: axum::http::HeaderMap,
     auth: crate::auth::OptionalAuthUser,
