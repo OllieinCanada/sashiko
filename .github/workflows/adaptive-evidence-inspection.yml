@@ -1,0 +1,46 @@
+name: Inspect final adaptive evidence
+
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths:
+      - '.github/adaptive-evidence-inspection/**'
+      - '.github/workflows/adaptive-evidence-inspection.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  inspect-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: >-
+            adaptive-source-preparation-bd59059f1864aea81b11b5de0eb97e5d2ec53667
+          run-id: 39320285692
+          github-token: ${{ github.token }}
+          path: evidence-input/source
+      - uses: actions/download-artifact@v4
+        with:
+          name: >-
+            adaptive-mutation-evidence-bd59059f1864aea81b11b5de0eb97e5d2ec53667
+          run-id: 39320285657
+          github-token: ${{ github.token }}
+          path: evidence-input/mutation
+      - name: Verify bundle and semantic failure evidence
+        run: python3 .github/adaptive-evidence-inspection/run.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adaptive-evidence-inspection-${{ github.sha }}
+          path: adaptive-evidence-inspection.json
+          retention-days: 14
+          if-no-files-found: warn
