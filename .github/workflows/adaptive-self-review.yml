@@ -1,8 +1,5 @@
 name: Bounded Sashiko model review follow-up
 'on':
-  push:
-    branches: [codex/held-series-ci-20261019]
-    paths: ['.github/workflows/adaptive-self-review.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,9 +9,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   review:
-    if: >-
-      github.repository == 'OllieinCanada/sashiko' &&
-      github.run_attempt == 1
+    # Both authorized attempts are complete. Reactivation needs a new decision.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 18
     env:
