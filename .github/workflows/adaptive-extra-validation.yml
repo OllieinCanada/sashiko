@@ -1,0 +1,49 @@
+name: Adaptive SQLite recovery and pruning controls
+
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths:
+      - '.github/adaptive-extra-validation/**'
+      - '.github/workflows/adaptive-extra-validation.yml'
+      - 'src/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sqlite-recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: >-
+          rustup toolchain install stable --profile minimal
+          --component rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Verify isolated runner
+        run: |
+          if pgrep -x sashiko; then
+            exit 1
+          fi
+      - name: SQLite failure and recovery controls
+        timeout-minutes: 12
+        run: python3 .github/adaptive-extra-validation/run.py
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adaptive-extra-evidence-${{ github.sha }}
+          path: |
+            adaptive-extra-results/manifest.json
+            adaptive-extra-results/*.log
+          retention-days: 14
+          if-no-files-found: error
