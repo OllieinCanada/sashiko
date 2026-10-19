@@ -7561,21 +7561,19 @@ impl Database {
         cooldown_context: Option<&crate::cooldown::CooldownContext>,
         content_hash: &str,
     ) -> Result<PatchWriteOutcome> {
-        if let Err(error) =
-            Self::bind_cooldown_message_tx(&tx, patchset_id, message_id, cooldown_context).await
-        {
-            Self::block_cooldown(&tx, patchset_id, "patch write has unresolved ownership").await?;
-            tx.commit().await?;
-            return Err(error);
-        }
-        let mut intent = tx
-            .query(
-                "SELECT state FROM review_cooldown_intents WHERE patchset_id = ?",
-                libsql::params![patchset_id],
-            )
-            .await?;
-        if let Some(row) = intent.next().await? {
-            let decided = row.get::<String>(0)? == "decided";
+        let binding =
+            match Self::bind_cooldown_message_tx(&tx, patchset_id, message_id, cooldown_context)
+                .await
+            {
+                Ok(binding) => binding,
+                Err(error) => {
+                    Self::block_cooldown(&tx, patchset_id, "patch write has unresolved ownership")
+                        .await?;
+                    tx.commit().await?;
+                    return Err(error);
+                }
+            };
+        if let cooldown::CooldownBinding::Owned { decided } = binding {
             let mut source = tx
                 .query(
                     "SELECT cooldown_body_hash FROM messages WHERE message_id = ?",

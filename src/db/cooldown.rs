@@ -17,6 +17,12 @@ AND (EXISTS (SELECT 1 FROM review_cooldown_intents WHERE patchset_id = p.patchse
  OR EXISTS (SELECT 1 FROM review_cooldown_blocks WHERE patchset_id = p.patchset_id))
 LIMIT 1";
 
+/// Binding and patch validation share one state read under the writer lock.
+pub(super) enum CooldownBinding {
+    Legacy,
+    Owned { decided: bool },
+}
+
 impl Database {
     pub fn with_cooldown_context(&self, context: Option<CooldownContext>) -> Self {
         let mut handle =
@@ -115,7 +121,7 @@ impl Database {
         let result =
             Self::bind_cooldown_message_tx(&tx, id, message, self.cooldown_context.as_ref()).await;
         match result {
-            Ok(()) => tx.commit().await,
+            Ok(_) => tx.commit().await,
             Err(error) => {
                 Self::block_cooldown(&tx, id, "conflicting adaptive ingestion context").await?;
                 tx.commit().await?;
@@ -167,7 +173,7 @@ impl Database {
         id: i64,
         message: &str,
         context: Option<&CooldownContext>,
-    ) -> Result<()> {
+    ) -> Result<CooldownBinding> {
         Self::bind_cooldown_source_tx(conn, id, message, context, false).await
     }
 
@@ -177,10 +183,10 @@ impl Database {
         message: &str,
         context: Option<&CooldownContext>,
         late_cover: bool,
-    ) -> Result<()> {
+    ) -> Result<CooldownBinding> {
         let mut rows = conn.query("SELECT list, author, policy, state FROM review_cooldown_intents WHERE patchset_id = ? UNION ALL SELECT NULL, NULL, NULL, 'blocked' FROM review_cooldown_blocks WHERE patchset_id = ? LIMIT 1", libsql::params![id, id]).await?;
         let Some(row) = rows.next().await? else {
-            return Ok(());
+            return Ok(CooldownBinding::Legacy);
         };
         let state: String = row.get(3)?;
         if state == "blocked" {
@@ -249,7 +255,9 @@ impl Database {
             bail!("adaptive source snapshot is missing");
         };
         conn.execute("INSERT INTO review_cooldown_messages(message_id, patchset_id, source_hash) VALUES (?, ?, ?) ON CONFLICT(message_id) DO UPDATE SET source_hash = COALESCE(review_cooldown_messages.source_hash, excluded.source_hash)", libsql::params![key, id, verified]).await?;
-        Ok(())
+        Ok(CooldownBinding::Owned {
+            decided: state == "decided",
+        })
     }
 
     /// The canonical matcher establishes this revision's own late cover before
