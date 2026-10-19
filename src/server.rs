@@ -5832,7 +5832,12 @@ F:	net/
                 .await
                 .unwrap();
             assert_eq!(
-                rows.next().await.unwrap().unwrap().get::<String>(0).unwrap(),
+                rows.next()
+                    .await
+                    .unwrap()
+                    .unwrap()
+                    .get::<String>(0)
+                    .unwrap(),
                 "decided"
             );
         }

@@ -213,8 +213,8 @@ def review(directory, base, head):
         '[review]\nconcurrency = 1\ntimeout_seconds = 540\nmax_retries = 0\n'
         'max_total_tokens = 2500000\nmax_total_output_tokens = 150000\n')
     binary = Path(env["CARGO_TARGET_DIR"]) / "debug/sashiko"
-    args = [str(binary), "--settings", str(settings), "--project", "sashiko",
-            "review", "--agent", base + ".." + head]
+    args = [str(binary), "--project", "sashiko", "review",
+            "--settings", str(settings), "--agent", base + ".." + head]
     REPORT["command"] = args
     REPORT["status"] = "RUNNING"
     DEADLINE = time.monotonic() + TIME_LIMIT

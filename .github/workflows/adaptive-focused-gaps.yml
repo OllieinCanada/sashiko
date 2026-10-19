@@ -37,11 +37,16 @@ jobs:
           TZ=UTC cargo test --locked --all-features --bin sashiko test_cooldown_untrusted_dates_use_local_admission_time -- --nocapture
           TZ=America/New_York cargo test --locked --all-features --bin sashiko test_cooldown_untrusted_dates_use_local_admission_time -- --nocapture
           cargo test --locked --all-features --lib test_adaptive_release_patchset_embargo_authorization_and_endpoint -- --nocapture
+      - name: Disabled and inherited configuration compatibility
+        if: always()
+        run: cargo test --locked --all-features --bin sashiko test_cooldown_disabled_configuration_preserves_fixed_embargo -- --nocapture
       - name: Offline review budget controls
+        if: always()
         run: |
           python3 -m py_compile .github/adaptive-model-review/run.py .github/adaptive-model-review/selftest.py
           python3 .github/adaptive-model-review/selftest.py
       - name: Local CLI compatibility
+        if: always()
         run: |
           cargo build --locked --no-default-features --bin sashiko
           target/debug/sashiko review --help

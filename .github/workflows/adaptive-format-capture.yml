@@ -1,0 +1,22 @@
+name: Adaptive formatting patch capture
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths: ['src/**', '.github/workflows/adaptive-format-capture.yml']
+permissions:
+  contents: read
+jobs:
+  formatting-patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal --component rustfmt
+      - name: Capture exact formatter changes
+        env:
+          RUSTUP_TOOLCHAIN: stable
+        run: |
+          cargo fmt --all
+          git diff -- src
