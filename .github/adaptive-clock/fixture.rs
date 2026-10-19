@@ -5,6 +5,7 @@
         use sashiko::db::{Finding, Severity};
         use sashiko::settings::{DatabaseSettings, MailTransport, SmtpSettings};
         let clock_path = std::path::PathBuf::from(std::env::var("SASHIKO_TEST_REALTIME_FILE")?);
+        let probe_path = std::path::PathBuf::from(std::env::var("SASHIKO_TEST_RELEASE_PROBE")?);
         let set_clock = |seconds: i64| -> anyhow::Result<()> {
             let next = clock_path.with_extension("next");
             std::fs::write(&next, seconds.to_string())?;
@@ -13,6 +14,19 @@
             assert_eq!(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_secs(), seconds as u64);
             Ok(())
         };
+        async fn await_selector(path: &std::path::Path, instant: i64, count: usize) -> anyhow::Result<()> {
+            tokio::time::timeout(std::time::Duration::from_secs(5), async {
+                loop {
+                    if let Ok(value) = std::fs::read_to_string(path)
+                        && value.starts_with(&format!("{instant}:")) {
+                        assert_eq!(value, format!("{instant}:{count}"));
+                        break;
+                    }
+                    tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+                }
+            }).await?;
+            Ok(())
+        }
         set_clock(2_000_000_000)?;
         let directory = tempfile::tempdir()?;
         let policy_path = directory.path().join("mailing_lists.toml");
@@ -188,9 +202,10 @@ max_extra_seconds = 3600
             set_clock(instant)?;
             let early = sashiko::reviewer::Reviewer::new(db.clone(), settings.clone()).await;
             let early = tokio::spawn(async move { early.start().await });
-            tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+            let observed = await_selector(&probe_path, instant, 0).await;
             early.abort();
             assert!(early.await.unwrap_err().is_cancelled());
+            observed?;
             let count: i64 = db.conn.query("SELECT COUNT(*) FROM email_outbox", ()).await?
                 .next().await?.context("early outbox")?.get(0)?;
             assert_eq!(count, 0, "wall-clock jump released findings early");
@@ -223,6 +238,7 @@ max_extra_seconds = 3600
         release.abort();
         let _ = release.await;
         wait_queue??;
+        await_selector(&probe_path, deadline, 1).await?;
         assert!(!capture.exists());
         let worker = sashiko::worker::email::EmailWorker::new(db.clone(), smtp, false);
         let delivery = tokio::spawn(async move { worker.run().await });
@@ -263,9 +279,10 @@ max_extra_seconds = 3600
             }, None, &policy, &[]).await, ProcessStatus::Ingested));
             let replay = sashiko::reviewer::Reviewer::new(db.clone(), settings.clone()).await;
             let replay = tokio::spawn(async move { replay.start().await });
-            tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+            let observed = await_selector(&probe_path, instant, 0).await;
             replay.abort();
             assert!(replay.await.unwrap_err().is_cancelled());
+            observed?;
             let count: i64 = db.conn.query("SELECT COUNT(*) FROM email_outbox", ()).await?
                 .next().await?.context("replay outbox")?.get(0)?;
             assert_eq!(count, 1, "replay duplicated notification after clock jump");
