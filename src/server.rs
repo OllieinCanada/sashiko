@@ -5728,6 +5728,15 @@ F:	net/
 
     #[tokio::test]
     async fn test_release_patchset_embargo_authorization_and_endpoint() {
+        assert_release_patchset_embargo_authorization_and_endpoint(false).await;
+    }
+
+    #[tokio::test]
+    async fn test_adaptive_release_patchset_embargo_authorization_and_endpoint() {
+        assert_release_patchset_embargo_authorization_and_endpoint(true).await;
+    }
+
+    async fn assert_release_patchset_embargo_authorization_and_endpoint(adaptive: bool) {
         let mut settings = crate::settings::Settings::new().unwrap();
         settings.database.url = ":memory:".to_string();
         settings.server.testing_mode = false;
@@ -5740,51 +5749,93 @@ F:	net/
         let settings = Arc::new(settings);
 
         let now = chrono::Utc::now().timestamp();
+        let message_id = "embargo-srv@example.com";
         let thread_id = db
-            .create_thread("<embargo-srv@example.com>", "[PATCH] btrfs: fix", now)
+            .create_thread(message_id, "[PATCH] btrfs: fix", now)
             .await
-            .unwrap();
-        let ps_id = db
-            .create_patchset(
-                thread_id,
-                None,
-                "<embargo-srv@example.com>",
-                "[PATCH] btrfs: fix",
-                "Author <author@example.com>",
-                now,
-                1,
-                1,
-                "",
-                "",
-                Some(1),
-                1,
-                None,
-                false,
-                None,
-                None,
-            )
-            .await
-            .unwrap()
             .unwrap();
         db.create_message(
-            "<embargo-srv@example.com>",
+            message_id,
             thread_id,
             None,
             "Author <author@example.com>",
             "[PATCH] btrfs: fix",
             now,
-            "",
-            "",
+            "diff",
+            "list@example.test",
             "",
             None,
             None,
         )
         .await
         .unwrap();
-        let patch_id = db
-            .create_patch(ps_id, "<embargo-srv@example.com>", 1, "diff")
+        let mut context = adaptive.then(|| crate::cooldown::CooldownContext {
+            list: "list@example.test".into(),
+            author: "author@example.com".into(),
+            policy: crate::cooldown::CooldownPolicy {
+                window_seconds: 3600,
+                burst: 1,
+                step_seconds: 3600,
+                max_extra_seconds: 3600,
+            },
+            legacy_deadline: Some(now + 3600),
+            source_snapshot: None,
+        });
+        if let Some(context) = &mut context {
+            let mut rows = db
+                .conn
+                .query(
+                    "SELECT cooldown_source_hash FROM messages WHERE message_id = ?",
+                    libsql::params![message_id],
+                )
+                .await
+                .unwrap();
+            context.source_snapshot = Some(crate::cooldown::SourceSnapshot {
+                message_id: message_id.into(),
+                fingerprint: rows.next().await.unwrap().unwrap().get(0).unwrap(),
+            });
+        }
+        let active = db.with_cooldown_context(context);
+        let ps_id = active
+            .create_patchset(
+                thread_id,
+                None,
+                message_id,
+                "[PATCH] btrfs: fix",
+                "Author <author@example.com>",
+                now,
+                1,
+                1,
+                "list@example.test",
+                "",
+                Some(1),
+                1,
+                None,
+                true,
+                None,
+                None,
+            )
+            .await
+            .unwrap()
+            .unwrap();
+        let patch_id = active
+            .create_patch(ps_id, message_id, 1, "diff")
             .await
             .unwrap();
+        if adaptive {
+            let mut rows = db
+                .conn
+                .query(
+                    "SELECT state FROM review_cooldown_intents WHERE patchset_id = ?",
+                    libsql::params![ps_id],
+                )
+                .await
+                .unwrap();
+            assert_eq!(
+                rows.next().await.unwrap().unwrap().get::<String>(0).unwrap(),
+                "decided"
+            );
+        }
         let review_id = db
             .create_review(ps_id, Some(patch_id), "gemini", "gemini-2.5", None, None)
             .await
