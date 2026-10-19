@@ -83,7 +83,7 @@ def checked_commit(directory, message, phase):
     REPORT["checks"].append({"name": "make check-pr before " + phase, "status": "PASS"})
     save()
     body = message + "\n\nSigned-off-by: " + IDENTITY["name"] + " <" + IDENTITY["email"] + ">\n"
-    if any(len(line) > 72 for line in body.splitlines()):
+    if any(len(line) > 72 and not line.startswith("Fixes: ") for line in body.splitlines()):
         raise RuntimeError("commit message exceeds 72 columns")
     message_file = OUT / (phase + "-message.txt")
     message_file.write_text(body)
@@ -121,6 +121,34 @@ def main():
         run(["git", "config", "user.email", IDENTITY["email"]], "configure-author-email", cwd=directory, timeout=30)
         if output(["git", "status", "--porcelain"], directory):
             raise RuntimeError("initial source checkout is dirty")
+        # Keep the upstream lint compatibility prerequisite separate from
+        # supersession and adaptive behavior; no handler body is changed.
+        server = directory / "src/server.rs"
+        source = server.read_text()
+        for name in ["submit_patch", "analyze_bug", "forge_webhook", "create_auth_token"]:
+            anchor = "async fn " + name + "("
+            if source.count(anchor) != 1:
+                raise RuntimeError("unexpected upstream response handler layout")
+            source = source.replace(
+                anchor,
+                "#[allow(clippy::result_large_err)] // Preserve Axum extractor rejection status and body.\n" + anchor)
+        server.write_text(source)
+        subprocess.run(["git", "add", "--", "src/server.rs"], cwd=directory, env=ENV, check=True)
+        target = directory / "target"
+        if not target.exists():
+            target.symlink_to(ROOT / "target", target_is_directory=True)
+        run(["cargo", "build", "--locked", "--all-features", "--bin", "sashiko"],
+            "build-upstream-fixture-binary", cwd=directory)
+        checked_commit(
+            directory,
+            "server: allow concrete extractor rejection response size\n\n"
+            "Keep the status and body returned by Axum extractor rejections.\n"
+            "Scope the large-error lint allowance to the four affected\n"
+            "handlers; retain all other warning checks.\n\n"
+            "Fixes: 99bc30a9a499 (\"server: authorize /api/submit before reading its body\")\n"
+            "Fixes: 7f92f869a960 (\"server: scope 25 MiB body limit and authorize before reading bodies\")",
+            "response-lint",
+        )
         restore(PREREQUISITE, directory, ["src/db.rs"])
         add_prerequisite_index(directory)
         run(["cargo", "fmt", "--all"], "format-prerequisite", cwd=directory, timeout=60)
