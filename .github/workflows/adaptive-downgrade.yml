@@ -21,6 +21,8 @@ jobs:
     env:
       RUSTUP_TOOLCHAIN: stable
       CARGO_BUILD_JOBS: 2
+      CARGO_NET_RETRY: 0
+      CARGO_HTTP_TIMEOUT: 20
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -38,6 +40,11 @@ jobs:
           if pgrep -x sashiko; then
             exit 1
           fi
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+          ast.parse(Path(".github/adaptive-downgrade/run.py").read_text())
+          PY
       - name: Quiesce and reopen with native old-version code
         timeout-minutes: 37
         run: python3 .github/adaptive-downgrade/run.py
