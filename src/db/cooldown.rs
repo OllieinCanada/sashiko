@@ -517,6 +517,7 @@ impl Database {
         Self::promote_complete_patchset_tx(conn, id).await
     }
 
+    /// Promotes completeness after the caller has checked ownership under the writer lock.
     pub(super) async fn promote_complete_patchset_tx(
         conn: &libsql::Connection,
         id: i64,
