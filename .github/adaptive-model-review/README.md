@@ -2,6 +2,7 @@
 
 Status: blocked, not executed. The readiness check at commit
 3e29986fd6b118388dd19125f48e60ac830178f4 found no LLM_API_KEY.
+The user has since confirmed that no provider key is available.
 No model call or review finding is claimed.
 
 The user authorized the public candidate diff and delegated a conservative
@@ -50,3 +51,14 @@ candidates, call limits and input-token limits. They do not validate credentials
 model availability, provider billing behavior or completion of a real review.
 
 Keep this fork-only preparation out of the upstream source patch.
+
+## Free-tier setup option
+
+The user can create a Gemini API key in https://aistudio.google.com/apikey
+without enabling billing, then save it as LLM_API_KEY in the fork's Actions
+secrets. Do not paste it into chat. Account creation cannot be performed on
+the user's behalf here. Recheck model/free-tier availability and limits before
+running; stop on provider/rate-limit errors. No paid fallback is enabled.
+
+GitHub Models is not a keyless alternative: it retired on 2026-07-30.
+See https://github.blog/changelog/2026-07-01-github-models-is-being-fully-retired-on-july-30-2026/ .

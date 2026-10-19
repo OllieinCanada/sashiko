@@ -1,8 +1,8 @@
 Bursts of complete mail revisions can produce clustered publication of review results. I am preparing an opt-in per-author publication cooldown and would like agreement on its policy before submitting a code PR. This delays publication, not review computation; I am not claiming fewer emails or lower token cost.
 
 The current draft and its limitations are in the fork:
-- [Design](https://github.com/OllieinCanada/sashiko/blob/161687343e4955df44ebd803914d1b200d808c04/designs/ADAPTIVE_PUBLICATION_COOLDOWN.md)
-- [Acceptance evidence and remaining gaps](https://github.com/OllieinCanada/sashiko/blob/161687343e4955df44ebd803914d1b200d808c04/.github/ADAPTIVE_ACCEPTANCE_MATRIX.md)
+- [Design](https://github.com/OllieinCanada/sashiko/blob/bd59059f1864aea81b11b5de0eb97e5d2ec53667/designs/ADAPTIVE_PUBLICATION_COOLDOWN.md)
+- [Acceptance evidence and remaining gaps](https://github.com/OllieinCanada/sashiko/blob/codex/held-series-ci-20261019/.github/ADAPTIVE_ACCEPTANCE_MATRIX.md)
 
 Proposed v1 semantics:
 

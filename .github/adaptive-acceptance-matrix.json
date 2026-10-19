@@ -1,23 +1,26 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "checklist_source": "User-pasted condensed master checklist, 2026-10-19. Requirements, not pre-passed tests.",
-  "audited_production_commit": "77eefacf3d54a24b7a639f06ac3e339422cc39eb",
-  "tested_upstream_base": "715294a276efee9d39fbb55cf31eef267e96c7b1",
+  "audited_production_commit": "bd59059f1864aea81b11b5de0eb97e5d2ec53667",
+  "tested_upstream_base": "7f92f869a960a20f7d395550b4879d897ebdf4ea",
   "observed_upstream_head": "7f92f869a960a20f7d395550b4879d897ebdf4ea",
-  "observed_upstream_commits_since_base": 16,
+  "observed_upstream_commits_since_base": 0,
   "pr685": {
     "state": "open",
     "merged": false
   },
   "source_only_bundle": {
-    "head": "ecf8f138dac130324b88119eec19c87623c0cbe7",
-    "tree": "5ac95fc07ae13f90a0d8fb59c27959810c1180b8"
+    "head": "fa8a32646362a11ce00b7a90a14df3af828465d3",
+    "tree": "178107288293535d3adeaf180ba0328b9da6714a",
+    "commits": 3,
+    "run": 39320285692,
+    "artifact": 12218764477,
+    "remote_branch_published": false
   },
   "counts": {
-    "VERIFIED": 37,
-    "PARTIAL": 23,
-    "OPEN": 3,
-    "BLOCKED": 1
+    "VERIFIED": 50,
+    "PARTIAL": 12,
+    "BLOCKED": 2
   },
   "status_definitions": {
     "VERIFIED": "Direct executed evidence supports the scenario on the audited source within its stated scope; this is not proof of all inputs or current upstream.",
@@ -27,75 +30,95 @@
   },
   "evidence": {
     "SUITE": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023519",
-      "scope": "Audited source 77eefac; formatting, Clippy all/local/cache, 1014 library + 47 main + 7 CLI + 23 integration tests passed; 2 ignored."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320690309",
+      "scope": "Production-equivalent dbe259: fmt, Clippy all/minimal/cache, 1032 library +49 main +7 CLI +23 integration =1111 pass;2 ignored."
+    },
+    "FOCUS": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285627",
+      "scope": "Final source exact-duplicate/failed-review/starvation/publication claims; dates8x2TZ;12 legacy settings cases;adaptive ACL;actual minimal/cache --no-ai CLI; unknown flag."
     },
     "CONFIG": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023353",
-      "scope": "Six SQLite/recovery/pruning/config source-selection controls on audited source."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285705",
+      "scope": "Six DB recovery/pruning/config fixtures on final source; FOCUS supplies twelve actual ingestion compatibility combinations."
     },
     "SQLITE": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023353",
-      "scope": "Readonly writer, busy writer, pruning, stale leases, disable/cancel/reopen and source selection."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285705",
+      "scope": "Query-only/busy writers, pruning, stale leases, disable/cancel/reopen and source selection."
     },
     "ROUTE": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023501",
-      "scope": "Natural expiry, reopened DB/workers, recording sendmail, paused transport and three actual NNTP replays. Completed review supplied as fixture."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285605",
+      "scope": "Natural30-second expiry; restarted workers; recording sendmail; paused transport with independent writer. Completed review supplied as fixture."
     },
     "NATIVE": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023530",
-      "scope": "Maximum actual series, history read fault, separate-process restart and owner-query comparison."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285829",
+      "scope": "Final-source maximum1024-part actual series, injected history-read failure, separate-process restart, and prior-query reference paired comparison all PASS. Reference is candidate logic with prior owner-query shape, distinct from matched upstream baseline."
     },
     "FAULT": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023488/artifacts/12216685425",
-      "scope": "ENOSPC, EIO, partial WAL write and SIGKILL before/after COMMIT. Software model, not physical power failure."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285708/artifacts/12219503429",
+      "scope": "ENOSPC/EIO/torn WAL writes and SIGKILL before/after COMMIT. Software model, not physical power loss."
     },
     "CONCUR": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311179413/artifacts/12216100956",
-      "scope": "16 independent DB handles, 128 admissions, 128 replays and 64 release markers over eight scopes."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285821/artifacts/12218509418",
+      "scope": "16 handles;128 admissions;128 replays;64 releases;8 scopes on final source."
     },
     "OLD": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311353746/artifacts/12215806606",
-      "scope": "Old/new native DB code on temporary fixture; unsafe copy, quiescence/cancellation and safe access. Not a production-daemon downgrade."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285661/artifacts/12219787348",
+      "scope": "Stopped old-code DB compatibility, unsafe negative, untouched backup, exact15-table restore and resumed pending work. Not live daemon downgrade."
     },
     "PERF": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023321/artifacts/12215842045",
-      "scope": "Upstream base 715294a, disabled and enabled traces; unchanged ratio-of-medians limits; all raw samples retained."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285590/artifacts/12220276794",
+      "scope": "Final matched upstream/base/disabled/enabled18samples; frozen ratio-of-medians<=1.20/1.50 pass; legacy tuples equal. Raw individual fresh pair1.2392 exceeds20%; prior FAIL_BUDGET runs preserved."
     },
     "PROBE": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023387/artifacts/12216626561",
-      "scope": "Calibrated SQL API counters and writer boundary timing; independent diagnostic run."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285682/artifacts/12219638673",
+      "scope": "Calibrated SQL API counters and writer distributions, separate instrumented-debug run; prior844.91ms and finalbaseline150.31ms outliers preserved."
     },
     "MUT": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023419",
-      "scope": "Five compiled, killed mutants; unrelated positive controls and restored replay."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285657/artifacts/12220621203",
+      "scope": "8 compiled semantic mutants killed, targeted positives/unrelated controls/restored replay; negative contexts inspected separately."
     },
     "PREP": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023425/artifacts/12216560674",
-      "scope": "Source-only commits pass make check-pr before creation and sign-off checks; bundled head ecf8f138dac130324b88119eec19c87623c0cbe7."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285692/artifacts/12218764477",
+      "scope": "Three clean DCO-signed commits; make check-pr before each; make sob after each; clean source-only bundle."
+    },
+    "INSPECT": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39321984128/artifacts/12219849932",
+      "scope": "Verified bundle HEAD/tree/source equivalence, patch SHA256, DCO trailers, all3 makecheck-pr summaries and8 semantic mutation failure contexts; no rebuilding/model calls."
+    },
+    "HISTORICAL": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320939517/artifacts/12219539032",
+      "scope": "Harness compiles; source fixture readonly write-negative passes. Actual archive replay BLOCKED: HTTPS403 and NNTP timeout on prior bounded attempt; replay_performed=false."
+    },
+    "RFC": {
+      "url": "https://github.com/OllieinCanada/sashiko/blob/codex/held-series-ci-20261019/.github/ADAPTIVE_MAINTAINER_POLICY_RFC.md",
+      "scope": "Ready-to-post policy proposal; posting403; no issue/agreement."
+    },
+    "MODEL": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39316716214",
+      "scope": "MissingLLM_API_KEY confirmed by hosted readiness and user. Budget controls offline-pass; no modelreview/call/spend."
     }
   },
   "scenarios": [
     {
       "id": "A01",
       "requirement": "Default/absent setting preserves all existing behavior.",
-      "status": "PARTIAL",
-      "evidence": "SUITE; PERF legacy tuple equality; test_cooldown_legacy_has_no_intent_or_events.",
-      "remaining_or_scope": "Differential trace omits fixed embargo settings; complete the legacy configuration matrix."
+      "status": "VERIFIED",
+      "evidence": "FOCUS 12-case omitted/disabled/inheritance/fixed-delay ingestion matrix; PERF legacy tuples equal; SUITE legacy no-intent/event control.",
+      "remaining_or_scope": "Existing configuration behavior retained in the exercised combinations; no universal all-input proof."
     },
     {
       "id": "A02",
       "requirement": "Explicitly disabled differs correctly from omitted.",
       "status": "PARTIAL",
-      "evidence": "CONFIG; explicit_enablement_templates_and_strict_types.",
-      "remaining_or_scope": "Confirm intended omitted/false inheritance semantics with maintainers and test both through ingestion."
+      "evidence": "FOCUS explicit false and omitted through ingestion, with numeric templates; CONFIG strict enablement.",
+      "remaining_or_scope": "Behavior is tested; confirm omitted/false inheritance semantics with maintainers."
     },
     {
       "id": "A03",
       "requirement": "Zero delays and inherited settings retain their meanings.",
       "status": "PARTIAL",
-      "evidence": "hand_checked_linear_thresholds_and_composition preserves None/Some(0); CONFIG templates.",
-      "remaining_or_scope": "Validate database/route zero fixed-delay combinations. Adaptive zero limits are currently rejected; confirm that policy."
+      "evidence": "FOCUS fixed embargo omitted/0/2 across inherited/omitted/disabled settings; independent expected None/+7200.",
+      "remaining_or_scope": "Legacy zero/NULL semantics verified; adaptive zero-limit rejection remains a policy agreement question."
     },
     {
       "id": "A04",
@@ -107,9 +130,9 @@
     {
       "id": "A05",
       "requirement": "Unknown configuration fields and CLI options are rejected.",
-      "status": "PARTIAL",
-      "evidence": "CONFIG strict TOML; test_rejects_unknown_fields_and_invalid_keys; test_unknown_project_is_rejected_by_the_parser.",
-      "remaining_or_scope": "Add an explicit unknown CLI-flag rejection check for the relevant profiles."
+      "status": "VERIFIED",
+      "evidence": "CONFIG unknown/invalid TOML; FOCUS unknown CLI flag rejects with exit2 in both minimal profiles.",
+      "remaining_or_scope": "Relevant parser behavior tested; no automatic acceptance of misspelled options."
     },
     {
       "id": "A06",
@@ -128,9 +151,9 @@
     {
       "id": "A08",
       "requirement": "Existing local review commands and feature profiles still work.",
-      "status": "PARTIAL",
-      "evidence": "SUITE includes all-feature tests and Clippy all/local/cache profiles; CLI smoke tests.",
-      "remaining_or_scope": "Run local-review command smoke cases under each minimal feature profile; compile checks alone do not establish runtime behavior."
+      "status": "VERIFIED",
+      "evidence": "SUITE three Clippy profiles; FOCUS actual --project sashiko review --no-ai --agent under minimal and minimal+cache.",
+      "remaining_or_scope": "Both real no-AI commands return complete one-patch JSON; outbound proxy refuses network. This is CLI compatibility, not model self-review."
     },
     {
       "id": "B01",
@@ -149,9 +172,9 @@
     {
       "id": "B03",
       "requirement": "Simultaneous duplicate submissions create one event.",
-      "status": "PARTIAL",
-      "evidence": "test_cooldown_two_connections_own_opposite_parts_once.",
-      "remaining_or_scope": "This proves concurrent different parts converge on one owner, not simultaneous identical final-message submissions. Add that exact case."
+      "status": "VERIFIED",
+      "evidence": "SUITE/FOCUS test_cooldown_same_message_concurrent_replay_preserves_owner; MUT stale-snapshot deletion killed.",
+      "remaining_or_scope": "Independent handles/barrier four trials plus deterministic stale-snapshot case. Identical replay preserves one owner/event; changed payload remains quarantined."
     },
     {
       "id": "B04",
@@ -219,16 +242,16 @@
     {
       "id": "C05",
       "requirement": "Forged or incorrect email dates cannot bypass the cooldown.",
-      "status": "PARTIAL",
-      "evidence": "ROUTE ingests a 1970 Date while local admission establishes the live deadline; seeded hand trace uses independent admission timestamps.",
-      "remaining_or_scope": "Add future, invalid and extreme Date-header variants through parsed ingestion."
+      "status": "VERIFIED",
+      "evidence": "FOCUS test_cooldown_untrusted_dates_use_local_admission_time.",
+      "remaining_or_scope": "Eight parsed Date cases:1970/2100/invalid/9999 and both DST offsets, under UTC and America/New_York. Deadline computed from bounded local UTC admission."
     },
     {
       "id": "C06",
       "requirement": "Clock changes, time zones, and timestamp limits are tested.",
       "status": "PARTIAL",
-      "evidence": "test_cooldown_coverage_and_backward_clock_fail_closed; negative/overflow calculator tests.",
-      "remaining_or_scope": "No explicit TZ/DST environment matrix or forward-jump scheduling matrix has run."
+      "evidence": "SUITE backward-clock/negative/overflow/window-boundary tests; FOCUS eight untrusted dates in UTC and America/New_York.",
+      "remaining_or_scope": "TZ/DST/header extremes now exercised; no comprehensive real wall-clock forward-jump scheduling matrix."
     },
     {
       "id": "C07",
@@ -296,9 +319,9 @@
     {
       "id": "D08",
       "requirement": "History cleanup, configuration changes, and rollback preserve pending work.",
-      "status": "PARTIAL",
-      "evidence": "SQLITE pruning; policy_reload_preserves_decided_but_blocks_waiting; OLD.",
-      "remaining_or_scope": "Event pruning retains tombstones. Rehearsed rollback cancels pending/held work; live preservation/resumption and a production-daemon downgrade remain unverified."
+      "status": "VERIFIED",
+      "evidence": "SQLITE event pruning/config reload; OLD untouched15-table backup restore and pending-work resume.",
+      "remaining_or_scope": "Processes stopped; no new work during old-code rehearsal. Old-code scratch state cancels work; untouched backup preserves and restores runnable pending state. Not live rolling downgrade."
     },
     {
       "id": "E01",
@@ -317,9 +340,9 @@
     {
       "id": "E03",
       "requirement": "Failed or incomplete reviews cannot masquerade as clean.",
-      "status": "PARTIAL",
-      "evidence": "test_no_ai_review_is_not_clean; clean predicate and failure handling tests in SUITE.",
-      "remaining_or_scope": "Add a feature-specific release matrix for failed, missing, partially completed and mixed review outputs."
+      "status": "VERIFIED",
+      "evidence": "SUITE/FOCUS test_cooldown_failed_and_partial_reviews_are_not_clean; no-AI predicate tests.",
+      "remaining_or_scope": "Enabled adaptive release matrix covers Failed/Pending/Skipped/missing/partial and literal mixed Reviewed+Failed with target2."
     },
     {
       "id": "E04",
@@ -331,9 +354,9 @@
     {
       "id": "E05",
       "requirement": "Multiple workers cannot claim the same queue item incorrectly.",
-      "status": "PARTIAL",
-      "evidence": "Atomic claim SQL; sequential double-claim/lease tests; restarted-worker dedup in ROUTE.",
-      "remaining_or_scope": "Add simultaneous independent release/email-worker claims for the same eligible item. Admission concurrency is not publication-claim concurrency."
+      "status": "VERIFIED",
+      "evidence": "SUITE/FOCUS test_cooldown_independent_publication_claims_have_one_winner.",
+      "remaining_or_scope": "Two independent handles race release/email/Patchwork claims; exactly one winner for each eligible item. Frozen past legacy deadline fixture is explicit."
     },
     {
       "id": "E06",
@@ -345,23 +368,23 @@
     {
       "id": "E07",
       "requirement": "Authorized early release works; unauthorized release is denied.",
-      "status": "PARTIAL",
-      "evidence": "test_release_patchset_embargo_authorization_and_endpoint; adaptive early-release and quarantine regressions.",
-      "remaining_or_scope": "Shared ACL route and adaptive DB behavior are separately tested; add their combined enabled-adaptive endpoint matrix."
+      "status": "VERIFIED",
+      "evidence": "SUITE/FOCUS test_adaptive_release_patchset_embargo_authorization_and_endpoint.",
+      "remaining_or_scope": "Existing role/visibility/authorization endpoint matrix reused with persisted decided adaptive owner and future fixed embargo. Earned adaptive-extra hold covered separately."
     },
     {
       "id": "E08",
       "requirement": "Mailing-list rules, ignored authors, recipients, visibility, and integrations stay correct.",
       "status": "PARTIAL",
-      "evidence": "CONFIG; recording recipient check; server visibility regressions; general router/worker tests.",
-      "remaining_or_scope": "Missing complete adaptive-enabled ignored-author/routing/integration combinations. Upstream now changes relevant paths."
+      "evidence": "CONFIG; FOCUS adaptive release ACL/visibility; recording recipients; refreshed upstream security/routing tests in SUITE.",
+      "remaining_or_scope": "Missing complete adaptive-enabled ignored-author/routing/integration combinations."
     },
     {
       "id": "F01",
       "requirement": "Held reviews cannot block eligible reviews behind them.",
-      "status": "OPEN",
-      "evidence": "Eligibility predicates precede LIMIT in current selectors; no direct head-of-queue starvation fixture identified.",
-      "remaining_or_scope": "Add held/waiting/quarantined head items followed by eligible review and outbox items, including worker limits."
+      "status": "VERIFIED",
+      "evidence": "SUITE/FOCUS test_cooldown_held_queue_head_does_not_starve_eligible_work.",
+      "remaining_or_scope": "Held head followed by eligible work, selector limit1, across review/outbox/release candidates; eligibility tested before limiting."
     },
     {
       "id": "F02",
@@ -408,9 +431,9 @@
     {
       "id": "F08",
       "requirement": "Read-only replay cannot alter real database or repository state.",
-      "status": "OPEN",
-      "evidence": "Existing generated/fault replays use temporary databases and restored ephemeral source.",
-      "remaining_or_scope": "No historical read-only shadow-replay tool/corpus and pristine-state guard have been validated."
+      "status": "BLOCKED",
+      "evidence": "HISTORICAL read-only write-negative and compiled shadow harness; actual archive HTTPS403/NNTPtimeout.",
+      "remaining_or_scope": "No historical email replay performed. Requires an accessible actual public raw message/corpus; readonly source fixture is not real production state."
     },
     {
       "id": "G01",
@@ -430,8 +453,8 @@
       "id": "G03",
       "requirement": "Regression tests fail when their intended protection is removed.",
       "status": "VERIFIED",
-      "evidence": "MUT five compiled mutants with targeted negative tests and unrelated positive controls.",
-      "remaining_or_scope": "Author scope, frozen replay, deadline comparison, release marker and NNTP eligibility mutants are killed."
+      "evidence": "MUT8 compiled/killed mutants; INSPECT actual negative assertions/errors and unrelated controls.",
+      "remaining_or_scope": "Author scope,frozen replay,deadline,release marker,NNTPenablement,stale identical replay,source correction,and snapshot quarantine. No infrastructure failure counted as a killed mutant."
     },
     {
       "id": "G04",
@@ -451,15 +474,15 @@
       "id": "G06",
       "requirement": "Measure enabled versus disabled performance and database costs.",
       "status": "VERIFIED",
-      "evidence": "PERF; PROBE.",
-      "remaining_or_scope": "Matched base/disabled/enabled medians, raw samples, SQL API counts and calibrated writer distributions recorded. One fresh pair exceeds the nominal ratio limit."
+      "evidence": "PERF18 raw final samples; PROBE calibrated counts; previous two FAIL_BUDGET18-sample runs retained in execution JSON.",
+      "remaining_or_scope": "Final ratio-of-medians:disabled/upstream1.1500/1.1486;enabled/disabled1.1137/1.1531. Fresh individual pair~1.2392 exceeds20%; not a production latency guarantee."
     },
     {
       "id": "G07",
       "requirement": "Run the required test suites on the exact final code revision.",
-      "status": "PARTIAL",
-      "evidence": "SUITE and PREP pass on the audited source and source-only tree.",
-      "remaining_or_scope": "The current candidate is tested; upstream refresh/final review may change it. Re-run on that exact final tree before submission."
+      "status": "VERIFIED",
+      "evidence": "SUITE on dbe259; PREP three source commits; INSPECT final source-only tree equals bd590 across complete production paths.",
+      "remaining_or_scope": "Only fork workflow changes distinguish native checkpoint from production checkpoint. Re-run checks if production or upstream base changes."
     },
     {
       "id": "G08",
@@ -472,22 +495,22 @@
       "id": "H01",
       "requirement": "Record tested commit, command, environment, logs, and outcome.",
       "status": "VERIFIED",
-      "evidence": "SUITE/PREP/PERF/PROBE/FAULT/CONCUR/OLD artifacts and workflows; round-3 report.",
-      "remaining_or_scope": "Artifacts retain commands, hashes, native binaries or manifests and runner logs; retention is 14 days, so durable preservation remains necessary."
+      "evidence": "SUITE/PREP/INSPECT/PERF/PROBE/FAULT/CONCUR/OLD and .github/ADAPTIVE_EXECUTION_1_5.md plus .github/adaptive-execution-1-5.json.",
+      "remaining_or_scope": "Exact source/base/tree/commands/environment/outcomes recorded. Artifacts expire after14days; analytical samples and summaries preserved in fork."
     },
     {
       "id": "H02",
       "requirement": "Distinguish upstream failures from newly introduced failures.",
-      "status": "PARTIAL",
-      "evidence": "Matched upstream performance; prerequisite diagnostic; recorded harness failures.",
-      "remaining_or_scope": "The latest upstream full suite has not been run. Refresh and compare failures explicitly before final attribution."
+      "status": "VERIFIED",
+      "evidence": "Untouched7f stable-Rust1.99.1 four result_large_err errors isolated;1.90 baseline does not reproduce. PREP first compatibility commit passes1065tests; final1111tests pass.",
+      "remaining_or_scope": "Upstream lint compatibility patch is separate and function-scoped. Invalid Date cursor/config fixture and packaging failures are retained as harness defects, not production regressions."
     },
     {
       "id": "H03",
       "requirement": "Refresh against upstream and revalidate the final diff.",
-      "status": "OPEN",
-      "evidence": "Upstream now 7f92f869a960a20f7d395550b4879d897ebdf4ea, 16 commits beyond tested base.",
-      "remaining_or_scope": "Refresh with overlapping main/review/email/server changes, inspect conflict resolutions and revalidate. PR 685 remains open/unmerged."
+      "status": "VERIFIED",
+      "evidence": "Upstream7f refreshed; overlapping main/server hunks validated; SUITE/PREP/INSPECT and PERF final source revalidated.",
+      "remaining_or_scope": "Observed upstream still7f at20:39UTC. New upstream changes require fresh comparison; this does not close policy/model/coverage gates."
     },
     {
       "id": "H04",
@@ -507,15 +530,15 @@
       "id": "H06",
       "requirement": "Required model-assisted self-review is completed or explicitly marked blocked.",
       "status": "BLOCKED",
-      "evidence": "All reports explicitly mark required Sashiko review pending; no model invocation or spend.",
-      "remaining_or_scope": "Disclosure requirement is met, but the mandatory completion gate is not. Secret readiness is unconfirmed."
+      "evidence": "MODEL hosted missing-key check; user explicitly confirms no provider key.",
+      "remaining_or_scope": "No authenticated Sashiko model review. Free-tier Gemini key is an option; paid fallback is not enabled. --no-ai and offline proxy tests do not satisfy review."
     },
     {
       "id": "H07",
       "requirement": "Rehearse dry-run, rollback, and pending-work preservation.",
       "status": "PARTIAL",
-      "evidence": "ROUTE uses local recording transport; OLD rehearses stop/cancel and old DB access.",
-      "remaining_or_scope": "No full production-daemon downgrade or complete dry-run/pending-work continuation matrix. Do not substitute cancellation evidence for preservation of runnable work."
+      "evidence": "ROUTE local recording transport; OLD unsafe negative, stopped quiescence, exact backup restore, pending resume.",
+      "remaining_or_scope": "Pending-state preservation is now demonstrated in stopped DB rehearsal. Full production-daemon rollback, operational dry-run and in-flight cancellation matrix remain unverified."
     },
     {
       "id": "H08",
@@ -529,57 +552,66 @@
     {
       "requirement": "Verify the feature is still missing in current upstream.",
       "status": "VERIFIED",
-      "assessment": "At upstream 7f92f869a960a20f7d395550b4879d897ebdf4ea, checked db.rs/email_policy.rs contain no adaptive_cooldown, CooldownContext or review_cooldown persistence/configuration. This is the target feature check, not an assertion that fixed embargoes are missing."
+      "assessment": "Adaptive config/accounting absent in inspected7f upstream; fixed embargo exists. Observed upstream unchanged20:39UTC."
     },
     {
       "requirement": "Recover historical tests and identify coverage gaps.",
       "status": "PARTIAL",
-      "assessment": "Existing clean-review, no-AI, release-ACL, supersession and failure tests were inspected and mapped. The complete historical corpus/shadow replay and prior change-history audit are not complete."
+      "assessment": "Existing regressions mapped and extended;64rows reconciled. Public archive replay blocked despite compiled readonly shadow harness."
     },
     {
       "requirement": "Get maintainer agreement on the intended cooldown policy.",
       "status": "OPEN",
-      "assessment": "No recorded upstream maintainer agreement. Resolve policy semantics, zero values, cross-post/opt-out precedence, author normalization/fairness, cap and indivisible ownership-group exceptions. No outreach was performed."
+      "assessment": "Policy RFC prepared. Posting403; no issue or agreement. Zero values/crosspost/fairness/storage/atomic ownership exception require decisions."
     },
     {
       "requirement": "Implement the smallest defensible change.",
       "status": "PARTIAL",
-      "assessment": "Prerequisite and feature are split in source-only artifacts; duplicate SQL reads were removed. Scope/minimality and the unbounded ownership exception still need maintainer/model review."
+      "assessment": "Three source-only commits, guarded point-query optimizations and regressions. Scope/minimality and indivisible ownership exception still require maintainers/model review."
     },
     {
       "requirement": "Run all applicable regression and integration tests.",
       "status": "PARTIAL",
-      "assessment": "Audited candidate checks pass; 23 partial and 3 open scenario rows still identify missing coverage. Latest-upstream refreshed final tree does not yet exist."
+      "assessment": "Required suite1111passes/2ignored; focused/fault/concurrency/restore/mutation and maximum-series/history-fault/process-restart checks pass.12PARTIAL and2BLOCKED rows remain."
     },
     {
       "requirement": "Validate performance and document tradeoffs.",
       "status": "VERIFIED",
-      "assessment": "Declared median screening limits pass on audited source; query reduction is measured. Raw fresh pair above 20%, synthetic workloads and writer outliers are explicitly retained; no production performance guarantee."
+      "assessment": "Final matched median budgets pass unchanged;~15% disabled overhead and11-15% incremental enabled overhead measured. Prior failed budgets, individual outliers, querycounts and storage/writer exceptions preserved."
     },
     {
       "requirement": "Complete applicable Sashiko self-review requirements.",
       "status": "BLOCKED",
-      "assessment": "Required local Sashiko model review not run; provider-secret readiness unconfirmed. Subsequent upstream bot findings can only be handled after separately approved submission."
+      "assessment": "No provider key; no authenticated model review/spend. Required local model stage not complete; upstream bot stage waits separately approved PR."
     },
     {
       "requirement": "Confirm no regressions against upstream.",
-      "status": "OPEN",
-      "assessment": "Matched baseline/disabled trace is equal within its scope, but current upstream is 16 commits newer with overlapping changes. Full refreshed comparison and final-tree checks required."
+      "status": "PARTIAL",
+      "assessment": "Refreshed final native suites green, legacy tuples match, upstream lint differences isolated. Remaining feature-specific matrix gaps mean no blanket no-regressions claim."
     },
     {
       "requirement": "Produce reproducible evidence with exact commit hashes.",
       "status": "VERIFIED",
-      "assessment": "Evidence index records source, baseline, source-only tree, workflow commands, logs, hashes and outcomes. Artifacts have 14-day retention and need durable preservation."
+      "assessment": "Exact hashes/commands/environment and raw analytical samples preserved. Three-commit checked source bundle and patch hashes independently verified; downloadable raw logs expire14days."
     },
     {
       "requirement": "Prepare a clean PR for separate approval before publishing.",
       "status": "PARTIAL",
-      "assessment": "Clean two-commit source-only bundle and draft materials exist. Refresh, policy agreement, gaps and model review remain; no upstream PR was submitted."
+      "assessment": "Clean three-commit source bundle and .github/ADAPTIVE_PR_DRAFT.md prepared. Policy/model/coverage blockers remain. No upstream PR opened."
     }
   ],
   "overall_ready_for_maintainer_review": false,
   "checklist_reconciliation_complete": true,
   "historical_shadow_replay_performed": false,
   "model_review_performed": false,
-  "definition_of_complete": "The applicable tests pass, limitations are documented, existing behavior is preserved when disabled, and the implementation is ready for maintainer review—not merely that the checklist has been ticked."
+  "definition_of_complete": "The applicable tests pass, limitations are documented, existing behavior is preserved when disabled, and the implementation is ready for maintainer review—not merely that the checklist has been ticked.",
+  "observed_upstream_at_utc": "2026-10-19T20:39:00Z",
+  "native_suite_checkpoint": {
+    "sha": "dbe259abb32b5f585f020ce7faee96694e8869c4",
+    "production_equivalent": true,
+    "differing_files": [
+      ".github/workflows/adaptive-stop-superseded.yml",
+      ".github/workflows/adaptive-validation.yml"
+    ]
+  }
 }
