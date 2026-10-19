@@ -58,6 +58,9 @@
                 libsql::params![id, message, crate::cooldown::content_fingerprint(b"diff")]).await?;
             tx.execute("UPDATE patchsets SET received_parts=1 WHERE id=?", libsql::params![id]).await?;
             Database::complete_patchset_tx(&tx, id, 1000, writer.cooldown_context.as_ref()).await?;
+            let event = tx.query("SELECT COUNT(*) FROM review_cooldown_events", ()).await?
+                .next().await?.context("uncommitted event")?.get::<i64>(0)?;
+            assert_eq!(event, 1, "cancellation fixture never admitted inside transaction");
             let _ = ready.send(());
             std::future::pending::<()>().await;
             tx.commit().await
@@ -72,7 +75,14 @@
         assert_eq!(scalar(&independent, "SELECT COUNT(*) FROM review_cooldown_intents WHERE state='decided'").await?, 0);
         let mut rows = independent.conn.query("SELECT message_id FROM review_cooldown_messages WHERE patchset_id=?", libsql::params![id]).await?;
         let message: String = rows.next().await?.context("owner message")?.get(0)?;
+        // End this WAL read snapshot before observing another connection's
+        // later commit. A live cursor would legitimately retain the old view.
+        drop(rows);
+        assert_eq!(independent.get_patchset_status(id).await?.as_deref(), Some("Incomplete"));
+        assert_eq!(scalar(&independent, "SELECT COUNT(*) FROM review_cooldown_intents WHERE state='waiting'").await?, 1);
+        assert_eq!(scalar(&independent, "SELECT last_admitted_at FROM review_cooldown_clock WHERE singleton=1").await?, 0);
         active.create_patch(id, &message, 1, "diff").await?;
+        assert_eq!(scalar(&active, "SELECT COUNT(*) FROM review_cooldown_events").await?, 1);
         assert_eq!(scalar(&independent, "SELECT COUNT(*) FROM review_cooldown_events").await?, 1);
         Ok(())
     }
