@@ -1,0 +1,53 @@
+name: Adaptive concurrent admission replay
+
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths:
+      - '.github/adaptive-concurrency/**'
+      - '.github/workflows/adaptive-concurrency.yml'
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  concurrent-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: >-
+          rustup toolchain install stable --profile minimal
+          --component rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          shared-key: native-validation
+      - name: Verify isolated runner
+        run: |
+          if pgrep -x sashiko; then
+            exit 1
+          fi
+      - name: Sixteen independent writers, release and replay
+        timeout-minutes: 17
+        run: python3 .github/adaptive-concurrency/run.py
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adaptive-concurrency-${{ github.sha }}
+          path: |
+            adaptive-concurrency-results/manifest.json
+            adaptive-concurrency-results/*.log
+          retention-days: 14
+          if-no-files-found: error
