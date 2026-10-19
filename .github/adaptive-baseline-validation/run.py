@@ -35,6 +35,8 @@ REPORT = {
         "Does not replace the original full acceptance matrix.",
     ],
     "samples": [], "binaries": {},
+    "repeat_of": "39297399851",
+    "production_source_sha256": {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in ["src/db.rs", "src/db/cooldown.rs", "src/cooldown.rs"]},
 }
 
 
@@ -192,6 +194,7 @@ def main():
                 row = json.loads(matches[0])
                 row.update(variant=variant, repetition=repetition, process_seconds=elapsed)
                 REPORT["samples"].append(row)
+                print("SAMPLE " + json.dumps(row, sort_keys=True), flush=True)
                 save()
     comparisons = []
     for retained in [0, 10000]:
