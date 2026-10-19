@@ -178,22 +178,18 @@ impl Database {
         context: Option<&CooldownContext>,
         late_cover: bool,
     ) -> Result<()> {
-        let mut rows = conn.query("SELECT list, author, policy, state FROM review_cooldown_intents WHERE patchset_id = ?", libsql::params![id]).await?;
+        let mut rows = conn.query("SELECT list, author, policy, state FROM review_cooldown_intents WHERE patchset_id = ? UNION ALL SELECT NULL, NULL, NULL, 'blocked' FROM review_cooldown_blocks WHERE patchset_id = ? LIMIT 1", libsql::params![id, id]).await?;
         let Some(row) = rows.next().await? else {
-            let mut blocked = conn.query("SELECT 1 FROM review_cooldown_guards WHERE patchset_id = ? AND state != 'decided'", libsql::params![id]).await?;
-            if blocked.next().await?.is_some() {
-                bail!("canonical series is quarantined");
-            }
             return Ok(());
         };
-        let list: String = row.get(0)?;
-        let author: String = row.get(1)?;
-        let policy: CooldownPolicy = serde_json::from_str(&row.get::<String>(2)?)?;
-        policy.validate()?;
         let state: String = row.get(3)?;
         if state == "blocked" {
             bail!("adaptive cooldown is quarantined");
         }
+        let list: String = row.get(0)?;
+        let author: String = row.get(1)?;
+        let policy: CooldownPolicy = serde_json::from_str(&row.get::<String>(2)?)?;
+        policy.validate()?;
         let key = message_key(message)?;
         let mut aliases = conn.query("SELECT patchset_id, source_hash FROM review_cooldown_messages WHERE message_id = ?", libsql::params![key.clone()]).await?;
         let alias = aliases.next().await?;

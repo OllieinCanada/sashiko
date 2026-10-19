@@ -16,7 +16,7 @@ CASES = [
     ("author-scope", "src/db/cooldown.rs",
      "WHERE list = ? AND author = ? AND admitted_at > ?",
      "WHERE list = ? AND ? IS NOT NULL AND admitted_at > ?",
-     "test_cooldown_hand_trace_scope_and_window", "lib"),
+     "test_cooldown_deadline_boundary_clean_exception_and_isolation", "lib"),
     ("frozen-replay", "src/db/cooldown.rs",
      '            if state == "waiting" {\n                let Some(context) = context else {',
      '            if state == "waiting" || state == "decided" {\n                let Some(context) = context else {',
