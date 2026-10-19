@@ -3,6 +3,15 @@ name: Adaptive cooldown validation
 'on':
   push:
     branches: [codex/held-series-ci-20261019]
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'Settings.toml'
+      - 'projects/**'
+      - 'Makefile'
+      - '.github/workflows/adaptive-validation.yml'
   workflow_dispatch:
 
 permissions:
