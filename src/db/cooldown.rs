@@ -189,6 +189,47 @@ impl Database {
         let Some(row) = rows.next().await? else {
             return Ok(CooldownBinding::Legacy);
         };
+        Self::validate_cooldown_source_tx(conn, id, message, context, late_cover, row).await
+    }
+
+    /// Patch admission and index collision use one writer-transaction snapshot.
+    pub(super) async fn bind_cooldown_patch_tx(
+        conn: &libsql::Connection,
+        id: i64,
+        message: &str,
+        context: Option<&CooldownContext>,
+        new_index: Option<u32>,
+    ) -> Result<(CooldownBinding, bool)> {
+        let mut rows = conn.query(
+            "SELECT c.list, c.author, c.policy,
+                    CASE WHEN b.patchset_id IS NOT NULL THEN 'blocked'
+                         WHEN c.patchset_id IS NOT NULL THEN c.state
+                         ELSE 'legacy' END,
+                    EXISTS(SELECT 1 FROM patches
+                           WHERE patchset_id = ? AND part_index = ? AND message_id != ?)
+             FROM (SELECT 1) seed
+             LEFT JOIN review_cooldown_intents c ON c.patchset_id = ?
+             LEFT JOIN review_cooldown_blocks b ON b.patchset_id = ?",
+            libsql::params![id, new_index, message, id, id],
+        ).await?;
+        let row = rows.next().await?.context("missing patch binding snapshot")?;
+        let collision = row.get::<i64>(4)? != 0;
+        let binding = if row.get::<String>(3)? == "legacy" {
+            CooldownBinding::Legacy
+        } else {
+            Self::validate_cooldown_source_tx(conn, id, message, context, false, row).await?
+        };
+        Ok((binding, collision))
+    }
+
+    async fn validate_cooldown_source_tx(
+        conn: &libsql::Connection,
+        id: i64,
+        message: &str,
+        context: Option<&CooldownContext>,
+        late_cover: bool,
+        row: libsql::Row,
+    ) -> Result<CooldownBinding> {
         let state: String = row.get(3)?;
         if state == "blocked" {
             bail!("adaptive cooldown is quarantined");
@@ -2354,6 +2395,21 @@ mod tests {
                     .await?;
                 }
             }
+            if index == 2 {
+                let failed = db
+                    .create_review(id, Some(patch), "fixture", "no-model", None, None)
+                    .await?;
+                db.complete_review(
+                    failed,
+                    "Failed",
+                    "second reviewer failed",
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+                .await?;
+            }
             db.conn
                 .execute(
                     "UPDATE patchsets SET target_review_count=? WHERE id=?",
@@ -2525,4 +2581,33 @@ mod tests {
         assert_eq!(u8::from(a.2) + u8::from(b.2), 1);
         Ok(())
     }
+
+    #[tokio::test]
+    async fn test_cooldown_patch_binding_snapshot_keeps_collision_and_quarantine() -> Result<()> {
+        let db = database().await?;
+        let (id, _, message) = seed(&db, "binding-snapshot", 1).await?;
+        db.create_patch(id, &message, 1, "diff").await?;
+        let tx = db.begin_immediate_transaction().await?;
+        let (binding, collision) =
+            Database::bind_cooldown_patch_tx(&tx, id, "other@example.test", None, Some(1)).await?;
+        assert!(matches!(binding, CooldownBinding::Legacy));
+        assert!(collision);
+        let (binding, collision) =
+            Database::bind_cooldown_patch_tx(&tx, id, &message, None, Some(1)).await?;
+        assert!(matches!(binding, CooldownBinding::Legacy));
+        assert!(!collision);
+        let (_, collision) =
+            Database::bind_cooldown_patch_tx(&tx, id, "other@example.test", None, None).await?;
+        assert!(!collision);
+        Database::block_cooldown(&tx, id, "snapshot quarantine control").await?;
+        assert!(
+            Database::bind_cooldown_patch_tx(&tx, id, &message, None, Some(1))
+                .await
+                .is_err()
+        );
+        tx.rollback().await?;
+        assert!(db.claim_patchset_for_review(id).await?);
+        Ok(())
+    }
+
 }
