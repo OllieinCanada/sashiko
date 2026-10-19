@@ -1,0 +1,71 @@
+name: Bounded Sashiko model review
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths: ['.github/workflows/adaptive-self-review.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: adaptive-authorized-model-review
+  cancel-in-progress: false
+jobs:
+  review:
+    if: >-
+      github.repository == 'OllieinCanada/sashiko' &&
+      github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+      CARGO_NET_RETRY: 0
+      CARGO_HTTP_TIMEOUT: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Offline budget controls
+        run: python3 .github/adaptive-model-review/selftest.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: >-
+            adaptive-source-preparation-010274b4d10a4db39cb7de2bcef0108a92bdc82b
+          run-id: 39330032302
+          github-token: ${{ github.token }}
+          path: model-source-artifact
+      - name: Check clean exact source-only candidate
+        run: |
+          if pgrep -x sashiko; then exit 1; fi
+          git clone --no-hardlinks . /tmp/adaptive-model-source
+          cd /tmp/adaptive-model-source
+          git fetch "$GITHUB_WORKSPACE/model-source-artifact/source-only.bundle" HEAD
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = \
+            6667a81cd25a69feca76e65d94aacb4c83b2ce72
+          test -z "$(git status --porcelain)"
+          test -z "$(git diff --name-only \
+            bd59059f1864aea81b11b5de0eb97e5d2ec53667 HEAD -- \
+            src docs designs MAINTAINERS_GUIDE.md Cargo.toml Cargo.lock)"
+      - name: One bounded real review attempt
+        timeout-minutes: 14
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          python3 .github/adaptive-model-review/run.py \
+            /tmp/adaptive-model-source \
+            f6e2e172e1e669b6767a4c74fe91d062b41fd71c \
+            6667a81cd25a69feca76e65d94aacb4c83b2ce72
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bounded-model-review-${{ github.sha }}
+          path: adaptive-model-review-results/
+          retention-days: 14
+          if-no-files-found: warn
