@@ -7571,9 +7571,15 @@ impl Database {
         cooldown_context: Option<&crate::cooldown::CooldownContext>,
         content_hash: &str,
     ) -> Result<PatchWriteOutcome> {
-        let binding =
-            match Self::bind_cooldown_message_tx(&tx, patchset_id, message_id, cooldown_context)
-                .await
+        let (binding, index_collision) =
+            match Self::bind_cooldown_patch_tx(
+                &tx,
+                patchset_id,
+                message_id,
+                cooldown_context,
+                old_patch.is_none().then_some(part_index),
+            )
+            .await
             {
                 Ok(binding) => binding,
                 Err(error) => {
@@ -7632,21 +7638,8 @@ impl Database {
                 bail!("adaptive patch correction quarantined");
             }
         }
-        if old_patch.is_none() {
-            let collision_exists = {
-                let mut rows = tx
-                    .query(
-                        "SELECT 1 FROM patches WHERE patchset_id = ? AND part_index = ? AND message_id != ?",
-                        libsql::params![patchset_id, part_index, message_id],
-                    )
-                    .await?;
-                rows.next().await?.is_some()
-            };
-            if collision_exists {
-                bail!(
-                    "Index collision: index {part_index} already exists in patchset {patchset_id}"
-                );
-            }
+        if index_collision {
+            bail!("Index collision: index {part_index} already exists in patchset {patchset_id}");
         }
 
         let Some((patch_id, existing_in_patchset)) = write_patch_if_unchanged(
