@@ -56,11 +56,11 @@ def download():
         corpus = response.read(512 * 1024 + 1)
     if len(corpus) > 512 * 1024:
         raise RuntimeError("historical corpus exceeds cap")
-    digest = hashlib.sha1(b"blob " + str(len(corpus)).encode() + b"\\0" + corpus).hexdigest()
+    digest = hashlib.sha1(b"blob " + str(len(corpus)).encode() + b"\0" + corpus).hexdigest()
     if digest != "4a54ee517198cf218d330bdc4cd93cd279abcf0e":
         raise RuntimeError("pinned historical corpus blob mismatch")
     candidates = []
-    for raw in re.split(br"(?m)^From [^\\r\\n]*\\r?\\n", corpus):
+    for raw in re.split(br"(?m)^From [^\r\n]*\r?\n", corpus):
         parsed = email.parser.BytesParser(policy=email.policy.default).parsebytes(raw)
         if str(parsed.get("Message-ID", "")).strip("<>") == MESSAGE:
             candidates.append((raw, parsed))
@@ -110,8 +110,13 @@ try:
     else:
         try:
             data = download()
-        except Exception:
-            REPORT["archive_status"] = "BLOCKED: pinned public historical corpus could not be fetched or validated"
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
+            REPORT["archive_status"] = "BLOCKED: pinned public historical corpus transport unavailable"
+    if data is None:
+        REPORT["status"] = "BLOCKED_ARCHIVE_UNAVAILABLE"
+        REPORT["replay_performed"] = False
+        save()
+        raise RuntimeError("historical input unavailable; native replay not started")
     raw = OUT / "public-historical.eml"
     if data is not None:
         raw.write_bytes(data)

@@ -6,6 +6,9 @@ name: Adaptive public historical shadow replay
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: adaptive-historical-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   historical-shadow:
     runs-on: ubuntu-24.04
