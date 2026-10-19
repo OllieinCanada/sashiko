@@ -31,19 +31,29 @@ jobs:
         run: |
           git worktree add --detach "$RUNNER_TEMP/upstream-baseline" 7f92f869a960a20f7d395550b4879d897ebdf4ea
           mkdir -p upstream-check-results
+          ln -s "$GITHUB_WORKSPACE/target" "$RUNNER_TEMP/upstream-baseline/target"
           export CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target"
           rustc --version > upstream-check-results/environment.txt
           cargo --version >> upstream-check-results/environment.txt
           cd "$RUNNER_TEMP/upstream-baseline"
           set +e
-          make check-pr RANGE=7f92f869a960a20f7d395550b4879d897ebdf4ea..HEAD > "$GITHUB_WORKSPACE/upstream-check-results/check-pr.log" 2>&1
-          check_status=$?
+          cargo fmt --all -- --check > "$GITHUB_WORKSPACE/upstream-check-results/fmt.log" 2>&1
+          fmt_status=$?
+          cargo clippy --locked --all-targets --all-features -- -D warnings > "$GITHUB_WORKSPACE/upstream-check-results/clippy.log" 2>&1
+          clippy_status=$?
+          cargo clippy --locked --all-targets --no-default-features -- -D warnings > "$GITHUB_WORKSPACE/upstream-check-results/clippy-local.log" 2>&1
+          local_status=$?
+          cargo clippy --locked --all-targets --no-default-features --features cache -- -D warnings > "$GITHUB_WORKSPACE/upstream-check-results/clippy-cache.log" 2>&1
+          cache_status=$?
+          cargo build --locked --all-features --bin sashiko > "$GITHUB_WORKSPACE/upstream-check-results/build.log" 2>&1
+          build_status=$?
           cargo test --locked --all-features > "$GITHUB_WORKSPACE/upstream-check-results/tests.log" 2>&1
           test_status=$?
-          printf 'check_pr=%s\ntests=%s\n' "$check_status" "$test_status" > "$GITHUB_WORKSPACE/upstream-check-results/status.txt"
-          tail -100 "$GITHUB_WORKSPACE/upstream-check-results/check-pr.log"
+          printf 'fmt=%s\nclippy=%s\nlocal=%s\ncache=%s\nbuild=%s\ntests=%s\n' "$fmt_status" "$clippy_status" "$local_status" "$cache_status" "$build_status" "$test_status" > "$GITHUB_WORKSPACE/upstream-check-results/status.txt"
+          cat "$GITHUB_WORKSPACE/upstream-check-results/status.txt"
+          tail -100 "$GITHUB_WORKSPACE/upstream-check-results/clippy.log"
           tail -50 "$GITHUB_WORKSPACE/upstream-check-results/tests.log"
-          if [ "$check_status" -ne 0 ] || [ "$test_status" -ne 0 ]; then exit 1; fi
+          if [ "$fmt_status" -ne 0 ] || [ "$clippy_status" -ne 0 ] || [ "$local_status" -ne 0 ] || [ "$cache_status" -ne 0 ] || [ "$build_status" -ne 0 ] || [ "$test_status" -ne 0 ]; then exit 1; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
