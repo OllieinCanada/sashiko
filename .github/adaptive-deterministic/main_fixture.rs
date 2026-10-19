@@ -70,7 +70,7 @@ enabled = false
             let patches: i64 = db.conn.query("SELECT COUNT(*) FROM patches", ()).await?
                 .next().await?.context("patch count")?.get(0)?;
             assert_eq!(patches, i64::from(ignored == 0), "{label}");
-            let messages: i64 = db.conn.query("SELECT COUNT(*) FROM messages WHERE is_placeholder = 0", ()).await?
+            let messages: i64 = db.conn.query("SELECT COUNT(*) FROM messages WHERE subject != '(placeholder)'", ()).await?
                 .next().await?.context("message count")?.get(0)?;
             assert_eq!(messages, 1, "{label}");
         }

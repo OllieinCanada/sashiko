@@ -113,9 +113,20 @@ def test(binary, name, label, timeout, negative=False):
            "status": "KILLED" if negative else "PASS"}
     REPORT["checks"].append(row)
     save()
-    for line in text.splitlines():
-        if line.startswith("DET6_CASES"):
-            print(line, flush=True)
+    markers = [line.split("DET6_CASES", 1)[1].strip()
+               for line in text.splitlines() if "DET6_CASES" in line]
+    required_marker = {
+        "ingestion-crosspost-ignore": "ingestion=19",
+        "enabled-routing": "notification_policy=16",
+        "clock-jumps": "selector_clock_instants=7",
+        "abort-transport-recover": "transport_abort=1",
+    }.get(label)
+    if required_marker and (len(markers) != 1 or required_marker not in markers[0]):
+        raise RuntimeError(label + ": missing complete-case fixture marker")
+    row["case_markers"] = markers
+    save()
+    for marker in markers:
+        print("DET6_CASES " + marker, flush=True)
 
 def restore():
     for path, text in ORIGINAL.items():

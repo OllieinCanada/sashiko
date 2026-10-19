@@ -1,10 +1,6 @@
 name: Check configured Gemini key
 
 'on':
-  push:
-    branches: [codex/held-series-ci-20261019]
-    paths:
-      - '.github/workflows/adaptive-key-check.yml'
   workflow_dispatch:
 
 permissions:
@@ -27,22 +23,22 @@ jobs:
           import sys
           import urllib.error
           import urllib.request
-          
+
           key = os.environ.pop("LLM_API_KEY", "")
           if not key:
               print("SECRET_PRESENT=false")
               print("RESULT=BLOCKED_MISSING_SECRET")
               sys.exit(1)
           print("SECRET_PRESENT=true")
-          
+
           class NoRedirect(urllib.request.HTTPRedirectHandler):
               def redirect_request(self, req, fp, code, msg, headers, newurl):
                   return None
-          
+
           opener = urllib.request.build_opener(NoRedirect())
           origin = "https://generativelanguage.googleapis.com/v1beta/"
           phase = "list_models"
-          
+
           def call(path, payload=None):
               data = None if payload is None else json.dumps(payload).encode()
               request = urllib.request.Request(
@@ -53,7 +49,7 @@ jobs:
                   if len(raw) > 2 * 1024 * 1024:
                       raise ValueError("response size limit")
                   return json.loads(raw)
-          
+
           try:
               listing = call("models?pageSize=1000")
               available = {m.get("name") for m in listing.get("models", [])
