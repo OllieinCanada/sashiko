@@ -9418,14 +9418,14 @@ impl Database {
                         cand_id, cand_ver, current_id, curr_ver
                     );
                 }
-            } else if cand_ver > curr_ver {
-                if self.cancel_superseded_series_patchset(current_id).await? {
-                    cancelled_count += 1;
-                    info!(
-                        "Cancelled older patchset {} (v{}) because newer patchset {} (v{}) already exists",
-                        current_id, curr_ver, cand_id, cand_ver
-                    );
-                }
+            } else if cand_ver > curr_ver
+                && self.cancel_superseded_series_patchset(current_id).await?
+            {
+                cancelled_count += 1;
+                info!(
+                    "Cancelled older patchset {} (v{}) because newer patchset {} (v{}) already exists",
+                    current_id, curr_ver, cand_id, cand_ver
+                );
             }
         }
 
