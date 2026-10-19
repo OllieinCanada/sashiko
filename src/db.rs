@@ -9343,8 +9343,12 @@ impl Database {
                      LIMIT 100
                  )",
                 libsql::params![
-                    current_id, window_start, window_end,
-                    current_id, window_start, window_end
+                    current_id,
+                    window_start,
+                    window_end,
+                    current_id,
+                    window_start,
+                    window_end
                 ],
             )
             .await?;
@@ -20670,7 +20674,10 @@ mod tests {
             } else {
                 "Reviewed"
             };
-            assert_eq!(db.get_patchset_status(old).await?.as_deref(), Some(expected));
+            assert_eq!(
+                db.get_patchset_status(old).await?.as_deref(),
+                Some(expected)
+            );
 
             // Cancellation must not shorten the held result's visibility gate.
             let mut rows = db
@@ -20683,7 +20690,9 @@ mod tests {
             assert_eq!(rows.next().await?.unwrap().get::<Option<i64>>(0)?, deadline);
             drop(rows);
             assert!(!db.claim_patchset_embargo_release(old, now + 7200).await?);
-            let releasable = db.get_releasable_embargoed_patchsets(now + 7200, 10).await?;
+            let releasable = db
+                .get_releasable_embargoed_patchsets(now + 7200, 10)
+                .await?;
             assert!(!releasable.iter().any(|row| row.id == old));
             assert!(releasable.iter().any(|row| row.id == latest));
 
@@ -20699,8 +20708,16 @@ mod tests {
                 reopened.get_patchset_status(old).await?.as_deref(),
                 Some(expected)
             );
-            assert!(!reopened.claim_patchset_embargo_release(old, now + 7200).await?);
-            assert!(reopened.claim_patchset_embargo_release(latest, now + 7200).await?);
+            assert!(
+                !reopened
+                    .claim_patchset_embargo_release(old, now + 7200)
+                    .await?
+            );
+            assert!(
+                reopened
+                    .claim_patchset_embargo_release(latest, now + 7200)
+                    .await?
+            );
         }
         Ok(())
     }
@@ -20731,7 +20748,10 @@ mod tests {
                 Some(now + 3600),
             )
             .await?;
-            assert_eq!(db.get_patchset_status(old).await?.as_deref(), Some("Reviewed"));
+            assert_eq!(
+                db.get_patchset_status(old).await?.as_deref(),
+                Some("Reviewed")
+            );
             assert!(db.claim_patchset_embargo_release(old, now + 7200).await?);
         }
         Ok(())
@@ -20742,53 +20762,110 @@ mod tests {
         let db = setup_db().await;
         let now = 1_800_000_000;
         let (old, patch, message) = insert_reviewed_series_for_supersession(
-            &db, 1, "Dev <dev@example.test>", "net: rollback held review",
-            now, Some(now + 3600),
-        ).await?;
+            &db,
+            1,
+            "Dev <dev@example.test>",
+            "net: rollback held review",
+            now,
+            Some(now + 3600),
+        )
+        .await?;
         db.insert_email_outbox(
-            patch, "Pending", "list@example.test", "", "old review",
-            &message, &message, "old finding",
-        ).await?;
+            patch,
+            "Pending",
+            "list@example.test",
+            "",
+            "old review",
+            &message,
+            &message,
+            "old finding",
+        )
+        .await?;
         db.insert_patchwork_outbox(
-            &message, "https://patchwork.example.test/api", "fail",
-            "old finding", "https://review.example.test/old", "test",
-        ).await?;
+            &message,
+            "https://patchwork.example.test/api",
+            "fail",
+            "old finding",
+            "https://review.example.test/old",
+            "test",
+        )
+        .await?;
         let (latest, _, _) = insert_reviewed_series_for_supersession(
-            &db, 2, "Dev <dev@example.test>", "temporary fixture title",
-            now + 1, Some(now + 3600),
-        ).await?;
+            &db,
+            2,
+            "Dev <dev@example.test>",
+            "temporary fixture title",
+            now + 1,
+            Some(now + 3600),
+        )
+        .await?;
         db.execute(
             "UPDATE patchsets SET subject = ? WHERE id = ?",
             libsql::params!["[PATCH v2] net: rollback held review", latest],
-        ).await?;
+        )
+        .await?;
         // Fail the final outbox update, after the email update has succeeded.
         db.execute(
             "CREATE TRIGGER fail_held_cancellation BEFORE UPDATE ON patchwork_outbox
              BEGIN SELECT RAISE(ABORT, 'injected cancellation failure'); END",
             (),
-        ).await?;
-        assert!(db.reconcile_superseded_series_patchsets(
-            latest, "Dev <dev@example.test>", "[PATCH v2] net: rollback held review",
-            1, Some(2), now + 1,
-        ).await.is_err());
-        assert_eq!(db.get_patchset_status(old).await?.as_deref(), Some("Reviewed"));
+        )
+        .await?;
+        assert!(
+            db.reconcile_superseded_series_patchsets(
+                latest,
+                "Dev <dev@example.test>",
+                "[PATCH v2] net: rollback held review",
+                1,
+                Some(2),
+                now + 1,
+            )
+            .await
+            .is_err()
+        );
+        assert_eq!(
+            db.get_patchset_status(old).await?.as_deref(),
+            Some("Reviewed")
+        );
         for table in ["email_outbox", "patchwork_outbox"] {
-            let mut rows = db.conn.query(&format!("SELECT status FROM {table}"), ()).await?;
+            let mut rows = db
+                .conn
+                .query(&format!("SELECT status FROM {table}"), ())
+                .await?;
             assert_eq!(rows.next().await?.unwrap().get::<String>(0)?, "Pending");
         }
-        let mut rows = db.conn.query(
-            "SELECT embargo_until FROM patchsets WHERE id = ?", libsql::params![old],
-        ).await?;
+        let mut rows = db
+            .conn
+            .query(
+                "SELECT embargo_until FROM patchsets WHERE id = ?",
+                libsql::params![old],
+            )
+            .await?;
         assert_eq!(rows.next().await?.unwrap().get::<i64>(0)?, now + 3600);
         drop(rows);
-        db.execute("DROP TRIGGER fail_held_cancellation", ()).await?;
-        assert_eq!(db.reconcile_superseded_series_patchsets(
-            latest, "Dev <dev@example.test>", "[PATCH v2] net: rollback held review",
-            1, Some(2), now + 1,
-        ).await?, 1);
-        assert_eq!(db.get_patchset_status(old).await?.as_deref(), Some("Cancelled"));
+        db.execute("DROP TRIGGER fail_held_cancellation", ())
+            .await?;
+        assert_eq!(
+            db.reconcile_superseded_series_patchsets(
+                latest,
+                "Dev <dev@example.test>",
+                "[PATCH v2] net: rollback held review",
+                1,
+                Some(2),
+                now + 1,
+            )
+            .await?,
+            1
+        );
+        assert_eq!(
+            db.get_patchset_status(old).await?.as_deref(),
+            Some("Cancelled")
+        );
         for table in ["email_outbox", "patchwork_outbox"] {
-            let mut rows = db.conn.query(&format!("SELECT status FROM {table}"), ()).await?;
+            let mut rows = db
+                .conn
+                .query(&format!("SELECT status FROM {table}"), ())
+                .await?;
             assert_eq!(rows.next().await?.unwrap().get::<String>(0)?, "Cancelled");
         }
         Ok(())
@@ -20799,27 +20876,47 @@ mod tests {
         let db = setup_db().await;
         let now = 1_800_000_000;
         let (old, _, _) = insert_reviewed_series_for_supersession(
-            &db, 1, "Dev <dev@example.test>", "net: preserve active allowance",
-            now, None,
-        ).await?;
+            &db,
+            1,
+            "Dev <dev@example.test>",
+            "net: preserve active allowance",
+            now,
+            None,
+        )
+        .await?;
         db.update_patchset_status(old, "Pending").await?;
         // These newer held rows exhausted the first draft's shared LIMIT 100.
         for index in 1..=100 {
             insert_reviewed_series_for_supersession(
-                &db, 1, "Other <other@example.test>",
-                &format!("unrelated fixture {index}"), now + index,
+                &db,
+                1,
+                "Other <other@example.test>",
+                &format!("unrelated fixture {index}"),
+                now + index,
                 Some(now + 3600),
-            ).await?;
+            )
+            .await?;
         }
         insert_reviewed_series_for_supersession(
-            &db, 2, "Dev <dev@example.test>", "net: preserve active allowance",
-            now + 101, Some(now + 3600),
-        ).await?;
-        assert_eq!(db.get_patchset_status(old).await?.as_deref(), Some("Cancelled"));
-        let mut rows = db.conn.query(
-            "SELECT COUNT(*) FROM patchsets WHERE author = ? AND status = 'Reviewed'",
-            libsql::params!["Other <other@example.test>"],
-        ).await?;
+            &db,
+            2,
+            "Dev <dev@example.test>",
+            "net: preserve active allowance",
+            now + 101,
+            Some(now + 3600),
+        )
+        .await?;
+        assert_eq!(
+            db.get_patchset_status(old).await?.as_deref(),
+            Some("Cancelled")
+        );
+        let mut rows = db
+            .conn
+            .query(
+                "SELECT COUNT(*) FROM patchsets WHERE author = ? AND status = 'Reviewed'",
+                libsql::params!["Other <other@example.test>"],
+            )
+            .await?;
         assert_eq!(rows.next().await?.unwrap().get::<i64>(0)?, 100);
         Ok(())
     }
@@ -20830,26 +20927,53 @@ mod tests {
         let now = 1_800_000_000;
         let author = "Dev <dev@example.test>";
         let (old, patch, message) = insert_reviewed_series_for_supersession(
-            &db, 1, author, "net: released candidate", now, Some(now + 3600),
-        ).await?;
+            &db,
+            1,
+            author,
+            "net: released candidate",
+            now,
+            Some(now + 3600),
+        )
+        .await?;
         db.insert_email_outbox(
-            patch, "Pending", "list@example.test", "", "released review",
-            &message, &message, "released finding",
-        ).await?;
+            patch,
+            "Pending",
+            "list@example.test",
+            "",
+            "released review",
+            &message,
+            &message,
+            "released finding",
+        )
+        .await?;
         let (active, _, _) = insert_reviewed_series_for_supersession(
-            &db, 2, author, "temporary active title", now + 1, None,
-        ).await?;
+            &db,
+            2,
+            author,
+            "temporary active title",
+            now + 1,
+            None,
+        )
+        .await?;
         let (latest, _, _) = insert_reviewed_series_for_supersession(
-            &db, 3, author, "temporary current title", now + 2, None,
-        ).await?;
+            &db,
+            3,
+            author,
+            "temporary current title",
+            now + 2,
+            None,
+        )
+        .await?;
         db.execute(
             "UPDATE patchsets SET status = 'Pending', subject = ? WHERE id = ?",
             libsql::params!["[PATCH v2] net: released candidate", active],
-        ).await?;
+        )
+        .await?;
         db.execute(
             "UPDATE patchsets SET subject = ? WHERE id = ?",
             libsql::params!["[PATCH v3] net: released candidate", latest],
-        ).await?;
+        )
+        .await?;
         // The active candidate is processed first. Model the release worker's
         // final clear after candidate materialization, before the held update.
         db.execute(
@@ -20859,14 +20983,31 @@ mod tests {
                  BEGIN UPDATE patchsets SET embargo_until = NULL WHERE id = {old}; END"
             ),
             (),
-        ).await?;
-        assert_eq!(db.reconcile_superseded_series_patchsets(
-            latest, author, "[PATCH v3] net: released candidate", 1, Some(3), now + 2,
-        ).await?, 1);
-        assert_eq!(db.get_patchset_status(old).await?.as_deref(), Some("Reviewed"));
-        let mut rows = db.conn.query(
-            "SELECT status FROM email_outbox WHERE patch_id = ?", libsql::params![patch],
-        ).await?;
+        )
+        .await?;
+        assert_eq!(
+            db.reconcile_superseded_series_patchsets(
+                latest,
+                author,
+                "[PATCH v3] net: released candidate",
+                1,
+                Some(3),
+                now + 2,
+            )
+            .await?,
+            1
+        );
+        assert_eq!(
+            db.get_patchset_status(old).await?.as_deref(),
+            Some("Reviewed")
+        );
+        let mut rows = db
+            .conn
+            .query(
+                "SELECT status FROM email_outbox WHERE patch_id = ?",
+                libsql::params![patch],
+            )
+            .await?;
         assert_eq!(rows.next().await?.unwrap().get::<String>(0)?, "Pending");
         Ok(())
     }

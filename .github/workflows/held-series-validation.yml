@@ -46,6 +46,9 @@ jobs:
       - name: Install pinned toolchain
         run: rustup toolchain install 1.90.0 --profile minimal
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> ${{ runner.temp }}/held-series-validation/target
+          cache-on-failure: true
       - name: Validate runner classification
         run: python3 .github/scripts/held_series_validation.py --self-check
       - name: Run baseline and candidate regressions

@@ -182,6 +182,11 @@ try:
             git("apply", "--check", str(patch), cwd=checkout)
             git("apply", str(patch), cwd=checkout)
         def test(checkout, label, name, failure=False):
+            # Cargo's workspace fingerprint can consider another local clone's
+            # root package fresh when both clones share one target directory.
+            # Isolate baseline and candidate artifacts, not just their sources.
+            env["CARGO_TARGET_DIR"] = str(ROOT / "target" / checkout.name)
+            manifest.setdefault("build_targets", {})[checkout.name] = env["CARGO_TARGET_DIR"]
             command = [cargo, "test", "--locked"]
             if not args.allow_dependency_downloads:
                 command.append("--offline")
