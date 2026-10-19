@@ -28,7 +28,7 @@ REPORT = {"status": "RUNNING", "base": BASE, "checks": [],
           "checkpoint": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
           "limitations": ["Runs actual old/new daemon binaries on loopback plus native database fixtures; not a deployment.",
                           "Review concurrency zero is a test-only pause; all transports are dry-run and runtime network proxies refuse egress.",
-                          "Unsafe claims are demonstrated only on a copied fixture; no delivery workers or external services run.",
+                          "Unsafe claims are demonstrated only on a copied native fixture; daemon delivery workers run in dry-run with guarded pending work and no external service access.",
                           "Restoration assumes all ingestion, review and delivery processes are stopped and no new work was accepted during old-version access.",
                           "Stopped-system backup/restore includes old/new daemon cold starts; no live rolling upgrade or real remote acknowledgement is exercised."]}
 
@@ -111,7 +111,7 @@ def boot_daemon(binary, database, directory, label):
         '[nntp]\nserver=""\n[forge]\nenabled=false\ndisable_nntp=true\n' +
         '[linux_bug]\nenabled=false\n[server]\nhost="127.0.0.1"\n' +
         'port=' + str(port) + '\nread_only=true\npublic_base_url=' +
-        json.dumps("http://127.0.0.1:" + str(port)) +
+        json.dumps("https://review.example.test") +
         '\n[smtp]\ntransport="sendmail"\nsendmail_path="/never-run-sendmail"\n' +
         'sender_address="bot@example.test"\ndry_run=true\n')
     runtime = ENV.copy()
@@ -128,6 +128,7 @@ def boot_daemon(binary, database, directory, label):
             deadline = time.monotonic() + 15
             while True:
                 if process.poll() is not None:
+                    print((OUT / (label + "-daemon.log")).read_text()[-4000:], flush=True)
                     raise RuntimeError(label + ": daemon exited before health readiness")
                 try:
                     with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(
