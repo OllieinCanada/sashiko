@@ -13,6 +13,7 @@ jobs:
     env:
       RUSTUP_TOOLCHAIN: stable
       CARGO_BUILD_JOBS: 2
+      HISTORICAL_ARCHIVE_FETCH: '0'
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
