@@ -11,6 +11,10 @@ name: Adaptive deterministic coverage expansion
 permissions:
   contents: read
 
+concurrency:
+  group: adaptive-deterministic-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   focused-gaps:
     runs-on: ubuntu-24.04
@@ -23,6 +27,12 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - run: >-
+          rustup toolchain install stable --profile minimal
+          --component rustfmt --component clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
       - name: Check fork checkpoint and isolated runner
         run: |
           if pgrep -x sashiko; then
@@ -34,12 +44,6 @@ jobs:
           make check-pr RANGE=2849e47b23f74c7c2f68011325512c1337a38525..HEAD
           python3 -m py_compile .github/adaptive-deterministic/run.py
           df -h .
-      - run: >-
-          rustup toolchain install stable --profile minimal
-          --component rustfmt --component clippy
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
       - name: Run bounded native coverage and semantic controls
         run: python3 .github/adaptive-deterministic/run.py
       - name: Upload reproducible evidence
