@@ -15,7 +15,9 @@ import time
 import urllib.error
 import urllib.request
 
-MODEL = "gemini-3.8-flash"
+MODEL = os.environ.get("SASHIKO_REVIEW_MODEL", "gemini-3.8-flash")
+if MODEL not in {"gemini-3.8-flash", "gemini-3.6-flash"}:
+    raise RuntimeError("model is outside the approved equal-price allowlist")
 ORIGIN = "https://generativelanguage.googleapis.com"
 INPUT_PRICE = Decimal("0.75")
 OUTPUT_PRICE = Decimal("3.75")
@@ -29,7 +31,7 @@ OUT.mkdir(exist_ok=True)
 REPORT = {
     "status": "NOT_STARTED", "model": MODEL, "maximum_usd_this_attempt": str(LIMIT),
     "maximum_seconds_this_attempt": TIME_LIMIT,
-    "overall_authorization": "initial plus at most one follow-up; $5 and 20 minutes total",
+    "overall_authorization": "initial plus at most one follow-up; $4.50 and 20 minutes total",
     "pricing_source": "https://ai.google.dev/gemini-api/docs/pricing",
     "pricing_checked_utc": "2026-10-19", "input_usd_per_million": str(INPUT_PRICE),
     "output_usd_per_million_including_thinking": str(OUTPUT_PRICE),
@@ -64,11 +66,20 @@ def remote(action, payload):
         data=json.dumps(payload).encode(), method="POST",
         headers={"Content-Type": "application/json", "x-goog-api-key": KEY},
     )
-    with OPENER.open(req, timeout=min(60, remaining)) as response:
-        raw = response.read(8 * 1024 * 1024 + 1)
-        if len(raw) > 8 * 1024 * 1024:
-            raise RuntimeError("provider response too large")
-        return json.loads(raw)
+    try:
+        with OPENER.open(req, timeout=min(60, remaining)) as response:
+            raw = response.read(8 * 1024 * 1024 + 1)
+            if len(raw) > 8 * 1024 * 1024:
+                raise RuntimeError("provider response too large")
+            return json.loads(raw)
+    except urllib.error.HTTPError as error:
+        REPORT["provider_failure"] = {"action": action, "http_status": error.code}
+        save()
+        raise
+    except Exception as error:
+        REPORT["provider_failure"] = {"action": action, "error_type": type(error).__name__}
+        save()
+        raise
 
 
 def validate_request(body):
@@ -254,6 +265,9 @@ def review(directory, base, head):
         if not complete:
             raise RuntimeError("model review did not complete all patches")
     finally:
+        if process is not None and process.poll() is None:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.wait(timeout=5)
         server.shutdown()
         server.server_close()
         for path in (OUT / "agent.json", OUT / "review.log"):

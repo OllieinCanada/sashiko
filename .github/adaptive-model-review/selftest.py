@@ -86,7 +86,17 @@ with tempfile.TemporaryDirectory() as temporary:
         module.remote = lambda action, payload: {"totalTokens": module.MAX_INPUT + 1}
         assert request(body) == 400
         assert not module.REPORT["calls"]
-        print("PASS: allowed request, dollar cap, permanent stop, endpoint/model, paid tools, remote data, candidates, calls and tokens")
+        reset()
+        marker = "DET8_FAKE_PROVIDER_SECRET"
+        def reflected_failure(action, payload):
+            raise RuntimeError(marker + " held-review-output")
+        module.remote = reflected_failure
+        assert request(body) == 400
+        encoded = json.dumps(module.REPORT)
+        assert marker not in encoded and "held-review-output" not in encoded
+        assert module.HALTED and module.REPORT["last_error"] == "provider proxy refused or failed request"
+        assert marker not in (module.OUT / "manifest.json").read_text()
+        print("PASS: budget and request controls; provider failure canaries absent from manifest")
     finally:
         server.shutdown()
         server.server_close()
