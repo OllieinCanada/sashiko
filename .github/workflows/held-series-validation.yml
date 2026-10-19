@@ -2,7 +2,7 @@ name: Held series native validation
 
 on:
   push:
-    branches: [codex/held-series-ci-20261019]
+    branches: [codex/prerequisite-ci-frozen]
 
 permissions:
   contents: read

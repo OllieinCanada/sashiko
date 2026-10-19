@@ -39,7 +39,7 @@ use tracing::{info, warn};
 /// that have to ask the question of a row they are updating. The two must
 /// answer alike, which a test below checks.
 #[cfg(feature = "server")]
-const CLOSED_TO_NEW_PARTS_SQL: &str = "(status = 'Cancelled'
+const CLOSED_TO_NEW_PARTS_SQL: &str = "(status IN ('Cancelled', 'Cooldown blocked')
       OR (status IN ('Reviewed', 'Failed', 'Failed To Apply')
           AND received_parts >= total_parts))";
 
@@ -6354,7 +6354,7 @@ impl Database {
     /// fetch leaves behind, is not terminal.
     fn is_closed_to_new_parts(status: &str, received_parts: u32, total_parts: u32) -> bool {
         match ReviewStatus::from_str(status) {
-            Ok(ReviewStatus::Cancelled) => true,
+            Ok(ReviewStatus::Cancelled | ReviewStatus::CooldownBlocked) => true,
             Ok(ReviewStatus::Reviewed | ReviewStatus::Failed | ReviewStatus::FailedToApply) => {
                 received_parts >= total_parts
             }
@@ -6760,6 +6760,7 @@ impl Database {
                     && author_or_series_match
                     && !index_collision;
                 if is_late_own_cover {
+                    self.bind_cooldown_late_cover(id, message_id).await?;
                     if let Some(clid) = cover_letter_message_id {
                         self.adopt_series_identity(id, clid, 0, false).await?;
                     }
@@ -7146,7 +7147,11 @@ impl Database {
                 total_parts
             };
 
-            self.bind_cooldown_message(target_id, message_id).await?;
+            if part_index == 0 && matches[0].patches_reply_to_new_cover {
+                self.bind_cooldown_late_cover(target_id, message_id).await?;
+            } else {
+                self.bind_cooldown_message(target_id, message_id).await?;
+            }
             // Update the target patchset
             if is_reply_msg {
                 self.execute(
@@ -7375,6 +7380,7 @@ impl Database {
                 diff_to_write,
                 selected_patch_id,
                 owned_content_changed,
+                self.cooldown_context.as_ref(),
             )
             .await?
             {
@@ -7386,6 +7392,7 @@ impl Database {
         bail!("patch {message_id} changed during {PATCH_WRITE_MAX_ATTEMPTS} write attempts")
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn write_patch_transaction(
         tx: DatabaseTransaction,
         old_patch: Option<StoredPatchState>,
@@ -7395,8 +7402,9 @@ impl Database {
         diff: libsql::Value,
         git_patch_id: Option<String>,
         owned_content_changed: bool,
+        cooldown_context: Option<&crate::cooldown::CooldownContext>,
     ) -> Result<PatchWriteOutcome> {
-        if let Err(error) = Self::bind_cooldown_message_tx(&tx, patchset_id, message_id, None).await {
+        if let Err(error) = Self::bind_cooldown_message_tx(&tx, patchset_id, message_id, cooldown_context).await {
             Self::block_cooldown(&tx, patchset_id, "patch write has unresolved ownership").await?;
             tx.commit().await?;
             return Err(error);
@@ -7457,7 +7465,7 @@ impl Database {
             .await?;
         }
 
-        Self::complete_patchset_tx(&tx, patchset_id, Self::cooldown_now()?).await?;
+        Self::complete_patchset_tx(&tx, patchset_id, Self::cooldown_now()?, cooldown_context).await?;
 
         tx.commit().await?;
         Ok(PatchWriteOutcome::Written(patch_id))
@@ -7688,6 +7696,7 @@ impl Database {
     pub async fn clear_patchset_embargo(&self, id: i64) -> Result<()> {
         let tx = self.begin_immediate_transaction().await?;
         tx.execute("UPDATE review_cooldown_intents SET released_at = COALESCE(released_at, ?) WHERE patchset_id = ?", libsql::params![Self::cooldown_now()?, id]).await?;
+        tx.execute("UPDATE review_cooldown_exclusions SET released_at = COALESCE(released_at, ?) WHERE patchset_id = ?", libsql::params![Self::cooldown_now()?, id]).await?;
         tx.execute("UPDATE patchsets SET embargo_until = NULL, embargo_release_started_at = NULL WHERE id = ?", libsql::params![id]).await?;
         tx.commit().await
     }
@@ -7698,10 +7707,11 @@ impl Database {
             bail!("invalid embargo release timestamp");
         }
         let tx = self.begin_immediate_transaction().await?;
-        let marked = tx.execute("UPDATE review_cooldown_intents SET released_at = COALESCE(released_at, ?) WHERE patchset_id = ? AND state != 'blocked'", libsql::params![now, id]).await?;
-        let rows = tx.execute("UPDATE patchsets SET embargo_until = ? WHERE id = ? AND embargo_until IS NOT NULL AND embargo_until > ? AND NOT EXISTS (SELECT 1 FROM review_cooldown_intents c WHERE c.patchset_id = patchsets.id AND c.state = 'blocked')", libsql::params![now, id, now]).await?;
+        let marked = tx.execute("UPDATE review_cooldown_intents SET released_at = COALESCE(released_at, ?) WHERE patchset_id = ? AND state != 'blocked' AND released_at IS NULL", libsql::params![now, id]).await?;
+        let excluded = tx.execute("UPDATE review_cooldown_exclusions SET released_at = ? WHERE patchset_id = ? AND released_at IS NULL", libsql::params![now, id]).await?;
+        let rows = tx.execute("UPDATE patchsets SET embargo_until = ? WHERE id = ? AND embargo_until IS NOT NULL AND embargo_until > ? AND NOT EXISTS (SELECT 1 FROM review_cooldown_guards c WHERE c.patchset_id = patchsets.id AND c.state = 'blocked')", libsql::params![now, id, now]).await?;
         tx.commit().await?;
-        Ok(rows > 0 || marked > 0)
+        Ok(rows > 0 || marked > 0 || excluded > 0)
     }
 
     pub async fn get_patchsets(
@@ -7719,7 +7729,7 @@ impl Database {
         let sql = format!(
             "SELECT p.id, p.subject, p.status, p.thread_id, p.author, p.date, p.cover_letter_message_id, p.total_parts, p.received_parts, GROUP_CONCAT(s.name, ','),
              COALESCE(f.low, 0), COALESCE(f.medium, 0), COALESCE(f.high, 0), COALESCE(f.critical, 0), p.baseline_id, p.failed_reason, p.target_review_count, p.skip_filters, p.only_filters,
-             p.embargo_until, p.mr_url, p.mr_title, p.mr_number, p.slug, EXISTS (SELECT 1 FROM review_cooldown_intents c WHERE c.patchset_id = p.id AND c.state IN ('waiting','blocked'))
+             p.embargo_until, p.mr_url, p.mr_title, p.mr_number, p.slug, EXISTS (SELECT 1 FROM review_cooldown_guards c WHERE c.patchset_id = p.id AND c.state IN ('waiting','blocked'))
              FROM (
                  SELECT id FROM patchsets p
                  {}
@@ -8110,7 +8120,7 @@ impl Database {
                     p.author, p.date, p.cover_letter_message_id, p.thread_id,
                     p.total_parts, p.received_parts, p.failed_reason,
                     p.model_name, p.prompts_git_hash, p.baseline_logs, p.baseline_id, p.provider,
-                    p.embargo_until, p.mr_url, p.slug, EXISTS (SELECT 1 FROM review_cooldown_intents c WHERE c.patchset_id = p.id AND c.state IN ('waiting','blocked'))
+                    p.embargo_until, p.mr_url, p.slug, EXISTS (SELECT 1 FROM review_cooldown_guards c WHERE c.patchset_id = p.id AND c.state IN ('waiting','blocked'))
                 FROM patchsets p
                 WHERE p.id = ?",
                 libsql::params![id],
@@ -8317,7 +8327,7 @@ impl Database {
                     p.author, p.date, p.cover_letter_message_id, p.thread_id,
                     p.total_parts, p.received_parts, p.failed_reason,
                     p.model_name, p.prompts_git_hash, p.baseline_logs, p.baseline_id, p.provider,
-                    p.embargo_until, p.mr_url, p.slug, EXISTS (SELECT 1 FROM review_cooldown_intents c WHERE c.patchset_id = p.id AND c.state IN ('waiting','blocked'))
+                    p.embargo_until, p.mr_url, p.slug, EXISTS (SELECT 1 FROM review_cooldown_guards c WHERE c.patchset_id = p.id AND c.state IN ('waiting','blocked'))
                 FROM patchsets p
                 WHERE p.id = ?",
                 libsql::params![id],
@@ -8570,7 +8580,8 @@ impl Database {
                             (SELECT m.subject FROM patches p JOIN messages m ON p.message_id = m.message_id WHERE p.id = r.patch_id LIMIT 1),
                             (SELECT ps.subject FROM patchsets ps WHERE ps.id = r.patchset_id)
                         ),
-                        (SELECT ps.embargo_until FROM patchsets ps WHERE ps.id = r.patchset_id)
+                        (SELECT ps.embargo_until FROM patchsets ps WHERE ps.id = r.patchset_id),
+                        EXISTS (SELECT 1 FROM review_cooldown_guards c WHERE c.patchset_id = r.patchset_id AND c.state IN ('waiting','blocked'))
              FROM reviews r
              LEFT JOIN ai_interactions ai ON r.interaction_id = ai.id
              LEFT JOIN baselines b ON r.baseline_id = b.id
@@ -8611,6 +8622,7 @@ impl Database {
                 "patchset_id": r.get::<Option<i64>>(19).ok(),
                 "subject": r.get::<Option<String>>(20).ok(),
                 "embargo_until": r.get::<Option<i64>>(21).ok(),
+                "publication_blocked": r.get::<i64>(22)? != 0,
                 "bugs": bugs_json,
             })))
         } else {
@@ -8907,7 +8919,7 @@ impl Database {
     pub async fn get_pending_patchsets(&self, limit: usize) -> Result<Vec<PatchsetRow>> {
         let mut rows = self.conn.query(
             "SELECT id, subject, status, thread_id, author, date, cover_letter_message_id, total_parts, received_parts, baseline_id, failed_reason, target_review_count, skip_filters, only_filters, embargo_until, slug, mr_url, mr_title, mr_number
-             FROM patchsets WHERE status = 'Pending' AND NOT EXISTS (SELECT 1 FROM review_cooldown_intents c WHERE c.patchset_id = patchsets.id AND c.state IN ('waiting','blocked')) ORDER BY date ASC LIMIT ?",
+             FROM patchsets WHERE status = 'Pending' AND NOT EXISTS (SELECT 1 FROM review_cooldown_guards c WHERE c.patchset_id = patchsets.id AND c.state IN ('waiting','blocked')) ORDER BY date ASC LIMIT ?",
             libsql::params![limit as i64],
         ).await?;
 
@@ -8956,7 +8968,7 @@ impl Database {
         let sql = format!(
             "SELECT p.id, p.subject, p.status, p.thread_id, p.author, p.date, p.cover_letter_message_id, p.total_parts, p.received_parts, p.baseline_id, p.failed_reason, p.target_review_count, p.skip_filters, p.only_filters, p.embargo_until, p.slug, p.mr_url, p.mr_title, p.mr_number
              FROM patchsets p
-             WHERE p.status = 'Reviewed' AND p.embargo_until IS NOT NULL AND NOT EXISTS (SELECT 1 FROM review_cooldown_intents c WHERE c.patchset_id = p.id AND c.state IN ('waiting','blocked'))
+             WHERE p.status = 'Reviewed' AND p.embargo_until IS NOT NULL AND NOT EXISTS (SELECT 1 FROM review_cooldown_guards c WHERE c.patchset_id = p.id AND c.state IN ('waiting','blocked'))
              AND (p.embargo_release_started_at IS NULL OR p.embargo_release_started_at <= ?)
              AND (
                  p.embargo_until <= ?
@@ -9096,7 +9108,7 @@ impl Database {
     pub async fn claim_patchset_embargo_release(&self, id: i64, now: i64) -> Result<bool> {
         let sql = format!(
             "UPDATE patchsets AS p SET embargo_release_started_at = ?
-             WHERE p.id = ? AND p.status = 'Reviewed' AND p.embargo_until IS NOT NULL AND NOT EXISTS (SELECT 1 FROM review_cooldown_intents c WHERE c.patchset_id = p.id AND c.state IN ('waiting','blocked'))
+             WHERE p.id = ? AND p.status = 'Reviewed' AND p.embargo_until IS NOT NULL AND NOT EXISTS (SELECT 1 FROM review_cooldown_guards c WHERE c.patchset_id = p.id AND c.state IN ('waiting','blocked'))
                AND (p.embargo_release_started_at IS NULL OR p.embargo_release_started_at <= ?)
                AND (p.embargo_until <= ? OR ({CLEAN_PATCHSET_PREDICATE}))"
         );
@@ -9222,7 +9234,7 @@ impl Database {
     pub async fn claim_patchset_for_review(&self, id: i64) -> Result<bool> {
         let count = self
             .execute(
-                "UPDATE patchsets SET status = 'In Review' WHERE id = ? AND status = 'Pending' AND NOT EXISTS (SELECT 1 FROM review_cooldown_intents c WHERE c.patchset_id = patchsets.id AND c.state IN ('waiting','blocked'))",
+                "UPDATE patchsets SET status = 'In Review' WHERE id = ? AND status = 'Pending' AND NOT EXISTS (SELECT 1 FROM review_cooldown_guards c WHERE c.patchset_id = patchsets.id AND c.state IN ('waiting','blocked'))",
                 libsql::params![id],
             )
             .await?;
@@ -9266,8 +9278,12 @@ impl Database {
             "UPDATE email_outbox
                  SET status = 'Cancelled', error_log = ?, locked_at = NULL
                  WHERE status IN ('Pending', 'Embargoed')
-                   AND patch_id IN (SELECT id FROM patches WHERE patchset_id = ?)",
-            libsql::params![reason.to_string(), id],
+                   AND (patch_id IN (SELECT id FROM patches WHERE patchset_id = ?)
+                        OR (patch_id IS NULL AND trim(in_reply_to, '<> ') IN (
+                            SELECT message_id FROM patches WHERE patchset_id = ?
+                            UNION SELECT message_id FROM review_cooldown_messages WHERE patchset_id = ?
+                            UNION SELECT cover_letter_message_id FROM patchsets WHERE id = ?)))",
+            libsql::params![reason.to_string(), id, id, id, id],
         )
         .await?;
 
@@ -9285,9 +9301,9 @@ impl Database {
 
     pub async fn cancel_patchset(&self, id: i64, force: bool) -> Result<bool> {
         let allowed_statuses = if force {
-            "('Fetching', 'Pending', 'Incomplete', 'In Review')"
+            "('Fetching', 'Pending', 'Incomplete', 'In Review', 'Cooldown blocked')"
         } else {
-            "('Fetching', 'Pending', 'Incomplete')"
+            "('Fetching', 'Pending', 'Incomplete', 'Cooldown blocked')"
         };
         // Atomically transition patchsets.status to 'Cancelled' first so any
         // concurrent worker calling update_patchset_status (which guards with
@@ -9966,7 +9982,7 @@ impl Database {
             let mut rows = tx.query(
                 "UPDATE email_outbox 
                  SET status = 'Sending', locked_at = ? 
-                 WHERE id = (SELECT id FROM email_outbox WHERE status = 'Pending' AND NOT EXISTS (SELECT 1 FROM review_cooldown_intents c JOIN patchsets ps ON ps.id = c.patchset_id WHERE (c.patchset_id = (SELECT patchset_id FROM patches WHERE id = email_outbox.patch_id) OR c.patchset_id = (SELECT patchset_id FROM review_cooldown_messages WHERE message_id = trim(email_outbox.in_reply_to, '<> '))) AND (c.state IN ('waiting','blocked') OR ps.embargo_until > CAST(strftime('%s','now') AS INTEGER))) LIMIT 1)
+                 WHERE id = (SELECT id FROM email_outbox WHERE status = 'Pending' AND NOT EXISTS (SELECT 1 FROM review_cooldown_guards c JOIN patchsets ps ON ps.id = c.patchset_id WHERE (c.patchset_id = (SELECT patchset_id FROM patches WHERE id = email_outbox.patch_id) OR c.patchset_id IN (SELECT patchset_id FROM review_cooldown_messages WHERE message_id = trim(email_outbox.in_reply_to, '<> ') UNION ALL SELECT patchset_id FROM patches WHERE message_id = trim(email_outbox.in_reply_to, '<> ') UNION ALL SELECT id FROM patchsets WHERE cover_letter_message_id = trim(email_outbox.in_reply_to, '<> ') )) AND (c.state IN ('waiting','blocked') OR ps.status = 'Cancelled' OR ps.embargo_until > CAST(strftime('%s','now') AS INTEGER))) LIMIT 1)
                  RETURNING id, patch_id, kind, status, to_addresses, cc_addresses, subject, in_reply_to, references_hdr, body, locked_at, error_log, created_at",
                 libsql::params![now]
             ).await?;
@@ -10100,7 +10116,7 @@ impl Database {
                          SELECT id FROM patchwork_outbox
                          WHERE status = 'Pending'
                            AND (next_retry_at IS NULL OR next_retry_at <= ?)
-                           AND NOT EXISTS (SELECT 1 FROM review_cooldown_messages a JOIN review_cooldown_intents c ON c.patchset_id = a.patchset_id JOIN patchsets ps ON ps.id = c.patchset_id WHERE a.message_id = trim(patchwork_outbox.patch_msg_id, '<> ') AND (c.state IN ('waiting','blocked') OR ps.embargo_until > CAST(strftime('%s','now') AS INTEGER)))
+                           AND NOT EXISTS (SELECT 1 FROM review_cooldown_guards c JOIN patchsets ps ON ps.id = c.patchset_id WHERE c.patchset_id IN (SELECT patchset_id FROM review_cooldown_messages WHERE message_id = trim(patchwork_outbox.patch_msg_id, '<> ') UNION SELECT patchset_id FROM patches WHERE message_id = trim(patchwork_outbox.patch_msg_id, '<> ') UNION SELECT id FROM patchsets WHERE cover_letter_message_id = trim(patchwork_outbox.patch_msg_id, '<> ')) AND (c.state IN ('waiting','blocked') OR ps.status = 'Cancelled' OR ps.embargo_until > CAST(strftime('%s','now') AS INTEGER)))
                          LIMIT 1
                      )
                      RETURNING id, patch_msg_id, api_url, check_state, description, target_url, context, status, retry_count, next_retry_at, locked_at, error_log, created_at",
@@ -10308,7 +10324,7 @@ impl Database {
                          SELECT id FROM forge_outbox
                          WHERE status = 'Pending'
                            AND (next_retry_at IS NULL OR next_retry_at <= ?)
-                           AND NOT EXISTS (SELECT 1 FROM review_cooldown_intents c JOIN patchsets ps ON ps.id = c.patchset_id WHERE c.patchset_id = forge_outbox.patchset_id AND (c.state IN ('waiting','blocked') OR ps.embargo_until > CAST(strftime('%s','now') AS INTEGER)))
+                           AND NOT EXISTS (SELECT 1 FROM review_cooldown_guards c JOIN patchsets ps ON ps.id = c.patchset_id WHERE c.patchset_id = forge_outbox.patchset_id AND (c.state IN ('waiting','blocked') OR ps.status = 'Cancelled' OR ps.embargo_until > CAST(strftime('%s','now') AS INTEGER)))
                          LIMIT 1
                      )
                      RETURNING id, patchset_id, provider, repo, pr_number, head_sha, body, target_url, status, retry_count, next_retry_at, locked_at, error_log, created_at",

@@ -80,6 +80,8 @@ pub enum ReviewStatus {
     InReview,
     /// The review process was cancelled.
     Cancelled,
+    /// Identity or policy reconciliation is required before publication.
+    CooldownBlocked,
     /// The review was skipped (e.g., due to configuration or filtering).
     Skipped,
     /// The review process completed successfully.
@@ -97,6 +99,7 @@ impl fmt::Display for ReviewStatus {
             ReviewStatus::Pending => write!(f, "Pending"),
             ReviewStatus::InReview => write!(f, "In Review"),
             ReviewStatus::Cancelled => write!(f, "Cancelled"),
+            ReviewStatus::CooldownBlocked => write!(f, "Cooldown blocked"),
             ReviewStatus::Skipped => write!(f, "Skipped"),
             ReviewStatus::Reviewed => write!(f, "Reviewed"),
             ReviewStatus::Failed => write!(f, "Failed"),
@@ -114,6 +117,7 @@ impl FromStr for ReviewStatus {
             "Pending" => Ok(ReviewStatus::Pending),
             "In Review" => Ok(ReviewStatus::InReview),
             "Cancelled" => Ok(ReviewStatus::Cancelled),
+            "Cooldown blocked" => Ok(ReviewStatus::CooldownBlocked),
             "Skipped" => Ok(ReviewStatus::Skipped),
             "Reviewed" => Ok(ReviewStatus::Reviewed),
             "Failed" => Ok(ReviewStatus::Failed),
@@ -130,6 +134,7 @@ impl ReviewStatus {
             ReviewStatus::Pending => "Pending",
             ReviewStatus::InReview => "In Review",
             ReviewStatus::Cancelled => "Cancelled",
+            ReviewStatus::CooldownBlocked => "Cooldown blocked",
             ReviewStatus::Skipped => "Skipped",
             ReviewStatus::Reviewed => "Reviewed",
             ReviewStatus::Failed => "Failed",

@@ -24,8 +24,16 @@ CREATE TABLE IF NOT EXISTS review_cooldown_messages (
 CREATE INDEX IF NOT EXISTS idx_cooldown_messages_owner ON review_cooldown_messages(patchset_id);
 CREATE TABLE IF NOT EXISTS review_cooldown_exclusions (
     patchset_id INTEGER PRIMARY KEY REFERENCES patchsets(id) ON DELETE CASCADE,
+    reason TEXT NOT NULL,
+    released_at INTEGER
+);
+CREATE TABLE IF NOT EXISTS review_cooldown_blocks (
+    patchset_id INTEGER PRIMARY KEY REFERENCES patchsets(id) ON DELETE RESTRICT,
     reason TEXT NOT NULL
 );
+CREATE VIEW IF NOT EXISTS review_cooldown_guards AS
+    SELECT patchset_id, state FROM review_cooldown_intents
+    UNION ALL SELECT patchset_id, 'blocked' AS state FROM review_cooldown_blocks;
 CREATE TABLE IF NOT EXISTS review_cooldown_events (
     patchset_id INTEGER PRIMARY KEY REFERENCES review_cooldown_intents(patchset_id) ON DELETE RESTRICT,
     list TEXT NOT NULL,
@@ -39,7 +47,7 @@ CREATE INDEX IF NOT EXISTS idx_cooldown_retention ON review_cooldown_events(admi
 -- transaction decides first, then exposes Pending. Errors never mean legacy.
 CREATE TRIGGER IF NOT EXISTS cooldown_status_gate BEFORE UPDATE OF status ON patchsets
 WHEN NEW.status IN ('Pending', 'In Review', 'Reviewed') AND EXISTS (
-    SELECT 1 FROM review_cooldown_intents c
+    SELECT 1 FROM review_cooldown_guards c
     WHERE c.patchset_id = NEW.id AND c.state != 'decided'
 )
 BEGIN
@@ -50,36 +58,34 @@ END;
 -- Abort insertion rather than allowing its stale snapshot to publish.
 CREATE TRIGGER IF NOT EXISTS cooldown_email_insert BEFORE INSERT ON email_outbox
 WHEN EXISTS (
-    SELECT 1 FROM review_cooldown_intents c
+    SELECT 1 FROM review_cooldown_guards c
     WHERE c.state IN ('waiting','blocked') AND (
         c.patchset_id = (SELECT patchset_id FROM patches WHERE id = NEW.patch_id)
-        OR c.patchset_id = (SELECT patchset_id FROM review_cooldown_messages
-                           WHERE message_id = trim(NEW.in_reply_to, '<> ')))
+        OR c.patchset_id IN (SELECT patchset_id FROM review_cooldown_messages WHERE message_id = trim(NEW.in_reply_to, '<> ') UNION SELECT patchset_id FROM patches WHERE message_id = trim(NEW.in_reply_to, '<> ') UNION SELECT id FROM patchsets WHERE cover_letter_message_id = trim(NEW.in_reply_to, '<> ')))
 )
 BEGIN SELECT RAISE(ABORT, 'adaptive publication unresolved'); END;
 
 CREATE TRIGGER IF NOT EXISTS cooldown_patchwork_insert BEFORE INSERT ON patchwork_outbox
 WHEN EXISTS (
-    SELECT 1 FROM review_cooldown_messages a JOIN review_cooldown_intents c
-      ON c.patchset_id = a.patchset_id
-    WHERE a.message_id = trim(NEW.patch_msg_id, '<> ') AND c.state IN ('waiting','blocked')
+    SELECT 1 FROM review_cooldown_guards c WHERE c.state IN ('waiting','blocked') AND c.patchset_id IN (SELECT patchset_id FROM review_cooldown_messages WHERE message_id = trim(NEW.patch_msg_id, '<> ') UNION SELECT patchset_id FROM patches WHERE message_id = trim(NEW.patch_msg_id, '<> ') UNION SELECT id FROM patchsets WHERE cover_letter_message_id = trim(NEW.patch_msg_id, '<> '))
 )
 BEGIN SELECT RAISE(ABORT, 'adaptive publication unresolved'); END;
 
 CREATE TRIGGER IF NOT EXISTS cooldown_forge_insert BEFORE INSERT ON forge_outbox
-WHEN EXISTS (SELECT 1 FROM review_cooldown_intents c
+WHEN EXISTS (SELECT 1 FROM review_cooldown_guards c
              WHERE c.patchset_id = NEW.patchset_id AND c.state IN ('waiting','blocked'))
 BEGIN SELECT RAISE(ABORT, 'adaptive publication unresolved'); END;
 
 -- An older ingestion/admin path cannot overwrite a stable decision or re-hold
 -- a release. The admission helper changes state after setting the deadline.
 CREATE TRIGGER IF NOT EXISTS cooldown_deadline_gate BEFORE UPDATE OF embargo_until ON patchsets
-WHEN NEW.embargo_until IS NOT OLD.embargo_until AND EXISTS (
+WHEN NEW.embargo_until IS NOT OLD.embargo_until AND (EXISTS (
     SELECT 1 FROM review_cooldown_intents c WHERE c.patchset_id = NEW.id
       AND (c.state = 'decided' OR c.released_at IS NOT NULL)
       AND NEW.embargo_until IS NOT NULL
       AND (c.released_at IS NULL OR NEW.embargo_until > c.released_at)
-)
+) OR EXISTS (SELECT 1 FROM review_cooldown_exclusions c WHERE c.patchset_id = NEW.id
+             AND c.released_at IS NOT NULL AND NEW.embargo_until > c.released_at))
 BEGIN
     SELECT RAISE(IGNORE);
 END;

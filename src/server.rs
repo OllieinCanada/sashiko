@@ -1073,8 +1073,8 @@ async fn enforce_review_embargo(
     details: &serde_json::Value,
 ) -> Result<(), StatusCode> {
     let now = chrono::Utc::now().timestamp();
-    if let Some(until) = details.get("embargo_until").and_then(|v| v.as_i64())
-        && until > now
+    if details.get("publication_blocked").and_then(|v| v.as_bool()).unwrap_or(false)
+        || details.get("embargo_until").and_then(|v| v.as_i64()).is_some_and(|until| until > now)
     {
         let Some(ps_id) = details.get("patchset_id").and_then(|v| v.as_i64()) else {
             return Err(StatusCode::NOT_FOUND);
@@ -5411,6 +5411,44 @@ F:	net/
         );
         let resp = client.get(&health_url).send().await.unwrap();
         assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_quarantine_blocks_direct_review_endpoints() -> anyhow::Result<()> {
+        use crate::cooldown::{CooldownContext, CooldownPolicy};
+        let mut settings = crate::settings::Settings::new()?;
+        settings.database.url = ":memory:".into();
+        settings.server.testing_mode = false;
+        let db = Arc::new(Database::new(&settings.database).await?);
+        db.migrate().await?;
+        let active = db.with_cooldown_context(Some(CooldownContext {
+            list: "list@example.test".into(), author: "dev@example.test".into(),
+            policy: CooldownPolicy {window_seconds:100,burst:2,step_seconds:10,max_extra_seconds:30},
+            legacy_deadline: Some(1),
+        }));
+        let msg = "direct-review@example.test";
+        let thread = active.create_thread(msg, "[PATCH] direct", 1).await?;
+        active.create_message(msg, thread, None, "dev@example.test", "[PATCH] direct", 1, "body", "list@example.test", "", None, None).await?;
+        let id = active.create_patchset(thread, Some(msg), msg, "[PATCH] direct", "dev@example.test", 1, 1, 3, "list@example.test", "", None, 1, None, true, None, None).await?.unwrap();
+        let patch = active.create_patch(id, msg, 1, "diff").await?;
+        let review = db.create_review(id, Some(patch), "fixture", "no-model", None, None).await?;
+        db.complete_review(review,"Reviewed","private fixture output",Some("result"),None,Some("inline"),Some("private fixture logs")).await?;
+        db.update_patch_status(patch,"Reviewed").await?;
+        db.update_patchset_status(id,"Reviewed").await?;
+        assert!(db.create_message(msg,thread,None,"changed@example.test","[PATCH] changed",1,"changed","list@example.test","",None,None).await.is_err());
+        let (event_tx, _event_rx) = mpsc::channel(1);
+        let (fetch_tx, _fetch_rx) = mpsc::channel(1);
+        let app = build_router(Arc::new(settings),db,event_tx,fetch_tx,ServerOptions::default());
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
+        let addr = listener.local_addr()?;
+        let server = tokio::spawn(async move { axum::serve(listener,app.into_make_service_with_connect_info::<SocketAddr>()).await });
+        let client = reqwest::Client::builder().timeout(Duration::from_secs(2)).build()?;
+        for endpoint in [format!("review?id={review}"),format!("review?patchset_id={id}"),format!("review_log?id={review}"),format!("review_log?patchset_id={id}")] {
+            let response = client.get(format!("http://{addr}/api/{endpoint}")).send().await?;
+            assert_eq!(response.status(),StatusCode::NOT_FOUND,"{endpoint}");
+        }
+        server.abort(); let _ = server.await;
+        Ok(())
     }
 
     #[tokio::test]

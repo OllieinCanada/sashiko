@@ -42,8 +42,8 @@ impl Database {
         let key = message_key(message)?;
         let mut rows = conn
             .query(
-                "SELECT patchset_id FROM review_cooldown_messages WHERE message_id = ?",
-                libsql::params![key],
+                "SELECT patchset_id FROM review_cooldown_messages WHERE message_id = ? UNION ALL SELECT b.patchset_id FROM review_cooldown_blocks b JOIN patchsets p ON p.id = b.patchset_id WHERE p.cover_letter_message_id = ? UNION ALL SELECT b.patchset_id FROM review_cooldown_blocks b JOIN patches p ON p.patchset_id = b.patchset_id WHERE p.message_id = ? LIMIT 1",
+                libsql::params![key.clone(), key.clone(), key],
             )
             .await?;
         rows.next()
@@ -59,7 +59,8 @@ impl Database {
         reason: &str,
     ) -> Result<()> {
         conn.execute("UPDATE review_cooldown_intents SET state = 'blocked', reason = ? WHERE patchset_id = ?", libsql::params![reason, id]).await?;
-        conn.execute("UPDATE patchsets SET status = 'Cooldown blocked', failed_reason = ? WHERE id = ? AND EXISTS (SELECT 1 FROM review_cooldown_intents WHERE patchset_id = ?)", libsql::params![reason, id, id]).await?;
+        conn.execute("INSERT INTO review_cooldown_blocks(patchset_id, reason) SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM review_cooldown_intents WHERE patchset_id = ?) ON CONFLICT(patchset_id) DO NOTHING", libsql::params![id, reason, id]).await?;
+        conn.execute("UPDATE patchsets SET status = 'Cooldown blocked', failed_reason = ? WHERE id = ? AND status != 'Cancelled'", libsql::params![reason, id]).await?;
         Ok(())
     }
 
@@ -76,7 +77,7 @@ impl Database {
             if state == "waiting" && (self.cooldown_cross_post || changed_list) {
                 // No event exists yet. Restore the single shared legacy policy;
                 // retain an explicit exclusion reason without ownership locks.
-                tx.execute("INSERT INTO review_cooldown_exclusions(patchset_id, reason) VALUES (?, 'cross-post') ON CONFLICT(patchset_id) DO NOTHING", libsql::params![id]).await?;
+                tx.execute("INSERT INTO review_cooldown_exclusions(patchset_id, reason, released_at) SELECT patchset_id, 'cross-post', released_at FROM review_cooldown_intents WHERE patchset_id = ? ON CONFLICT(patchset_id) DO NOTHING", libsql::params![id]).await?;
                 tx.execute("DELETE FROM review_cooldown_messages WHERE patchset_id = ?", libsql::params![id]).await?;
                 tx.execute("DELETE FROM review_cooldown_intents WHERE patchset_id = ? AND state = 'waiting'", libsql::params![id]).await?;
                 tx.commit().await?;
@@ -102,6 +103,8 @@ impl Database {
     ) -> Result<()> {
         let mut rows = conn.query("SELECT list, author, policy, state FROM review_cooldown_intents WHERE patchset_id = ?", libsql::params![id]).await?;
         let Some(row) = rows.next().await? else {
+            let mut blocked = conn.query("SELECT 1 FROM review_cooldown_blocks WHERE patchset_id = ?", libsql::params![id]).await?;
+            if blocked.next().await?.is_some() { bail!("canonical series is quarantined"); }
             return Ok(());
         };
         let list: String = row.get(0)?;
@@ -117,7 +120,7 @@ impl Database {
                 bail!("adaptive message belongs to another canonical series");
             }
             // Frozen input can be retried after policy disable/reload.
-            if context.is_none() {
+            if context.is_none() && state == "decided" {
                 return Ok(());
             }
         } else if state == "decided" {
@@ -126,11 +129,33 @@ impl Database {
         let Some(context) = context else {
             bail!("adaptive series requires matching mail policy");
         };
-        if context.list != list || context.author != author || context.policy != policy {
+        if context.list != list || context.author != author || (state != "decided" && context.policy != policy) {
             bail!("adaptive scope or policy changed during ingestion");
         }
         conn.execute("INSERT INTO review_cooldown_messages(message_id, patchset_id) VALUES (?, ?) ON CONFLICT(message_id) DO NOTHING", libsql::params![key, id]).await?;
         Ok(())
+    }
+
+    /// Only call after the canonical matcher establishes that the new message
+    /// is this revision's own late cover. It does not add an activity event.
+    pub(super) async fn bind_cooldown_late_cover(&self, id: i64, message: &str) -> Result<()> {
+        let tx = self.begin_immediate_transaction().await?;
+        let mut rows = tx.query("SELECT list, author, policy, state FROM review_cooldown_intents WHERE patchset_id = ?", libsql::params![id]).await?;
+        if let Some(row) = rows.next().await? && row.get::<String>(3)? == "decided" {
+            let policy: CooldownPolicy = serde_json::from_str(&row.get::<String>(2)?)?;
+            let list: String = row.get(0)?;
+            let author: String = row.get(1)?;
+            let compatible = self.cooldown_context.as_ref().is_some_and(|context|
+                context.list == list
+                    && context.author == author
+                    && policy.validate().is_ok());
+            if compatible {
+                let key = message_key(message)?;
+                tx.execute("INSERT INTO review_cooldown_messages(message_id,patchset_id) VALUES (?, ?) ON CONFLICT(message_id) DO NOTHING", libsql::params![key,id]).await?;
+            }
+        }
+        tx.commit().await?;
+        self.bind_cooldown_message(id, message).await
     }
 
     pub(super) async fn insert_cooldown_intent(
@@ -165,6 +190,7 @@ impl Database {
         conn: &libsql::Connection,
         id: i64,
         now: i64,
+        context: Option<&CooldownContext>,
     ) -> Result<()> {
         let mut rows = conn.query("SELECT c.list, c.author, c.policy, c.state, c.released_at, p.total_parts, p.embargo_until, p.status FROM review_cooldown_intents c JOIN patchsets p ON p.id = c.patchset_id WHERE c.patchset_id = ?", libsql::params![id]).await?;
         if let Some(row) = rows.next().await? {
@@ -173,10 +199,14 @@ impl Database {
                 bail!("adaptive cooldown is quarantined");
             }
             if state == "waiting" {
+                let Some(context) = context else { bail!("adaptive admission disabled while intent remains unresolved"); };
                 let list: String = row.get(0)?;
                 let author: String = row.get(1)?;
                 let policy: CooldownPolicy = serde_json::from_str(&row.get::<String>(2)?)?;
                 policy.validate()?;
+                if context.list != list || context.author != author || context.policy != policy {
+                    bail!("adaptive admission policy changed before completion");
+                }
                 let released = get_optional_integer(&row, 4)?;
                 let total: u32 = row.get(5)?;
                 let legacy = get_optional_integer(&row, 6)?;
@@ -288,12 +318,12 @@ impl Database {
 
     pub(super) async fn complete_patchset(&self, id: i64) -> Result<()> {
         let tx = self.begin_immediate_transaction().await?;
-        Self::complete_patchset_tx(&tx, id, Self::cooldown_now()?).await?;
+        Self::complete_patchset_tx(&tx, id, Self::cooldown_now()?, self.cooldown_context.as_ref()).await?;
         tx.commit().await
     }
 
     pub async fn cooldown_publication_blocked(&self, id: i64) -> Result<bool> {
-        let mut rows = self.conn.query("SELECT 1 FROM review_cooldown_intents WHERE patchset_id = ? AND state != 'decided'", libsql::params![id]).await?;
+        let mut rows = self.conn.query("SELECT 1 FROM review_cooldown_guards WHERE patchset_id = ? AND state != 'decided'", libsql::params![id]).await?;
         Ok(rows.next().await?.is_some())
     }
 }
@@ -380,7 +410,7 @@ mod tests {
             libsql::params![id],
         )
         .await?;
-        Database::complete_patchset_tx(&tx, id, now).await?;
+        Database::complete_patchset_tx(&tx, id, now, db.cooldown_context.as_ref()).await?;
         tx.commit().await
     }
 
@@ -753,6 +783,69 @@ mod tests {
         assert!(db.lock_pending_email().await?.is_none());
         assert!(db.insert_patchwork_notification("Pending", "other@example.test", "new patchwork", &format!("<{msg}>"), "", "result").await.is_err());
         assert_eq!(scalar(&db, "SELECT COUNT(*) FROM email_outbox WHERE status = 'Sending'").await?, 0);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_policy_reload_preserves_decided_but_blocks_waiting() -> Result<()> {
+        let db = database().await?;
+        let active = db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let (decided, _, msg) = seed(&active, "decidedreload", 1).await?;
+        active.create_patch(decided, &msg, 1, "diff").await?;
+        let mut changed = context("list@example.test", "dev@example.test");
+        changed.policy.step_seconds = 15;
+        let reloaded = db.with_cooldown_context(Some(changed));
+        reloaded.bind_cooldown_message(decided, &msg).await?;
+        reloaded.create_patch(decided, &msg, 1, "diff").await?;
+        assert!(!db.cooldown_publication_blocked(decided).await?);
+        let (waiting, _, msg) = seed(&active, "waitingreload", 1).await?;
+        db.execute_batch("CREATE TRIGGER fail_cooldown_event BEFORE INSERT ON review_cooldown_events BEGIN SELECT RAISE(ABORT, 'fixture failure'); END;").await?;
+        assert!(active.create_patch(waiting, &msg, 1, "diff").await.is_err());
+        db.execute_batch("DROP TRIGGER fail_cooldown_event;").await?;
+        assert!(db.create_patch(waiting, &msg, 1, "diff").await.is_err());
+        assert_eq!(db.get_patchset_status(waiting).await?.as_deref(), Some("Cooldown blocked"));
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_crosspost_preserves_early_release() -> Result<()> {
+        let db = database().await?;
+        let active = db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let (id, _, msg) = seed(&active, "crossrelease", 1).await?;
+        assert!(db.release_patchset_embargo(id, 1).await?);
+        let cross = db.with_cooldown_selection(crate::cooldown::CooldownSelection::CrossPost);
+        cross.bind_cooldown_message(id, &msg).await?;
+        db.set_patchset_embargo_until_if_non_terminal(id, i64::MAX).await?;
+        db.create_patch(id, &msg, 1, "diff").await?;
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patchsets WHERE embargo_until IS NOT NULL").await?, 0);
+        assert_eq!(scalar(&db, "SELECT released_at FROM review_cooldown_exclusions").await?, 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_legacy_quarantine_is_durable_and_cancellable() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let settings = DatabaseSettings { url: directory.path().join("legacy-block.db").to_string_lossy().into_owned(), token: String::new() };
+        let db = Database::new(&settings).await?;
+        db.migrate().await?;
+        let (id, thread, msg) = seed(&db, "legacyblock", 1).await?;
+        let patch = db.create_patch(id, &msg, 1, "diff").await?;
+        db.insert_email_outbox(patch, "Pending", "sink@example.test", "", "ordinary", &msg, "", "body").await?;
+        db.insert_patchwork_notification("Pending", "sink@example.test", "patchwork", &format!("<{msg}>"), "", "body").await?;
+        let tx = db.begin_immediate_transaction().await?;
+        Database::block_cooldown(&tx, id, "mixed merge fixture").await?;
+        tx.commit().await?;
+        drop(db);
+        let db = Database::new(&settings).await?;
+        assert!(!db.claim_patchset_for_review(id).await?);
+        assert!(db.update_patchset_status(id, "Pending").await.is_err());
+        assert!(db.lock_pending_email().await?.is_none());
+        assert!(db.cancel_patchset(id, false).await?);
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM email_outbox WHERE status = 'Cancelled'").await?, 2);
+        assert!(db.create_message(&msg, thread, None, "victim@example.test", "changed", 1, "changed", "list@example.test", "", None, None).await.is_err());
+        assert_eq!(db.get_patchset_status(id).await?.as_deref(), Some("Cancelled"));
+        assert!(db.lock_pending_email().await?.is_none());
         Ok(())
     }
 }
