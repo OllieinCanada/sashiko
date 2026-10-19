@@ -5,6 +5,9 @@ name: Prepare checked source-only contribution
     branches: [codex/held-series-ci-20261019]
     paths:
       - '.github/adaptive-source-preparation/**'
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
       - '.github/workflows/adaptive-source-preparation.yml'
   workflow_dispatch:
 

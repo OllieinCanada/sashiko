@@ -706,7 +706,6 @@ mod tests {
         Ok(())
     }
 
-
     #[tokio::test]
     async fn test_cooldown_interim_version14_upgrade_preserves_decision() -> Result<()> {
         let db = database().await?;
@@ -722,9 +721,15 @@ mod tests {
             scalar(&db, "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_patchsets_held_series'").await?,
             1
         );
-        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 1);
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            1
+        );
         db.create_patch(id, &message, 1, "diff").await?;
-        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 1);
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            1
+        );
         Ok(())
     }
 

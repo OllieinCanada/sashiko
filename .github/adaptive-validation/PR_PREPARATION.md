@@ -95,3 +95,36 @@ and preserve schema/tombstones in backups.
 Do not open the upstream PR until the source-only contribution range, required
 checks, Sashiko agent review and honest acceptance matrix are ready. This draft
 does not authorize merge, production configuration or rollout.
+
+## Additional measured evidence and active correction
+
+The process-exit/reopen fixture now passes after the fixture closes its read
+cursor before writes through the separate connection. The assertions check the
+immediate release result and no re-hold after duplicate ingestion. The 1,024-part
+series and missing-history-table read fault also pass on checkpoint
+583e8d39abb48e501fea1586906cee6d39adeb88:
+https://github.com/OllieinCanada/sashiko/actions/runs/39290530692
+
+The first matched-upstream trace completed on checkpoint
+4965f93f6f77b9e66c7a09babbd1b9cb071f4f46:
+https://github.com/OllieinCanada/sashiko/actions/runs/39290655537
+
+For 1,000 series / 3,750 parts, with three repetitions, the fresh-database medians
+were 7.590 seconds upstream, 8.717 disabled and 9.928 enabled. With 10,000 synthetic
+archived owners they were 7.437, 11.859 and 13.019 seconds. The fresh case passed
+the frozen 20%/50% screening budgets, but retained disabled overhead failed at
+59.46%. The observed legacy patchset and patch-state digests matched across all
+disabled runs. These debug, serial measurements are not production latency claims.
+
+The active correction adds a partial date/id index for Reviewed patchsets with
+a non-NULL hold. The production supersession query explicitly uses that index.
+Migration 14 now provides the prerequisite index, and adaptive state moves to
+migration 15. Interim prototype version-14 databases retain their state and acquire
+the index through the version-15 upgrade. A production-query-plan regression and
+an interim-upgrade persistence regression were added. This correction must pass
+fresh full checks and both hosted performance workflows before being called
+validated. The source-only preparation job includes the index in the prerequisite
+commit so applying either commit leaves a consistent migration sequence.
+
+The model-review authentication question remains pending. No model invocation or
+model spend has occurred. The old local 64-row matrix remains unreconciled.
