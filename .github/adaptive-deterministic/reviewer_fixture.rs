@@ -3,12 +3,13 @@
         db: &Arc<Database>, author: &str, findings: bool,
     ) -> Result<(i64, i64)> {
         let mut result = (0, 0);
+        let content = "Signed-off-by: Fixture <fixture@example.test>\n---\ndiff";
         for token in ["prior", "target"] {
             let message = format!("det6-route-{token}@example.test");
             let subject = format!("[PATCH] det6-route-{token}");
             let thread = db.create_thread(&message, &subject, 1).await?;
             db.create_message(&message, thread, None, author, &subject, 1,
-                "Signed-off-by: Fixture <fixture@example.test>\n---\ndiff",
+                content,
                 "list@example.test, Person <person@example.test>", "person@example.test, bot@example.test",
                 None, Some("test.list")).await?;
             let hash: String = db.conn.query("SELECT cooldown_source_hash FROM messages WHERE message_id=?",
@@ -22,7 +23,7 @@
             let id = active.create_patchset(thread, Some(&message), &message, &subject, author,
                 1, 1, 3, "list@example.test, Person <person@example.test>", "person@example.test, bot@example.test",
                 None, 1, None, true, None, None).await?.context("owner")?;
-            let patch = active.create_patch(id, &message, 1, "diff").await?;
+            let patch = active.create_patch(id, &message, 1, content).await?;
             if token == "prior" {
                 db.update_patchset_status(id, "Cancelled").await?;
             } else {
