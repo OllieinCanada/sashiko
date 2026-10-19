@@ -41,7 +41,7 @@ jobs:
           python3 -m venv /tmp/adaptive-clock-lint
           /tmp/adaptive-clock-lint/bin/pip install yamllint==1.37.1
           export PATH="/tmp/adaptive-clock-lint/bin:$PATH"
-          make check-pr RANGE=549a92219612ce446a9f1eeaa3238d2ad098159b..HEAD
+          make check-pr RANGE=HEAD~1..HEAD
           python3 -m py_compile .github/adaptive-clock/run.py
       - name: Run bounded wall-clock validation
         run: python3 .github/adaptive-clock/run.py
