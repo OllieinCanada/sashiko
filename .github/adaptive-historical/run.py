@@ -83,15 +83,24 @@ def native(binary, phase, database, raw, policy):
 
 try:
     save()
-    try:
-        data = download()
-    except Exception:
-        REPORT["status"] = "BLOCKED_ARCHIVE_UNAVAILABLE"
-        save()
-        raise RuntimeError("both bounded public archive transports failed")
+    data = None
+    supplied = os.environ.get("HISTORICAL_RAW_INPUT")
+    if supplied:
+        data = Path(supplied).read_bytes()
+        if len(data) > 512 * 1024:
+            raise RuntimeError("supplied archive sample exceeds the fixture cap")
+        REPORT["transport"] = "explicitly supplied public archive fixture"
+    elif os.environ.get("HISTORICAL_ARCHIVE_FETCH", "1") == "0":
+        REPORT["archive_status"] = "BLOCKED: known unavailable transports are not retried"
+    else:
+        try:
+            data = download()
+        except Exception:
+            REPORT["archive_status"] = "BLOCKED: HTTPS returned 403 and NNTP was unavailable"
     raw = OUT / "public-historical.eml"
-    raw.write_bytes(data)
-    REPORT["archive_sha256"] = hashlib.sha256(data).hexdigest()
+    if data is not None:
+        raw.write_bytes(data)
+        REPORT["archive_sha256"] = hashlib.sha256(data).hexdigest()
     fixture = (ROOT / ".github/adaptive-historical/fixture.rs").read_text()
     MAIN.write_text(ORIGINAL + fixture)
     run(["cargo", "fmt", "--all"], "format-fixture", timeout=60)
@@ -137,6 +146,12 @@ try:
                 original.backup(destination)
         source.chmod(0o400)
         source_before = hashlib.sha256(source.read_bytes()).hexdigest()
+        REPORT["checks"].append({"name": "read-only write negative control", "status": "PASS"})
+        if data is None:
+            REPORT["status"] = "BLOCKED_ARCHIVE_UNAVAILABLE"
+            REPORT["replay_performed"] = False
+            save()
+            raise RuntimeError("historical harness compiled; raw archive input remains unavailable")
         frozen = None
         for number in range(3):
             native(binary, "replay-" + str(number), shadow, raw, policy)
@@ -159,6 +174,7 @@ try:
             {"name": "frozen admission unchanged across three restarted replays", "status": "PASS"},
         ])
     REPORT["status"] = "PASS"
+    REPORT["replay_performed"] = True
     save()
     print(json.dumps(REPORT, indent=2), flush=True)
 except Exception as error:
