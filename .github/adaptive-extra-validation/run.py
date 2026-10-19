@@ -69,7 +69,8 @@ try:
                  "test_cooldown_hosted_busy_writer_retry",
                  "test_cooldown_hosted_pruning_keeps_dedup_state",
                  "test_cooldown_hosted_stale_leases_recheck_quarantine",
-                 "test_cooldown_hosted_disable_cancel_reopen"]:
+                 "test_cooldown_hosted_disable_cancel_reopen",
+                 "test_cooldown_hosted_policy_source_matrix"]:
         text = run([str(binary), name, "--ignored", "--nocapture", "--test-threads=1"],
                    name, 60)
         if "1 passed; 0 failed" not in text:

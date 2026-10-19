@@ -167,4 +167,67 @@
             assert_eq!(scalar(&db, "PRAGMA user_version").await?, 15);
             Ok(())
         }
+
+        #[test]
+        #[ignore = "hosted configuration and actual-source eligibility matrix"]
+        fn test_cooldown_hosted_policy_source_matrix() -> Result<()> {
+            use crate::cooldown::CooldownSelection;
+            use crate::events::MessageSource;
+            let directory = tempfile::tempdir()?;
+            let path = directory.path().join("lists.toml");
+            std::fs::write(&path, r#"
+[defaults.adaptive_cooldown]
+window_seconds = 100
+burst = 2
+step_seconds = 10
+max_extra_seconds = 30
+["list@example.test"]
+nntp_group = "test.list"
+["list@example.test".adaptive_cooldown]
+enabled = true
+["other@example.test"]
+nntp_group = "test.other"
+["template@example.test"]
+nntp_group = "test.template"
+["template@example.test".adaptive_cooldown]
+window_seconds = 200
+"#)?;
+            let policy = crate::email_policy::EmailPolicyConfig::load(&path)?;
+            for (group, to, cc) in [
+                ("test.list", "", ""),
+                ("unconfigured.group", "Dev list <LIST@EXAMPLE.TEST>", ""),
+                ("unconfigured.group", "", "list@example.test"),
+                ("test.list", "list@example.test", "list@example.test"),
+            ] {
+                let CooldownSelection::Enabled(ctx) = policy.adaptive_context(MessageSource::Nntp, group, to, cc, "Dev <DEV@EXAMPLE.TEST>", Some(0))? else {
+                    anyhow::bail!("eligible source was not enabled: {group} {to} {cc}");
+                };
+                assert_eq!(ctx.list, "list@example.test");
+                assert_eq!(ctx.author, "dev@example.test");
+                assert_eq!(ctx.legacy_deadline, Some(0));
+                assert_eq!(ctx.policy.window_seconds, 100);
+            }
+            for (group, to, cc) in [
+                ("test.list", "other@example.test", ""),
+                ("unconfigured.group", "list@example.test", "other@example.test"),
+                ("test.other", "list@example.test", ""),
+            ] {
+                assert!(matches!(policy.adaptive_context(MessageSource::Nntp, group, to, cc, "dev@example.test", None)?, CooldownSelection::CrossPost));
+            }
+            for (group, to) in [
+                ("test.other", "other@example.test"),
+                ("test.template", "template@example.test"),
+                ("unconfigured.group", "unconfigured@example.test"),
+            ] {
+                assert!(matches!(policy.adaptive_context(MessageSource::Nntp, group, to, "", "unknown", None)?, CooldownSelection::Legacy));
+            }
+            for source in [
+                MessageSource::ApiInject, MessageSource::ApiFetchThread,
+                MessageSource::GitFetch, MessageSource::GitImport, MessageSource::GitArchive,
+            ] {
+                assert!(matches!(policy.adaptive_context(source, "test.list", "list@example.test", "", "unknown", None)?, CooldownSelection::Legacy));
+            }
+            assert!(policy.adaptive_context(MessageSource::Nntp, "test.list", "list@example.test", "", "unknown", None).is_err());
+            Ok(())
+        }
     }
