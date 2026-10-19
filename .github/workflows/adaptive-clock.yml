@@ -1,0 +1,55 @@
+name: Adaptive process-local clock validation
+
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths:
+      - '.github/adaptive-clock/**'
+      - '.github/workflows/adaptive-clock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: adaptive-clock-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-gaps:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: >-
+          rustup toolchain install stable --profile minimal
+          --component rustfmt --component clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Check clock checkpoint and isolated runner
+        run: |
+          if pgrep -x sashiko; then
+            exit 1
+          fi
+          python3 -m venv /tmp/adaptive-clock-lint
+          /tmp/adaptive-clock-lint/bin/pip install yamllint==1.37.1
+          export PATH="/tmp/adaptive-clock-lint/bin:$PATH"
+          make check-pr RANGE=549a92219612ce446a9f1eeaa3238d2ad098159b..HEAD
+          python3 -m py_compile .github/adaptive-clock/run.py
+      - name: Run bounded wall-clock validation
+        run: python3 .github/adaptive-clock/run.py
+      - name: Upload reproducible clock evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adaptive-clock-${{ github.sha }}
+          path: adaptive-clock-results/
+          retention-days: 14
+          if-no-files-found: warn
