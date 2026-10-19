@@ -18,8 +18,8 @@ jobs:
           python3 - <<'PY'
           import json, os, urllib.error, urllib.request
           base = "https://api.github.com/repos/OllieinCanada/sashiko"
-          keep = "a7837db72ad13f91dfbe9d4683ae9b1d2ad6bdd4"
-          names = {"Adaptive deterministic coverage expansion"}
+          keep = {"a7837db72ad13f91dfbe9d4683ae9b1d2ad6bdd4", "ce22d185f20acb98284eaf026849a589c6b3962b"}
+          names = {"Adaptive deterministic coverage expansion", "Adaptive process-local clock validation"}
           headers = {"Authorization": "Bearer " + os.environ["GH_TOKEN"], "Accept": "application/vnd.github+json"}
           cancelled = []
           for page in (1, 2):
@@ -27,7 +27,7 @@ jobs:
               with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=20) as response:
                   runs = json.load(response)["workflow_runs"]
               for run in runs:
-                  if (run["head_sha"] == keep or run["name"] not in names
+                  if (run["head_sha"] in keep or run["name"] not in names
                           or run["status"] == "completed"):
                       continue
                   request = urllib.request.Request(base + "/actions/runs/" + str(run["id"]) + "/cancel",
@@ -39,5 +39,5 @@ jobs:
                   except urllib.error.HTTPError as error:
                       if error.code not in (409, 422):
                           raise
-          print(json.dumps({"kept_source_checkpoint": keep, "cancelled_superseded_run_ids": cancelled}))
+          print(json.dumps({"kept_source_checkpoints": sorted(keep), "cancelled_superseded_run_ids": cancelled}))
           PY
