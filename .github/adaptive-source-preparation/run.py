@@ -137,6 +137,12 @@ def main():
         target = directory / "target"
         if not target.exists():
             target.symlink_to(ROOT / "target", target_is_directory=True)
+        # A trailing-slash target/ ignore does not match a symlink in Git.
+        # Exclude exactly this validated build link in the throwaway clone.
+        if not target.is_symlink() or target.resolve() != (ROOT / "target").resolve():
+            raise RuntimeError("unexpected build target link")
+        with (directory / ".git/info/exclude").open("a") as exclude:
+            exclude.write("\n/target\n")
         run(["cargo", "build", "--locked", "--all-features", "--bin", "sashiko"],
             "build-upstream-fixture-binary", cwd=directory)
         checked_commit(
@@ -177,7 +183,10 @@ def main():
             "Leave deployed mailing-list policy unchanged.",
             "adaptive",
         )
-        if output(["git", "status", "--porcelain"], directory):
+        dirty = output(["git", "status", "--porcelain"], directory)
+        if dirty:
+            REPORT["unexpected_source_status"] = dirty
+            save()
             raise RuntimeError("prepared source checkout has uncommitted changes")
         REPORT["head"] = output(["git", "rev-parse", "HEAD"], directory)
         REPORT["tree"] = output(["git", "rev-parse", "HEAD^{tree}"], directory)
