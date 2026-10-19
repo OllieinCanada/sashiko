@@ -3798,30 +3798,34 @@ mod tests {
             "Message-ID: <date-{token}@example.test>\r\nFrom: Dev <dev@example.test>\r\nTo: list@example.test\r\nSubject: [PATCH] date-{token}\r\nDate: {date}\r\n\r\nSigned-off-by: Dev <dev@example.test>\r\n---\r\ndiff --git a/f b/f\r\n--- a/f\r\n+++ b/f\r\n@@ -1 +1 @@\r\n-old\r\n+new\r\n"
         );
         let (metadata, patch) = sashiko::patch::parse_email(raw.as_bytes())?;
-        assert!(matches!(
-            process_parsed_article(
-                db,
-                ParsedArticle {
-                    group: "test.list".into(),
-                    article_id: token.into(),
-                    source: MessageSource::Nntp,
-                    metadata: Some(metadata),
-                    patch,
-                    baseline: None,
-                    failed_error: None,
-                    skip_filters: None,
-                    only_filters: None,
-                    mr_url: None,
-                    mr_title: None,
-                    mr_number: None,
-                    receipt: None,
-                },
-                None,
-                policy,
-                &[],
-            ).await,
-            ProcessStatus::Ingested
-        ), "fixture was not ingested: {token}, {date}");
+        assert!(
+            matches!(
+                process_parsed_article(
+                    db,
+                    ParsedArticle {
+                        group: "test.list".into(),
+                        article_id: token.into(),
+                        source: MessageSource::Nntp,
+                        metadata: Some(metadata),
+                        patch,
+                        baseline: None,
+                        failed_error: None,
+                        skip_filters: None,
+                        only_filters: None,
+                        mr_url: None,
+                        mr_title: None,
+                        mr_number: None,
+                        receipt: None,
+                    },
+                    None,
+                    policy,
+                    &[],
+                )
+                .await,
+                ProcessStatus::Ingested
+            ),
+            "fixture was not ingested: {token}, {date}"
+        );
         Ok(())
     }
 
@@ -3837,23 +3841,38 @@ mod tests {
         for inherited in [false, true] {
             for explicit_disabled in [false, true] {
                 for fixed in [None, Some(0), Some(2)] {
-                    let list_fixed = fixed.map_or(String::new(), |hours| format!("embargo_hours={hours}\n"));
+                    let list_fixed =
+                        fixed.map_or(String::new(), |hours| format!("embargo_hours={hours}\n"));
                     let template = if inherited { defaults } else { "" };
                     let disabled = if explicit_disabled {
                         "[\"list@example.test\".adaptive_cooldown]\nenabled=false\n"
-                    } else { "" };
-                    std::fs::write(&path, format!(
-                        "[defaults]\nembargo_hours=2\n{template}\n[\"list@example.test\"]\nnntp_group=\"test.list\"\n{list_fixed}{disabled}"
-                    ))?;
+                    } else {
+                        ""
+                    };
+                    std::fs::write(
+                        &path,
+                        format!(
+                            "[defaults]\nembargo_hours=2\n{template}\n[\"list@example.test\"]\nnntp_group=\"test.list\"\n{list_fixed}{disabled}"
+                        ),
+                    )?;
                     let policy = sashiko::email_policy::EmailPolicyConfig::load(&path)?;
-                    let db = Arc::new(Database::new(&DatabaseSettings {
-                        url: ":memory:".into(),
-                        token: String::new(),
-                    }).await?);
+                    let db = Arc::new(
+                        Database::new(&DatabaseSettings {
+                            url: ":memory:".into(),
+                            token: String::new(),
+                        })
+                        .await?,
+                    );
                     db.migrate().await?;
                     let before = chrono::Utc::now().timestamp();
                     for token in ["prior", "held"] {
-                        ingest_cooldown_fixture(&db, &policy, token, "Thu, 1 Jan 1970 00:00:00 +0000").await?;
+                        ingest_cooldown_fixture(
+                            &db,
+                            &policy,
+                            token,
+                            "Thu, 1 Jan 1970 00:00:00 +0000",
+                        )
+                        .await?;
                     }
                     let after = chrono::Utc::now().timestamp();
                     let mut rows = db.conn.query(
@@ -3867,14 +3886,20 @@ mod tests {
                         if fixed == Some(0) {
                             assert_eq!(deadline, None);
                         } else {
-                            assert!((before + 7200..=after + 7200).contains(&deadline.context("missing fixed hold")?));
+                            assert!(
+                                (before + 7200..=after + 7200)
+                                    .contains(&deadline.context("missing fixed hold")?)
+                            );
                         }
                     }
                     assert!(rows.next().await?.is_none());
                     let mut counts = db.conn.query(
                         "SELECT (SELECT COUNT(*) FROM review_cooldown_events), (SELECT COUNT(*) FROM review_cooldown_intents)", (),
                     ).await?;
-                    let row = counts.next().await?.context("missing disabled accounting counts")?;
+                    let row = counts
+                        .next()
+                        .await?
+                        .context("missing disabled accounting counts")?;
                     assert_eq!(row.get::<i64>(0)?, 0);
                     assert_eq!(row.get::<i64>(1)?, 0);
                 }
@@ -3882,7 +3907,6 @@ mod tests {
         }
         Ok(())
     }
-
 
     #[cfg(feature = "server")]
     #[tokio::test]
@@ -3917,10 +3941,13 @@ max_extra_seconds = 3600
             "not-a-date",
             "Fri, 31 Dec 9999 23:59:59 +1400",
         ] {
-            let db = Arc::new(Database::new(&DatabaseSettings {
-                url: ":memory:".into(),
-                token: String::new(),
-            }).await?);
+            let db = Arc::new(
+                Database::new(&DatabaseSettings {
+                    url: ":memory:".into(),
+                    token: String::new(),
+                })
+                .await?,
+            );
             db.migrate().await?;
             let before = chrono::Utc::now().timestamp();
             for token in ["prior", "held"] {
@@ -3936,7 +3963,10 @@ max_extra_seconds = 3600
             let first_deadline = first.get::<libsql::Value>(1)?;
             assert!((before..=after).contains(&first_time), "{date}");
             assert_eq!(first_deadline, libsql::Value::Null, "{date}");
-            let second = rows.next().await?.context("missing second date admission")?;
+            let second = rows
+                .next()
+                .await?
+                .context("missing second date admission")?;
             let second_time: i64 = second.get(0)?;
             assert!((before..=after).contains(&second_time), "{date}");
             assert_eq!(second.get::<i64>(1)?, second_time + 3600, "{date}");

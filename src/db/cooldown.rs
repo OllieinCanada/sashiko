@@ -5,7 +5,7 @@
 use super::*;
 use crate::cooldown::{CooldownContext, CooldownPolicy, MAX_SERIES_PARTS, message_key};
 
-const COOLDOWN_OWNER_QUERY: &str =
+pub(super) const COOLDOWN_OWNER_QUERY: &str =
     "SELECT patchset_id FROM review_cooldown_messages WHERE message_id = ?
 UNION ALL
 SELECT p.id FROM patchsets p WHERE p.cover_letter_message_id = ?

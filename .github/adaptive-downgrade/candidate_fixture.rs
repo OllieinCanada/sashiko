@@ -13,6 +13,9 @@
             if phase == "prepare" {
                 let mut ctx = context("list@example.test", "dev@example.test");
                 ctx.policy.burst = 1;
+                ctx.policy.window_seconds = 86400;
+                ctx.policy.step_seconds = 3600;
+                ctx.policy.max_extra_seconds = 3600;
                 let active = db.with_cooldown_context(Some(ctx));
                 let (prior, _, msg) = seed(&active, "rollback-prior", 1).await?;
                 active.create_patch(prior, &msg, 1, "diff").await?;
@@ -24,6 +27,19 @@
                 db.insert_patchwork_outbox(&msg, "https://patchwork.example.test", "warning", "fixture", "https://review.example.test", "review").await?;
                 assert!(db.lock_pending_email().await?.is_none());
                 assert!(db.lock_pending_patchwork().await?.is_none());
+                return Ok(());
+            }
+            if phase == "resume" {
+                assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patchsets WHERE status='Pending'").await?, 2);
+                assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patchsets WHERE status='Incomplete'").await?, 1);
+                assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 2);
+                assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_intents").await?, 3);
+                assert_eq!(scalar(&db, "SELECT COUNT(*) FROM email_outbox WHERE status='Pending'").await?, 2);
+                assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patchwork_outbox WHERE status='Pending'").await?, 1);
+                assert!(db.lock_pending_email().await?.is_none());
+                assert!(db.lock_pending_patchwork().await?.is_none());
+                let pending = db.get_pending_patchsets(10).await?;
+                assert_eq!(pending.len(), 2);
                 return Ok(());
             }
             if phase == "quiesce" {
