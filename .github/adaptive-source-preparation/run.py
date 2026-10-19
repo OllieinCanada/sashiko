@@ -10,20 +10,22 @@ import tempfile
 ROOT = Path.cwd()
 OUT = ROOT / "adaptive-source-preparation"
 OUT.mkdir(exist_ok=True)
-BASE = "7f92f869a960a20f7d395550b4879d897ebdf4ea"
+BASE = "f6e2e172e1e669b6767a4c74fe91d062b41fd71c"
 PREREQUISITE = "a377db68dbd2c2fabfefe3136aea8b4499e4a648"
 CANDIDATE = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 IDENTITY = {"name": "Ollie Slapinski", "email": "oliverslapinski@hotmail.com"}
 REPORT = {
     "status": "RUNNING", "base": BASE, "candidate_checkpoint": CANDIDATE,
     "prerequisite_snapshot": PREREQUISITE, "identity": IDENTITY,
-    "model_review": "BLOCKED: no authenticated provider supplied to this job",
+    "model_review": "NOT_RUN: provider calls paused after authenticated smoke generation returned HTTP 503",
     "commits": [], "checks": [],
     "scope": "source-only preparation artifacts; no upstream PR or push",
 }
 ENV = os.environ.copy()
 ENV["CARGO_TARGET_DIR"] = str(ROOT / "target")
 ENV["RUSTUP_TOOLCHAIN"] = "stable"
+ENV["CARGO_NET_RETRY"] = "0"
+ENV["CARGO_HTTP_TIMEOUT"] = "20"
 
 
 def save():
