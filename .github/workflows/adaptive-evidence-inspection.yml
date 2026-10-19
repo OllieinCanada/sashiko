@@ -31,8 +31,8 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: >-
-            adaptive-source-preparation-bd59059f1864aea81b11b5de0eb97e5d2ec53667
-          run-id: 39320285692
+            adaptive-source-preparation-010274b4d10a4db39cb7de2bcef0108a92bdc82b
+          run-id: 39330032302
           github-token: ${{ github.token }}
           path: evidence-input/source
       - uses: actions/download-artifact@v4
@@ -42,6 +42,20 @@ jobs:
           run-id: 39320285657
           github-token: ${{ github.token }}
           path: evidence-input/mutation
+      - uses: actions/download-artifact@v4
+        with:
+          name: >-
+            adaptive-deterministic-d9cc305c8e000add224b93800d21e3edcefc8f11
+          run-id: 39333925430
+          github-token: ${{ github.token }}
+          path: evidence-input/focused
+      - uses: actions/download-artifact@v4
+        with:
+          name: >-
+            adaptive-review-cancel-ee43b24b8c3b246eb9c81d343cdfa4d607729d29
+          run-id: 39332466758
+          github-token: ${{ github.token }}
+          path: evidence-input/cancellation
       - name: Verify bundle and semantic failure evidence
         run: python3 .github/adaptive-evidence-inspection/run.py
       - uses: actions/upload-artifact@v4

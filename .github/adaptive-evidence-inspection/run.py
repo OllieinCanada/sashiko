@@ -11,8 +11,8 @@ ROOT = Path.cwd()
 SOURCE = ROOT / "evidence-input/source"
 MUTATION = ROOT / "evidence-input/mutation"
 CANDIDATE = "bd59059f1864aea81b11b5de0eb97e5d2ec53667"
-HEAD = "fa8a32646362a11ce00b7a90a14df3af828465d3"
-TREE = "178107288293535d3adeaf180ba0328b9da6714a"
+HEAD = "6667a81cd25a69feca76e65d94aacb4c83b2ce72"
+TREE = "d38b668f511e2e0972aa4588174a2c55f3582b30"
 PATHS = ["src", "docs", "designs", "MAINTAINERS_GUIDE.md", "Cargo.toml", "Cargo.lock"]
 report = {"candidate": CANDIDATE, "source_only_head": HEAD, "source_only_tree": TREE,
           "status": "RUNNING", "mutants": [], "source_checks": []}
@@ -23,7 +23,8 @@ def git(*args, cwd=ROOT):
 
 source = json.loads((SOURCE / "manifest.json").read_text())
 mutation = json.loads((MUTATION / "manifest.json").read_text())
-assert source["candidate_checkpoint"] == CANDIDATE
+assert source["candidate_checkpoint"] == "010274b4d10a4db39cb7de2bcef0108a92bdc82b"
+assert source["base"] == "f6e2e172e1e669b6767a4c74fe91d062b41fd71c"
 assert source["head"] == HEAD and source["tree"] == TREE
 assert len(source["commits"]) == 3
 assert all(c["status"] == "PASS" for c in source["checks"])
@@ -41,6 +42,7 @@ with tempfile.TemporaryDirectory(prefix="source-evidence-") as tmp:
         message = git("show", "-s", "--format=%B", commit["sha"], cwd=checkout)
         assert "Signed-off-by: Ollie Slapinski <oliverslapinski@hotmail.com>" in message
     report["source_equivalence"] = "PASS: complete production paths match"
+assert source["patches"] == {"0001-server-allow-concrete-extractor-rejection-response-s.patch":"8fcd73ae828189badd815813e5f0554ae1b4bf57226a476f79cc8130dabfd959","0003-mail-add-opt-in-per-author-publication-cooldowns.patch":"1a47b118f01d8c007d04582da3c305eb68105ef43adaa2ebf475c624c1d77cc7","0002-db-retire-superseded-series-reviews-awaiting-publica.patch":"3f155172449cbd52dc42f8ac42c27e8ec734008736798cc93cbee67ae472a89b"}
 for name, digest in source["patches"].items():
     path = SOURCE / "patches" / name
     assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
@@ -67,6 +69,22 @@ for mutant in mutation["mutants"]:
     report["mutants"].append(row)
     print("MUTATION-CONTEXT " + json.dumps(row), flush=True)
 assert len(report["mutants"]) == 8
+for directory, labels in [
+        (ROOT / "evidence-input/focused", ["ignore-ingestion", "review-privacy"]),
+        (ROOT / "evidence-input/cancellation", ["cancel-watch", "task-abort"])]:
+    manifest = json.loads((directory / "manifest.json").read_text())
+    assert manifest["status"] == "PASS" and manifest["production_base"] == CANDIDATE
+    assert len(manifest["mutants"]) == 2
+    for label in labels:
+        negative = directory / ("negative-" + label + ".log")
+        text = negative.read_text()
+        assert "running 1 test" in text and "0 passed; 1 failed" in text
+        assert "panicked at" in text or "Error:" in text
+        assert not re.search(r"No space left|permission denied", text, re.I)
+        report["mutants"].append({
+            "name": label, "status": "KILLED",
+            "log_sha256": hashlib.sha256(negative.read_bytes()).hexdigest()})
+assert len(report["mutants"]) == 12
 report["status"] = "PASS"
 Path("adaptive-evidence-inspection.json").write_text(json.dumps(report, indent=2) + "\n")
 print(json.dumps(report, indent=2), flush=True)
