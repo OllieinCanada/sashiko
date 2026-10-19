@@ -1,0 +1,55 @@
+name: Adaptive active review cancellation
+
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths:
+      - '.github/adaptive-review-cancel/**'
+      - '.github/workflows/adaptive-review-cancel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: adaptive-review-cancel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-gaps:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: >-
+          rustup toolchain install stable --profile minimal
+          --component rustfmt --component clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Check checkpoint and isolated runner
+        run: |
+          if pgrep -x sashiko; then
+            exit 1
+          fi
+          python3 -m venv /tmp/adaptive-review-cancel-lint
+          /tmp/adaptive-review-cancel-lint/bin/pip install yamllint==1.37.1
+          export PATH="/tmp/adaptive-review-cancel-lint/bin:$PATH"
+          make check-pr RANGE=HEAD~1..HEAD
+          python3 -m py_compile .github/adaptive-review-cancel/run.py
+      - name: Validate mock-request cancellation and semantic controls
+        run: python3 .github/adaptive-review-cancel/run.py
+      - name: Upload cancellation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adaptive-review-cancel-${{ github.sha }}
+          path: adaptive-review-cancel-results/
+          retention-days: 14
+          if-no-files-found: warn
