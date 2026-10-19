@@ -16,6 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
+          fetch-depth: 0
           persist-credentials: false
       - run: rustup toolchain install stable --profile minimal --component rustfmt
       - uses: Swatinem/rust-cache@v2
@@ -53,7 +54,14 @@ jobs:
           set +e
           target/debug/sashiko --adaptive-cooldown-unknown-option
           cli_status=$?
+          set -e
           if [ "$cli_status" -ne 2 ]; then exit 1; fi
+          HTTPS_PROXY=http://127.0.0.1:9 HTTP_PROXY=http://127.0.0.1:9 target/debug/sashiko --project sashiko review --no-ai --agent 877e739748dc6a135384942412d59880999f4f38 > minimal-no-ai.json
+          python3 -c 'import json; r=json.load(open("minimal-no-ai.json")); assert r["status"] != "error" and not r.get("partial") and not r.get("error") and len(r["patches"]) == 1'
+          cargo build --locked --no-default-features --features cache --bin sashiko
+          target/debug/sashiko review --help
+          HTTPS_PROXY=http://127.0.0.1:9 HTTP_PROXY=http://127.0.0.1:9 target/debug/sashiko --project sashiko review --no-ai --agent 877e739748dc6a135384942412d59880999f4f38 > cache-no-ai.json
+          python3 -c 'import json; r=json.load(open("cache-no-ai.json")); assert r["status"] != "error" and not r.get("partial") and not r.get("error") and len(r["patches"]) == 1'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
