@@ -494,7 +494,7 @@ Downstream tools can parse this format with simple line splitting.
 In projects/<project>/mailing_lists.toml, explicitly enable one consenting list:
 
 ```toml
-[lists."example@lists.example.org".adaptive_cooldown]
+["example@lists.example.org".adaptive_cooldown]
 enabled = true
 window_seconds = 86400
 burst = 2

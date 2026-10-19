@@ -1,5 +1,10 @@
 # Opt-in adaptive publication grace period
 
+This is a local prototype, not ready for upstream submission. Fresh review has
+identified an unresolved unbounded canonical-merge quarantine operation. Batching
+that operation would weaken crash recovery unless ownership and durable operation
+tracking are redesigned first. No bounded-writer claim is made for that path.
+
 This experimental policy delays publication, not review computation. It changes
 no deployed list configuration. The existing fixed embargo, clean-review
 exception, recipients, access control, cancellation and delivery retry rules
@@ -40,8 +45,10 @@ New opt-in canonical rows acquire durable waiting intent before Pending can be
 visible. Existing legacy rows are never retroactively enrolled. One existing
 Database writer transaction validates compact immutable source snapshots, counts
 bounded indexed history, inserts the unique event, persists the decision and live
-patchsets.embargo_until, then permits Pending. Compression, hashing, network
-operations and subprocesses remain outside the writer lane.
+patchsets.embargo_until, then permits Pending. Compression, hashing, subject parsing, network operations and subprocesses remain
+outside the writer lane. Compact source facts are persisted with their fingerprint.
+An adopted actual cover must have its own verified policy binding before admission;
+a raw cover stored by another unfinished ingestion is insufficient.
 
 The first successful admission records each list's history boundary in meta.
 Each decision records available history_since. Cold start counts only locally

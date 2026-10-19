@@ -110,6 +110,28 @@ pub struct SourceSnapshot {
     pub fingerprint: String,
 }
 
+/// Compact facts parsed before entering the writer lane. The source hash and
+/// these facts are persisted together; legacy/unsupported authors remain None.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SourceFacts {
+    pub author: Option<String>,
+    pub index: u32,
+    pub total: u32,
+    pub version: Option<u32>,
+}
+
+impl SourceFacts {
+    pub fn prepare(author: &str, subject: &str) -> Self {
+        let (index, total) = crate::patch::parse_subject_index(subject);
+        Self {
+            author: author_key(author).ok(),
+            index,
+            total,
+            version: crate::patch::parse_subject_version(subject),
+        }
+    }
+}
+
 /// The same parsed facts used for attribution, prepared before the writer lane.
 pub fn source_fingerprint(
     author: &str,

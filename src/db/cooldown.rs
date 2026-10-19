@@ -3,7 +3,7 @@
 
 //! Transaction-level admission. No external I/O, payload decompression or waits.
 use super::*;
-use crate::cooldown::{CooldownContext, CooldownPolicy, MAX_SERIES_PARTS, author_key, message_key};
+use crate::cooldown::{CooldownContext, CooldownPolicy, MAX_SERIES_PARTS, message_key};
 
 impl Database {
     pub fn with_cooldown_context(&self, context: Option<CooldownContext>) -> Self {
@@ -118,24 +118,19 @@ impl Database {
         &self,
         id: i64,
         displayed: Option<u32>,
+        frozen: Option<String>,
     ) -> Result<Option<u32>> {
+        let Some(frozen) = frozen else {
+            return Ok(displayed);
+        };
+        let (state, version): (String, Option<u32>) = serde_json::from_str(&frozen)?;
+        if state == "decided" || version.is_some() {
+            return Ok(version.or(displayed));
+        }
         if displayed.is_some() {
             return Ok(displayed);
         }
-        let mut intents = self
-            .conn
-            .query(
-                "SELECT verified_version FROM review_cooldown_intents WHERE patchset_id = ?",
-                libsql::params![id],
-            )
-            .await?;
-        let Some(intent) = intents.next().await? else {
-            return Ok(None);
-        };
-        if let Some(version) = intent.get::<Option<u32>>(0)? {
-            return Ok(Some(version));
-        }
-        let mut parts = self.conn.query("SELECT m.subject FROM patches p JOIN messages m ON m.message_id = p.message_id WHERE p.patchset_id = ? LIMIT ?",libsql::params![id,MAX_SERIES_PARTS+1]).await?;
+        let mut parts=self.conn.query("SELECT m.cooldown_facts FROM patches p JOIN messages m ON m.message_id = p.message_id WHERE p.patchset_id = ? LIMIT ?",libsql::params![id,MAX_SERIES_PARTS+1]).await?;
         let mut version = None;
         let mut count = 0;
         while let Some(part) = parts.next().await? {
@@ -143,7 +138,9 @@ impl Database {
             if count > MAX_SERIES_PARTS {
                 bail!("adaptive series exceeds supported part bound");
             }
-            if let Some(explicit) = crate::patch::parse_subject_version(&part.get::<String>(0)?) {
+            let facts: crate::cooldown::SourceFacts =
+                serde_json::from_str(&part.get::<String>(0)?)?;
+            if let Some(explicit) = facts.version {
                 if version.is_some_and(|old| old != explicit) {
                     bail!("adaptive series has conflicting explicit versions");
                 }
@@ -201,12 +198,12 @@ impl Database {
         };
         let mut sources = conn
             .query(
-                "SELECT cooldown_source_hash, subject FROM messages WHERE message_id = ?",
+                "SELECT cooldown_source_hash, subject = '(placeholder)' FROM messages WHERE message_id = ?",
                 libsql::params![key.clone()],
             )
             .await?;
         let current: Option<String> = match sources.next().await? {
-            Some(source) if source.get::<String>(1)? != "(placeholder)" => source.get(0)?,
+            Some(source) if source.get::<i64>(1)? == 0 => source.get(0)?,
             Some(_) => None,
             None => None,
         };
@@ -256,9 +253,9 @@ impl Database {
             if let Some(row) = rows.next().await? {
                 let verified: u32 = row.get(0)?;
                 let key = message_key(message)?;
-                let mut cover = tx.query("SELECT subject FROM messages WHERE message_id = ?", libsql::params![key]).await?;
-                let subject = cover.next().await?.context("late cover has no stored source")?.get::<String>(0)?;
-                if crate::patch::parse_subject_index(&subject) != (0, verified) {
+                let mut cover = tx.query("SELECT cooldown_facts FROM messages WHERE message_id = ?", libsql::params![key]).await?;
+                let facts:crate::cooldown::SourceFacts = serde_json::from_str(&cover.next().await?.context("late cover has no stored source")?.get::<String>(0)?)?;
+                if (facts.index,facts.total) != (0, verified) {
                     bail!("late cover contradicts admitted size");
                 }
             }
@@ -305,7 +302,7 @@ impl Database {
         now: i64,
         context: Option<&CooldownContext>,
     ) -> Result<()> {
-        let mut rows = conn.query("SELECT c.list, c.author, c.policy, c.state, c.released_at, p.total_parts, p.embargo_until, p.status FROM review_cooldown_intents c JOIN patchsets p ON p.id = c.patchset_id WHERE c.patchset_id = ?", libsql::params![id]).await?;
+        let mut rows = conn.query("SELECT c.list, c.author, c.policy, c.state, c.released_at, p.total_parts, p.embargo_until, p.status, p.cover_letter_message_id FROM review_cooldown_intents c JOIN patchsets p ON p.id = c.patchset_id WHERE c.patchset_id = ?", libsql::params![id]).await?;
         if let Some(row) = rows.next().await? {
             let state: String = row.get(3)?;
             if state == "blocked" {
@@ -332,34 +329,32 @@ impl Database {
                 if total == 0 || total > MAX_SERIES_PARTS {
                     bail!("adaptive series exceeds supported part bound");
                 }
-                let mut parts = conn.query("SELECT p.part_index, p.message_id, m.author, m.subject, c.patchset_id, p.cooldown_content_hash, m.cooldown_body_hash, c.source_hash, m.cooldown_source_hash FROM patches p LEFT JOIN messages m ON m.message_id = p.message_id LEFT JOIN review_cooldown_messages c ON c.message_id = p.message_id WHERE p.patchset_id = ? ORDER BY p.part_index, p.id LIMIT ?", libsql::params![id, MAX_SERIES_PARTS + 1]).await?;
+                let mut parts = conn.query("SELECT p.part_index, p.message_id, m.cooldown_facts, c.patchset_id, p.cooldown_content_hash, m.cooldown_body_hash, c.source_hash, m.cooldown_source_hash FROM patches p LEFT JOIN messages m ON m.message_id = p.message_id LEFT JOIN review_cooldown_messages c ON c.message_id = p.message_id WHERE p.patchset_id = ? ORDER BY p.part_index, p.id LIMIT ?", libsql::params![id, MAX_SERIES_PARTS + 1]).await?;
                 let mut count = 0;
                 let mut verified_version = None;
                 while let Some(part) = parts.next().await? {
                     count += 1;
                     let index: u32 = part.get(0)?;
                     let message: String = part.get(1)?;
-                    let stored_author: String = part.get(2)?;
-                    let subject: String = part.get(3)?;
-                    let owner: Option<i64> = part.get(4)?;
-                    let content_hash: Option<String> = part.get(5)?;
-                    let body_hash: Option<String> = part.get(6)?;
-                    let frozen_source: Option<String> = part.get(7)?;
-                    let current_source: Option<String> = part.get(8)?;
-                    if let Some(version) = crate::patch::parse_subject_version(&subject) {
+                    let facts: crate::cooldown::SourceFacts =
+                        serde_json::from_str(&part.get::<String>(2)?)?;
+                    let owner: Option<i64> = part.get(3)?;
+                    let content_hash: Option<String> = part.get(4)?;
+                    let body_hash: Option<String> = part.get(5)?;
+                    let frozen_source: Option<String> = part.get(6)?;
+                    let current_source: Option<String> = part.get(7)?;
+                    if let Some(version) = facts.version {
                         if verified_version.is_some_and(|old| old != version) {
                             bail!("adaptive series has conflicting explicit versions");
                         }
                         verified_version = Some(version);
                     }
-                    let (subject_index, subject_total) =
-                        crate::patch::parse_subject_index(&subject);
                     if count > total
                         || index == 0
                         || index > total
-                        || author_key(&stored_author)? != author
-                        || subject_index != index
-                        || subject_total != total
+                        || facts.author.as_deref() != Some(author.as_str())
+                        || facts.index != index
+                        || facts.total != total
                         || message_key(&message)? != message
                         || content_hash.is_none()
                         || content_hash != body_hash
@@ -372,6 +367,32 @@ impl Database {
                 }
                 if count < total {
                     return Ok(());
+                }
+                // A real adopted cover contributes metadata and scope even
+                // when a different ingestion has only stored its raw message.
+                // Do not promote Pending until its own policy binding finishes.
+                if let Some(cover_id) = row.get::<Option<String>>(8)? {
+                    let mut cover = conn.query("SELECT m.subject = '(placeholder)', m.cooldown_source_hash, c.source_hash, c.patchset_id, m.cooldown_facts FROM messages m LEFT JOIN review_cooldown_messages c ON c.message_id = m.message_id WHERE m.message_id = ? AND NOT EXISTS (SELECT 1 FROM patches p WHERE p.patchset_id = ? AND p.message_id = m.message_id)",libsql::params![cover_id,id]).await?;
+                    if let Some(cover) = cover.next().await?
+                        && cover.get::<i64>(0)? == 0
+                    {
+                        let current: Option<String> = cover.get(1)?;
+                        let frozen: Option<String> = cover.get(2)?;
+                        let facts: crate::cooldown::SourceFacts =
+                            serde_json::from_str(&cover.get::<String>(4)?)?;
+                        if current.is_none()
+                            || current != frozen
+                            || cover.get::<Option<i64>>(3)? != Some(id)
+                            || facts.author.as_deref() != Some(author.as_str())
+                            || (facts.index, facts.total) != (0, total)
+                            || facts
+                                .version
+                                .zip(verified_version)
+                                .is_some_and(|(a, b)| a != b)
+                        {
+                            bail!("adopted adaptive cover lacks verified policy provenance");
+                        }
+                    }
                 }
                 let mut unique = conn
                     .query(
@@ -407,24 +428,34 @@ impl Database {
                     bail!("adaptive admission clock moved backwards");
                 }
                 let activation_key = format!("cooldown.history_since:{list}");
-                conn.execute(
-                    "INSERT INTO meta(key,value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING",
-                    libsql::params![activation_key.clone(), now.to_string()],
-                )
-                .await?;
                 let mut coverage = conn
                     .query(
                         "SELECT value FROM meta WHERE key = ?",
-                        libsql::params![activation_key],
+                        libsql::params![activation_key.clone()],
                     )
                     .await?;
-                let activation: i64 = coverage
-                    .next()
-                    .await?
-                    .context("missing cooldown history boundary")?
-                    .get::<String>(0)?
-                    .parse()
-                    .context("invalid cooldown history boundary")?;
+                let activation: i64 = if let Some(boundary) = coverage.next().await? {
+                    boundary
+                        .get::<String>(0)?
+                        .parse()
+                        .context("invalid cooldown history boundary")?
+                } else {
+                    let mut existing = conn
+                        .query(
+                            "SELECT 1 FROM review_cooldown_events WHERE list = ? LIMIT 1",
+                            libsql::params![list.clone()],
+                        )
+                        .await?;
+                    if existing.next().await?.is_some() {
+                        bail!("cooldown history boundary missing for existing events");
+                    }
+                    conn.execute(
+                        "INSERT INTO meta(key,value) VALUES (?, ?)",
+                        libsql::params![activation_key, now.to_string()],
+                    )
+                    .await?;
+                    now
+                };
                 if activation < 0 || activation > now {
                     bail!("invalid cooldown history coverage");
                 }
@@ -1590,6 +1621,13 @@ mod tests {
         db.set_meta("cooldown.history_since:list@example.test", "bad")
             .await?;
         assert!(admit_at(&active, c, &msg, 1002).await.is_err());
+        db.execute(
+            "DELETE FROM meta WHERE key = 'cooldown.history_since:list@example.test'",
+            (),
+        )
+        .await?;
+        assert!(admit_at(&active, c, &msg, 1002).await.is_err());
+
         assert_eq!(
             scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
             2
@@ -1848,6 +1886,160 @@ mod tests {
             .await?,
             2
         );
+        Ok(())
+    }
+    async fn main_style_part(
+        db: &Database,
+        thread: i64,
+        root: &str,
+        message: &str,
+        index: u32,
+    ) -> Result<i64> {
+        let subject = format!("[PATCH {index}/2] item");
+        db.create_message(
+            message,
+            thread,
+            Some(root),
+            "dev@example.test",
+            &subject,
+            1,
+            "diff",
+            "list@example.test",
+            "",
+            None,
+            None,
+        )
+        .await?;
+        let handle = fixture_source_handle(db, message).await?;
+        let cover = if db
+            .message_is_cover_letter_for(root, "dev@example.test", 2, None)
+            .await?
+        {
+            root
+        } else {
+            message
+        };
+        let owner = handle
+            .create_patchset(
+                thread,
+                Some(cover),
+                message,
+                &subject,
+                "dev@example.test",
+                1,
+                2,
+                3,
+                "list@example.test",
+                "",
+                None,
+                index,
+                None,
+                true,
+                None,
+                None,
+            )
+            .await?
+            .context("missing main-style owner")?;
+        handle.create_patch(owner, message, index, "diff").await?;
+        Ok(owner)
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_unbound_adopted_cover_cannot_admit() -> Result<()> {
+        let db = database().await?;
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let root = "unbound-cover@example.test";
+        let thread = db.ensure_thread_for_message(root, 1).await?;
+        let owner = main_style_part(&active, thread, root, "unbound-first@example.test", 1).await?;
+        // Reproduce another ingestion stopping after storing the raw cover.
+        db.create_message(
+            root,
+            thread,
+            None,
+            "dev@example.test",
+            "[PATCH 0/2] item",
+            1,
+            "cover",
+            "other@example.test",
+            "",
+            None,
+            None,
+        )
+        .await?;
+        assert!(
+            main_style_part(&active, thread, root, "unbound-second@example.test", 2)
+                .await
+                .is_err()
+        );
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            0
+        );
+        assert_eq!(
+            scalar(
+                &db,
+                "SELECT COUNT(*) FROM patchsets WHERE status = 'Pending'"
+            )
+            .await?,
+            0
+        );
+        assert!(db.cooldown_publication_blocked(owner).await?);
+        assert!(!db.claim_patchset_for_review(owner).await?);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_large_source_metadata_is_compact_during_admission() -> Result<()> {
+        let db = database().await?;
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let subject = format!("[PATCH 1/1] {}", "x".repeat(1024 * 1024));
+        let msg = "large-header@example.test";
+        let thread = db.create_thread(msg, &subject, 1).await?;
+        active
+            .create_message(
+                msg,
+                thread,
+                None,
+                "dev@example.test",
+                &subject,
+                1,
+                "diff",
+                "list@example.test",
+                "",
+                None,
+                None,
+            )
+            .await?;
+        let handle = fixture_source_handle(&active, msg).await?;
+        let owner = handle
+            .create_patchset(
+                thread,
+                Some(msg),
+                msg,
+                &subject,
+                "dev@example.test",
+                1,
+                1,
+                3,
+                "list@example.test",
+                "",
+                None,
+                1,
+                None,
+                true,
+                None,
+                None,
+            )
+            .await?
+            .context("missing large-header owner")?;
+        handle.create_patch(owner, msg, 1, "diff").await?;
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            1
+        );
+        assert!(scalar(&db, "SELECT MAX(length(cooldown_facts)) FROM messages").await? < 512);
         Ok(())
     }
 }
