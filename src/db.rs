@@ -7382,6 +7382,7 @@ impl Database {
         // Message ownership always wins for a duplicate. A parent cover owned
         // by an explicitly different revision is lineage, not this revision's
         // canonical identity; give the new revision its own name instead.
+        let mut checked_keys = std::collections::HashSet::new();
         for key in [
             Some(message_id.to_string()),
             cover_letter_message_id.map(str::to_owned),
@@ -7390,6 +7391,9 @@ impl Database {
         .into_iter()
         .flatten()
         {
+            if !checked_keys.insert(key.clone()) {
+                continue;
+            }
             if let Some(owner) = Self::cooldown_owner(&insert_db.conn, &key).await? {
                 let mut owner_rows = insert_db
                     .conn
@@ -7643,8 +7647,22 @@ impl Database {
             .await?;
         }
 
-        Self::complete_patchset_tx(&tx, patchset_id, Self::cooldown_now()?, cooldown_context)
-            .await?;
+        match binding {
+            cooldown::CooldownBinding::Legacy => {
+                // The same writer transaction already checked intent and
+                // quarantine state while binding this patch.
+                Self::promote_complete_patchset_tx(&tx, patchset_id).await?;
+            }
+            cooldown::CooldownBinding::Owned { .. } => {
+                Self::complete_patchset_tx(
+                    &tx,
+                    patchset_id,
+                    Self::cooldown_now()?,
+                    cooldown_context,
+                )
+                .await?;
+            }
+        }
 
         tx.commit().await?;
         Ok(PatchWriteOutcome::Written(patch_id))

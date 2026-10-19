@@ -18,6 +18,7 @@ AND (EXISTS (SELECT 1 FROM review_cooldown_intents WHERE patchset_id = p.patchse
 LIMIT 1";
 
 /// Binding and patch validation share one state read under the writer lock.
+#[derive(Clone, Copy)]
 pub(super) enum CooldownBinding {
     Legacy,
     Owned { decided: bool },
@@ -513,6 +514,13 @@ impl Database {
                 conn.execute("DELETE FROM review_cooldown_events WHERE patchset_id IN (SELECT patchset_id FROM review_cooldown_events WHERE admitted_at < ? ORDER BY admitted_at LIMIT 16)", libsql::params![now.saturating_sub(i64::from(crate::cooldown::MAX_WINDOW_SECONDS))]).await?;
             }
         }
+        Self::promote_complete_patchset_tx(conn, id).await
+    }
+
+    pub(super) async fn promote_complete_patchset_tx(
+        conn: &libsql::Connection,
+        id: i64,
+    ) -> Result<()> {
         conn.execute("UPDATE patchsets SET status = 'Pending' WHERE id = ? AND received_parts >= total_parts AND status IN ('Incomplete', 'Fetching')", libsql::params![id]).await?;
         Ok(())
     }
