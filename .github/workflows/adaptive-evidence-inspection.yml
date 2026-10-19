@@ -56,12 +56,43 @@ jobs:
           run-id: 39332466758
           github-token: ${{ github.token }}
           path: evidence-input/cancellation
+      - uses: actions/download-artifact@v4
+        with:
+          name: >-
+            bounded-model-review-eeb55429744b5f097534d3627375cfc3a1c828a3
+          run-id: 39336060768
+          github-token: ${{ github.token }}
+          path: evidence-input/model
+      - name: Inspect bounded review outcome without provider calls
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("evidence-input/model")
+          manifest = json.loads((root / "manifest.json").read_text())
+          safe = {k: manifest.get(k) for k in (
+              "status", "model", "error", "last_error", "agent_status",
+              "reserved_usd", "calls", "head", "base", "maximum_usd_this_attempt")}
+          agent = root / "agent.json"
+          if agent.exists():
+              try:
+                  data = json.loads(agent.read_text())
+                  safe["agent"] = {k: data.get(k) for k in (
+                      "status", "error", "partial", "findings", "concerns")}
+              except json.JSONDecodeError:
+                  safe["agent_json_valid"] = False
+          Path("adaptive-model-diagnosis.json").write_text(
+              json.dumps(safe, indent=2) + "\n")
+          print(json.dumps(safe, indent=2))
+          PY
       - name: Verify bundle and semantic failure evidence
         run: python3 .github/adaptive-evidence-inspection/run.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: adaptive-evidence-inspection-${{ github.sha }}
-          path: adaptive-evidence-inspection.json
+          path: |
+            adaptive-evidence-inspection.json
+            adaptive-model-diagnosis.json
           retention-days: 14
           if-no-files-found: warn
