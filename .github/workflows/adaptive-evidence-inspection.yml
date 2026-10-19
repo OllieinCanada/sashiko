@@ -85,6 +85,21 @@ jobs:
               json.dumps(safe, indent=2) + "\n")
           print(json.dumps(safe, indent=2))
           PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: >-
+            adaptive-downgrade-dd35160017569ff9516006d36d45310f6a6a585c
+          run-id: 39336822289
+          github-token: ${{ github.token }}
+          path: evidence-input/operational
+      - name: Read failed daemon startup diagnostics only
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("evidence-input/operational")
+          print((root / "manifest.json").read_text())
+          print((root / "candidate-before-stop-daemon.log").read_text()[-8000:])
+          PY
       - name: Verify bundle and semantic failure evidence
         run: python3 .github/adaptive-evidence-inspection/run.py
       - uses: actions/upload-artifact@v4
