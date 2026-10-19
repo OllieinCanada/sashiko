@@ -153,8 +153,7 @@ try:
     manifest["candidate_commit"] = git("rev-parse", "HEAD").strip()
     if git("status", "--porcelain").strip():
         blocked("checkout is dirty before validation")
-    allowed = {"src/db.rs", ".github/workflows/held-series-validation.yml",
-               ".github/scripts/held_series_validation.py"}
+    allowed = {"src/db.rs", "src/db/cooldown.rs", "src/cooldown.rs", "src/email_policy.rs", "src/lib.rs", "src/main.rs", "src/migrations/014_publication_cooldown.sql", "designs/ADAPTIVE_PUBLICATION_COOLDOWN.md", ".github/workflows/held-series-validation.yml", ".github/scripts/held_series_validation.py"}
     changed = set(git("diff", "--name-only", manifest["source_commit"], "HEAD").splitlines())
     if changed != allowed:
         blocked("unexpected candidate paths: " + repr(sorted(changed)))
@@ -176,11 +175,13 @@ try:
     with tempfile.TemporaryDirectory(prefix="native-fixture-", dir=ROOT) as temporary:
         base = Path(temporary)
         before, after = base / "before", base / "after"
-        for checkout, patch in [(before, test_patch), (after, full_patch)]:
+        for checkout in (before, after):
             git("clone", "--quiet", "--no-hardlinks", str(SOURCE), str(checkout), cwd=ROOT)
-            git("checkout", "--quiet", "--detach", manifest["source_commit"], cwd=checkout)
-            git("apply", "--check", str(patch), cwd=checkout)
-            git("apply", str(patch), cwd=checkout)
+        git("checkout", "--quiet", "--detach", manifest["source_commit"], cwd=before)
+        git("apply", "--check", str(test_patch), cwd=before)
+        git("apply", str(test_patch), cwd=before)
+        # Candidate uses the complete actual head, including module and migration.
+        git("checkout", "--quiet", "--detach", manifest["candidate_commit"], cwd=after)
         def test(checkout, label, name, failure=False):
             # Cargo's workspace fingerprint can consider another local clone's
             # root package fresh when both clones share one target directory.

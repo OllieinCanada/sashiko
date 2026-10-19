@@ -25,6 +25,8 @@ pub mod baseline;
 pub mod compression;
 pub mod db;
 #[cfg(feature = "server")]
+pub mod cooldown;
+#[cfg(feature = "server")]
 pub mod email_policy;
 #[cfg(feature = "server")]
 pub mod email_router;

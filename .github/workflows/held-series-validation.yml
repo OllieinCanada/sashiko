@@ -29,7 +29,8 @@ jobs:
           cat /tmp/format-check.log
           if [ "$result" -ne 0 ]; then
             cargo +1.90.0 fmt --all
-            git diff -- src/db.rs
+            git diff -- src
+            git ls-files --others --exclude-standard src | xargs -r -I '{}' sh -c 'git diff --no-index /dev/null "$1" || true' sh '{}' 
           fi
           exit "$result"
   native:
@@ -78,7 +79,6 @@ jobs:
           retention-days: 7
 
   source-checks:
-    needs: formatting
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -101,6 +101,8 @@ jobs:
           rustc --version
           cargo --version
           git rev-parse HEAD
+      - name: Format candidate for compilation diagnostics
+        run: cargo fmt --all
       - name: YAML lint
         run: |
           if ! command -v yamllint >/dev/null 2>&1; then
@@ -108,8 +110,6 @@ jobs:
             sudo apt-get install -y --no-install-recommends yamllint
           fi
           yamllint .
-      - name: Formatting
-        run: cargo fmt --all -- --check
       - name: Clippy all features
         run: cargo clippy --locked --all-targets --all-features -- -D warnings
       - name: Clippy local profile
