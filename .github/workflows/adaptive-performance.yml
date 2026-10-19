@@ -1,0 +1,55 @@
+name: Adaptive hosted performance and gap validation
+
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths:
+      - '.github/adaptive-validation/**'
+      - '.github/workflows/adaptive-performance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: adaptive-performance-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install toolchain
+        run: >-
+          rustup toolchain install stable --profile minimal
+          --component rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Verify isolated runner
+        run: |
+          if pgrep -x sashiko; then
+            exit 1
+          fi
+          df -h .
+      - name: Native validation and paired performance
+        timeout-minutes: 25
+        run: python3 .github/adaptive-validation/run.py
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adaptive-native-evidence-${{ github.sha }}
+          path: |
+            adaptive-results/manifest.json
+            adaptive-results/*.log
+          retention-days: 14
+          if-no-files-found: error
