@@ -18,8 +18,8 @@ jobs:
           python3 - <<'PY'
           import json, os, urllib.error, urllib.request
           base = "https://api.github.com/repos/OllieinCanada/sashiko"
-          keep = "bd59059f1864aea81b11b5de0eb97e5d2ec53667"
-          names = set(["Adaptive focused mutation controls","Adaptive focused gap validation","Adaptive expiry and worker restart","Adaptive filesystem and crash recovery","Adaptive concurrent admission replay","Adaptive old-version access rehearsal","Prepare checked source-only contribution","Adaptive formatting patch capture","Adaptive writer observability","Adaptive SQLite recovery and pruning controls","Adaptive matched upstream performance","Adaptive hosted performance and gap validation","Adaptive cooldown validation"])
+          keep = "3d13997f427c366feba675cfe880586f746d7687"
+          names = {"Adaptive deterministic coverage expansion"}
           headers = {"Authorization": "Bearer " + os.environ["GH_TOKEN"], "Accept": "application/vnd.github+json"}
           cancelled = []
           for page in (1, 2):
