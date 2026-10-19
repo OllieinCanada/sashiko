@@ -1,0 +1,585 @@
+{
+  "schema_version": 1,
+  "checklist_source": "User-pasted condensed master checklist, 2026-10-19. Requirements, not pre-passed tests.",
+  "audited_production_commit": "77eefacf3d54a24b7a639f06ac3e339422cc39eb",
+  "tested_upstream_base": "715294a276efee9d39fbb55cf31eef267e96c7b1",
+  "observed_upstream_head": "7f92f869a960a20f7d395550b4879d897ebdf4ea",
+  "observed_upstream_commits_since_base": 16,
+  "pr685": {
+    "state": "open",
+    "merged": false
+  },
+  "source_only_bundle": {
+    "head": "ecf8f138dac130324b88119eec19c87623c0cbe7",
+    "tree": "5ac95fc07ae13f90a0d8fb59c27959810c1180b8"
+  },
+  "counts": {
+    "VERIFIED": 37,
+    "PARTIAL": 23,
+    "OPEN": 3,
+    "BLOCKED": 1
+  },
+  "status_definitions": {
+    "VERIFIED": "Direct executed evidence supports the scenario on the audited source within its stated scope; this is not proof of all inputs or current upstream.",
+    "PARTIAL": "Some clauses covered; a named coverage or policy gap remains.",
+    "OPEN": "The specific requirement is not yet demonstrated.",
+    "BLOCKED": "A required external prerequisite is missing; reporting the block does not complete the feature."
+  },
+  "evidence": {
+    "SUITE": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023519",
+      "scope": "Audited source 77eefac; formatting, Clippy all/local/cache, 1014 library + 47 main + 7 CLI + 23 integration tests passed; 2 ignored."
+    },
+    "CONFIG": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023353",
+      "scope": "Six SQLite/recovery/pruning/config source-selection controls on audited source."
+    },
+    "SQLITE": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023353",
+      "scope": "Readonly writer, busy writer, pruning, stale leases, disable/cancel/reopen and source selection."
+    },
+    "ROUTE": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023501",
+      "scope": "Natural expiry, reopened DB/workers, recording sendmail, paused transport and three actual NNTP replays. Completed review supplied as fixture."
+    },
+    "NATIVE": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023530",
+      "scope": "Maximum actual series, history read fault, separate-process restart and owner-query comparison."
+    },
+    "FAULT": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023488/artifacts/12216685425",
+      "scope": "ENOSPC, EIO, partial WAL write and SIGKILL before/after COMMIT. Software model, not physical power failure."
+    },
+    "CONCUR": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311179413/artifacts/12216100956",
+      "scope": "16 independent DB handles, 128 admissions, 128 replays and 64 release markers over eight scopes."
+    },
+    "OLD": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311353746/artifacts/12215806606",
+      "scope": "Old/new native DB code on temporary fixture; unsafe copy, quiescence/cancellation and safe access. Not a production-daemon downgrade."
+    },
+    "PERF": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023321/artifacts/12215842045",
+      "scope": "Upstream base 715294a, disabled and enabled traces; unchanged ratio-of-medians limits; all raw samples retained."
+    },
+    "PROBE": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023387/artifacts/12216626561",
+      "scope": "Calibrated SQL API counters and writer boundary timing; independent diagnostic run."
+    },
+    "MUT": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023419",
+      "scope": "Five compiled, killed mutants; unrelated positive controls and restored replay."
+    },
+    "PREP": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39311023425/artifacts/12216560674",
+      "scope": "Source-only commits pass make check-pr before creation and sign-off checks; bundled head ecf8f138dac130324b88119eec19c87623c0cbe7."
+    }
+  },
+  "scenarios": [
+    {
+      "id": "A01",
+      "requirement": "Default/absent setting preserves all existing behavior.",
+      "status": "PARTIAL",
+      "evidence": "SUITE; PERF legacy tuple equality; test_cooldown_legacy_has_no_intent_or_events.",
+      "remaining_or_scope": "Differential trace omits fixed embargo settings; complete the legacy configuration matrix."
+    },
+    {
+      "id": "A02",
+      "requirement": "Explicitly disabled differs correctly from omitted.",
+      "status": "PARTIAL",
+      "evidence": "CONFIG; explicit_enablement_templates_and_strict_types.",
+      "remaining_or_scope": "Confirm intended omitted/false inheritance semantics with maintainers and test both through ingestion."
+    },
+    {
+      "id": "A03",
+      "requirement": "Zero delays and inherited settings retain their meanings.",
+      "status": "PARTIAL",
+      "evidence": "hand_checked_linear_thresholds_and_composition preserves None/Some(0); CONFIG templates.",
+      "remaining_or_scope": "Validate database/route zero fixed-delay combinations. Adaptive zero limits are currently rejected; confirm that policy."
+    },
+    {
+      "id": "A04",
+      "requirement": "Invalid limits and contradictory settings fail safely.",
+      "status": "VERIFIED",
+      "evidence": "explicit_enablement_templates_and_strict_types; hand_checked_linear_thresholds_and_composition.",
+      "remaining_or_scope": "Bounds, strict types, step/cap contradictions and overflow reject; resource ceilings are not deployment defaults."
+    },
+    {
+      "id": "A05",
+      "requirement": "Unknown configuration fields and CLI options are rejected.",
+      "status": "PARTIAL",
+      "evidence": "CONFIG strict TOML; test_rejects_unknown_fields_and_invalid_keys; test_unknown_project_is_rejected_by_the_parser.",
+      "remaining_or_scope": "Add an explicit unknown CLI-flag rejection check for the relevant profiles."
+    },
+    {
+      "id": "A06",
+      "requirement": "Cross-posted lists respect precedence and opt-outs.",
+      "status": "PARTIAL",
+      "evidence": "CONFIG source/recipient matrix; test_cooldown_crosspost_before_admission_is_legacy.",
+      "remaining_or_scope": "Current policy sends any cross-post through shared legacy handling. Maintainer agreement and a full precedence/opt-out matrix are missing."
+    },
+    {
+      "id": "A07",
+      "requirement": "Configuration reaches the actual production workflow.",
+      "status": "VERIFIED",
+      "evidence": "ROUTE; test_cooldown_config_to_real_release_and_sendmail.",
+      "remaining_or_scope": "Real policy file -> parsed NNTP article -> admission/release worker -> recording sendmail; completed review is a fixture."
+    },
+    {
+      "id": "A08",
+      "requirement": "Existing local review commands and feature profiles still work.",
+      "status": "PARTIAL",
+      "evidence": "SUITE includes all-feature tests and Clippy all/local/cache profiles; CLI smoke tests.",
+      "remaining_or_scope": "Run local-review command smoke cases under each minimal feature profile; compile checks alone do not establish runtime behavior."
+    },
+    {
+      "id": "B01",
+      "requirement": "One patch series counts once, regardless of patch count.",
+      "status": "VERIFIED",
+      "evidence": "NATIVE maximum 1024-part series; PERF mixed 1/2/4/8-part series; incomplete/out-of-order regression.",
+      "remaining_or_scope": "One event per complete canonical revision; covers and individual parts do not multiply activity."
+    },
+    {
+      "id": "B02",
+      "requirement": "Duplicate messages and replays cannot count twice.",
+      "status": "VERIFIED",
+      "evidence": "test_cooldown_incomplete_out_of_order_and_duplicate; ROUTE three delivered-message replays; CONCUR.",
+      "remaining_or_scope": "Frozen decisions and event counts remain unchanged after replay."
+    },
+    {
+      "id": "B03",
+      "requirement": "Simultaneous duplicate submissions create one event.",
+      "status": "PARTIAL",
+      "evidence": "test_cooldown_two_connections_own_opposite_parts_once.",
+      "remaining_or_scope": "This proves concurrent different parts converge on one owner, not simultaneous identical final-message submissions. Add that exact case."
+    },
+    {
+      "id": "B04",
+      "requirement": "Concurrent revisions cannot lose accounting updates.",
+      "status": "VERIFIED",
+      "evidence": "test_cooldown_distinct_connections_serialize_author_history; CONCUR.",
+      "remaining_or_scope": "16 independent handles, 128 admissions, eight scopes, exact saturated-count distribution."
+    },
+    {
+      "id": "B05",
+      "requirement": "One author's activity cannot penalize another.",
+      "status": "VERIFIED",
+      "evidence": "test_cooldown_deadline_boundary_clean_exception_and_isolation; author-scope mutant in MUT.",
+      "remaining_or_scope": "Distinct author has zero prior activity; removing author scope is detected."
+    },
+    {
+      "id": "B06",
+      "requirement": "Author identity is normalized without merging unknown authors.",
+      "status": "VERIFIED",
+      "evidence": "identity_normalization_has_no_unknown_bucket; CONFIG invalid-author case.",
+      "remaining_or_scope": "ASCII bare mailbox normalization; malformed/unsupported identities error instead of sharing an unknown key. From is unauthenticated."
+    },
+    {
+      "id": "B07",
+      "requirement": "Late, incomplete, and out-of-order series are handled.",
+      "status": "VERIFIED",
+      "evidence": "test_cooldown_incomplete_out_of_order_and_duplicate; real_versions_and_late_cover_remain_separate; unbound_adopted_cover_cannot_admit.",
+      "remaining_or_scope": "Unresolved provenance cannot promote Pending; frozen revisions cannot be extended silently."
+    },
+    {
+      "id": "B08",
+      "requirement": "Series-size metadata is validated against manipulation.",
+      "status": "VERIFIED",
+      "evidence": "maximum-series control; owned_content_cannot_change_without_context; same_version_extension_cannot_escape_frozen_owner; large_source_metadata_is_compact_during_admission.",
+      "remaining_or_scope": "Actual unique indices and source metadata are checked; changed denominator/content quarantines the owner."
+    },
+    {
+      "id": "C01",
+      "requirement": "First submission and burst thresholds produce expected delays.",
+      "status": "VERIFIED",
+      "evidence": "hand_checked_linear_thresholds_and_composition; test_cooldown_hand_trace_scope_and_window.",
+      "remaining_or_scope": "Independent threshold table checks first, burst, linear step and saturation."
+    },
+    {
+      "id": "C02",
+      "requirement": "Larger series follow the defined limits without overflow.",
+      "status": "VERIFIED",
+      "evidence": "NATIVE 1024 real parts; core policy bounds/overflow tests.",
+      "remaining_or_scope": "Current v1 policy has no size multiplier. Policy agreement is an independent completion gate."
+    },
+    {
+      "id": "C03",
+      "requirement": "Time-window boundary cases are correct.",
+      "status": "VERIFIED",
+      "evidence": "test_cooldown_hand_trace_scope_and_window.",
+      "remaining_or_scope": "History uses (t-W,t]; event exactly on excluded lower boundary drops from the count."
+    },
+    {
+      "id": "C04",
+      "requirement": "Inactivity resets or decays the cooldown correctly.",
+      "status": "VERIFIED",
+      "evidence": "test_cooldown_hand_trace_scope_and_window; seeded_restart_replay_trace.",
+      "remaining_or_scope": "Sliding-window expiration resets the count; no separate exponential decay is implemented."
+    },
+    {
+      "id": "C05",
+      "requirement": "Forged or incorrect email dates cannot bypass the cooldown.",
+      "status": "PARTIAL",
+      "evidence": "ROUTE ingests a 1970 Date while local admission establishes the live deadline; seeded hand trace uses independent admission timestamps.",
+      "remaining_or_scope": "Add future, invalid and extreme Date-header variants through parsed ingestion."
+    },
+    {
+      "id": "C06",
+      "requirement": "Clock changes, time zones, and timestamp limits are tested.",
+      "status": "PARTIAL",
+      "evidence": "test_cooldown_coverage_and_backward_clock_fail_closed; negative/overflow calculator tests.",
+      "remaining_or_scope": "No explicit TZ/DST environment matrix or forward-jump scheduling matrix has run."
+    },
+    {
+      "id": "C07",
+      "requirement": "Reviews release at the deadline, never prematurely.",
+      "status": "VERIFIED",
+      "evidence": "test_cooldown_deadline_boundary_clean_exception_and_isolation; ROUTE natural 30-second expiry.",
+      "remaining_or_scope": "No ordinary release at deadline-1; release at deadline. Existing clean/authorized-override exceptions remain valid eligibility paths."
+    },
+    {
+      "id": "C08",
+      "requirement": "Continuous new submissions cannot postpone an old review forever.",
+      "status": "VERIFIED",
+      "evidence": "deadline_boundary_clean_exception_and_isolation; frozen replay tests; seeded trace.",
+      "remaining_or_scope": "Later activity does not move an earlier frozen decision; incremental delay is capped."
+    },
+    {
+      "id": "D01",
+      "requirement": "Fresh databases and upgraded databases both work.",
+      "status": "VERIFIED",
+      "evidence": "SUITE fresh migrations, v8/v10 and complete v11 fixture; interim_version14_upgrade_preserves_decision.",
+      "remaining_or_scope": "Schema 15 retains prototype decisions and repairs the held-series index."
+    },
+    {
+      "id": "D02",
+      "requirement": "Deadlines and duplicate protection survive restarts.",
+      "status": "VERIFIED",
+      "evidence": "NATIVE separate-process restart; FAULT post-COMMIT recovery; restart_preserves_decision_and_release.",
+      "remaining_or_scope": "Reopened workers and processes preserve frozen values and deduplication."
+    },
+    {
+      "id": "D03",
+      "requirement": "Failed transactions leave no partially committed state.",
+      "status": "VERIFIED",
+      "evidence": "history_failure_rolls_back_and_retries; SQLITE recovery; FAULT ENOSPC/EIO/precommit/torn-write.",
+      "remaining_or_scope": "Failed target admission leaves no patch/event; successful retry records one target event."
+    },
+    {
+      "id": "D04",
+      "requirement": "Crash recovery preserves committed work.",
+      "status": "VERIFIED",
+      "evidence": "FAULT before/after COMMIT and partial WAL write; NATIVE process exit after commit.",
+      "remaining_or_scope": "SIGKILL/torn-write software model passed integrity checks. Physical electrical power loss is not demonstrated."
+    },
+    {
+      "id": "D05",
+      "requirement": "Concurrent database connections cannot corrupt decisions.",
+      "status": "VERIFIED",
+      "evidence": "CONCUR; two independent-connection regressions.",
+      "remaining_or_scope": "128 events and replay/release snapshots remain consistent. Scope is the tested bounded workload."
+    },
+    {
+      "id": "D06",
+      "requirement": "Slow operations do not block unrelated writers.",
+      "status": "PARTIAL",
+      "evidence": "PROBE paused collaborator; ROUTE gated sendmail; deliberate contention calibration.",
+      "remaining_or_scope": "External pauses permit unrelated writes. Unbounded indivisible canonical-owner quarantine remains a documented exception; broad load/fairness is not established."
+    },
+    {
+      "id": "D07",
+      "requirement": "Database failures are visible and handled safely.",
+      "status": "VERIFIED",
+      "evidence": "SQLITE read-only/busy controls; FAULT; outbox_and_release_queries_propagate_cursor_step_errors.",
+      "remaining_or_scope": "Failures surface as errors and do not silently publish or fall back to legacy admission."
+    },
+    {
+      "id": "D08",
+      "requirement": "History cleanup, configuration changes, and rollback preserve pending work.",
+      "status": "PARTIAL",
+      "evidence": "SQLITE pruning; policy_reload_preserves_decided_but_blocks_waiting; OLD.",
+      "remaining_or_scope": "Event pruning retains tombstones. Rehearsed rollback cancels pending/held work; live preservation/resumption and a production-daemon downgrade remain unverified."
+    },
+    {
+      "id": "E01",
+      "requirement": "Held findings cannot be sent before release eligibility.",
+      "status": "VERIFIED",
+      "evidence": "ROUTE; live_claims_and_null_patch_notification; quarantine API regression; SQLITE stale leases.",
+      "remaining_or_scope": "Checks ordinary mail, NULL patch notifications and live claim guards. Remote acceptance already completed cannot be recalled."
+    },
+    {
+      "id": "E02",
+      "requirement": "Successful clean reviews retain existing immediate-release behavior.",
+      "status": "VERIFIED",
+      "evidence": "test_clean_patchset_is_releasable_before_embargo_expiry; adaptive deadline_boundary_clean_exception_and_isolation.",
+      "remaining_or_scope": "A complete successful no-finding review remains eligible before its time deadline."
+    },
+    {
+      "id": "E03",
+      "requirement": "Failed or incomplete reviews cannot masquerade as clean.",
+      "status": "PARTIAL",
+      "evidence": "test_no_ai_review_is_not_clean; clean predicate and failure handling tests in SUITE.",
+      "remaining_or_scope": "Add a feature-specific release matrix for failed, missing, partially completed and mixed review outputs."
+    },
+    {
+      "id": "E04",
+      "requirement": "Superseded versions are cancelled without blocking newer ones.",
+      "status": "VERIFIED",
+      "evidence": "held supersession prerequisite regressions; held-series partial-index/candidate-capacity checks.",
+      "remaining_or_scope": "Unpublished Reviewed predecessors and unsent outboxes cancel atomically; release race remains protected."
+    },
+    {
+      "id": "E05",
+      "requirement": "Multiple workers cannot claim the same queue item incorrectly.",
+      "status": "PARTIAL",
+      "evidence": "Atomic claim SQL; sequential double-claim/lease tests; restarted-worker dedup in ROUTE.",
+      "remaining_or_scope": "Add simultaneous independent release/email-worker claims for the same eligible item. Admission concurrency is not publication-claim concurrency."
+    },
+    {
+      "id": "E06",
+      "requirement": "Retries, leases, and cooldown deadlines cooperate correctly.",
+      "status": "VERIFIED",
+      "evidence": "SQLITE stale lease quarantine/reopen; ROUTE expiry/restart/replay; release claim lease tests.",
+      "remaining_or_scope": "Expired claims are rechecked against live guards. Exactly-once SMTP acceptance/acknowledgement is outside this evidence."
+    },
+    {
+      "id": "E07",
+      "requirement": "Authorized early release works; unauthorized release is denied.",
+      "status": "PARTIAL",
+      "evidence": "test_release_patchset_embargo_authorization_and_endpoint; adaptive early-release and quarantine regressions.",
+      "remaining_or_scope": "Shared ACL route and adaptive DB behavior are separately tested; add their combined enabled-adaptive endpoint matrix."
+    },
+    {
+      "id": "E08",
+      "requirement": "Mailing-list rules, ignored authors, recipients, visibility, and integrations stay correct.",
+      "status": "PARTIAL",
+      "evidence": "CONFIG; recording recipient check; server visibility regressions; general router/worker tests.",
+      "remaining_or_scope": "Missing complete adaptive-enabled ignored-author/routing/integration combinations. Upstream now changes relevant paths."
+    },
+    {
+      "id": "F01",
+      "requirement": "Held reviews cannot block eligible reviews behind them.",
+      "status": "OPEN",
+      "evidence": "Eligibility predicates precede LIMIT in current selectors; no direct head-of-queue starvation fixture identified.",
+      "remaining_or_scope": "Add held/waiting/quarantined head items followed by eligible review and outbox items, including worker limits."
+    },
+    {
+      "id": "F02",
+      "requirement": "Forged identities or subjects cannot cause unbounded penalties.",
+      "status": "PARTIAL",
+      "evidence": "Identity validation, fixed increment cap, frozen deadlines, source/metadata quarantine.",
+      "remaining_or_scope": "No comprehensive adversarial/fairness corpus. Forged/shared From addresses can affect another person using the same key; document and obtain policy agreement."
+    },
+    {
+      "id": "F03",
+      "requirement": "Ambiguous series titles and revision histories do not collide.",
+      "status": "VERIFIED",
+      "evidence": "real_versions_and_late_cover_remain_separate; mixed_canonical_merge_blocks_before_moving_rows; late_cover_recovers_explicit_part_version.",
+      "remaining_or_scope": "Supported versions remain separate; unsupported ownership reconciliation quarantines before mutation."
+    },
+    {
+      "id": "F04",
+      "requirement": "Large series and activity histories remain resource-bounded.",
+      "status": "PARTIAL",
+      "evidence": "NATIVE 1024 parts; indexed bounded history; PROBE retained-owner comparison; pruning control.",
+      "remaining_or_scope": "Permanent tombstones are not globally storage-bounded; canonical multiowner quarantine is an unbounded indivisible group. No blanket bounded-writer claim."
+    },
+    {
+      "id": "F05",
+      "requirement": "Malformed input cannot cause injection or uncontrolled allocation.",
+      "status": "PARTIAL",
+      "evidence": "Strict config/mailbox/ID validation, bound checks and parameterized SQL; compact facts with 1 MiB subject.",
+      "remaining_or_scope": "No complete malformed-input fuzz/allocation bound audit across ingestion. Outside-writer preprocessing still allocates in proportion to input."
+    },
+    {
+      "id": "F06",
+      "requirement": "Cancellation cleans up tasks and prevents indefinite hangs.",
+      "status": "PARTIAL",
+      "evidence": "Cancellation regressions, timeout child-reaping tests, bounded hosted subprocesses, OLD quiescence.",
+      "remaining_or_scope": "Add adaptive-specific in-flight review/transport cancellation coverage; remote acceptance cannot be undone."
+    },
+    {
+      "id": "F07",
+      "requirement": "Diagnostics do not expose private information or credentials.",
+      "status": "PARTIAL",
+      "evidence": "Quarantine hides direct public review/log endpoints; general redaction tests; diagnostic counters omit SQL payloads.",
+      "remaining_or_scope": "No dedicated held-content/secret-canary audit over all new logs and manifests. Raw model review logging remains untested."
+    },
+    {
+      "id": "F08",
+      "requirement": "Read-only replay cannot alter real database or repository state.",
+      "status": "OPEN",
+      "evidence": "Existing generated/fault replays use temporary databases and restored ephemeral source.",
+      "remaining_or_scope": "No historical read-only shadow-replay tool/corpus and pristine-state guard have been validated."
+    },
+    {
+      "id": "G01",
+      "requirement": "At least one integration test exercises the complete affected workflow.",
+      "status": "VERIFIED",
+      "evidence": "ROUTE and test_cooldown_config_to_real_release_and_sendmail.",
+      "remaining_or_scope": "Policy -> real parsed article -> DB -> completed-review fixture -> release worker -> recording transport. No model call; review-computation boundary is explicit."
+    },
+    {
+      "id": "G02",
+      "requirement": "Expected results are calculated independently of production code.",
+      "status": "VERIFIED",
+      "evidence": "Hand-checked threshold table; seeded small-state oracle; fixed expected concurrent count distribution.",
+      "remaining_or_scope": "Expected values are not obtained by invoking the production cooldown calculator."
+    },
+    {
+      "id": "G03",
+      "requirement": "Regression tests fail when their intended protection is removed.",
+      "status": "VERIFIED",
+      "evidence": "MUT five compiled mutants with targeted negative tests and unrelated positive controls.",
+      "remaining_or_scope": "Author scope, frozen replay, deadline comparison, release marker and NNTP eligibility mutants are killed."
+    },
+    {
+      "id": "G04",
+      "requirement": "Generated tests reproduce restart, replay, and concurrency failures.",
+      "status": "VERIFIED",
+      "evidence": "Three seeded 96-admission traces; source-race regressions; CONCUR; process/crash controls.",
+      "remaining_or_scope": "Coverage is bounded and reproducible, not an exhaustive interleaving proof."
+    },
+    {
+      "id": "G05",
+      "requirement": "Small, large, and mixed workloads are tested.",
+      "status": "VERIFIED",
+      "evidence": "PERF 1000 series/3750 parts; NATIVE 1024-part series; compact metadata with 1 MiB subject; 10000 archived owners.",
+      "remaining_or_scope": "Generated/synthetic workload sizes are recorded; no historical replay is implied."
+    },
+    {
+      "id": "G06",
+      "requirement": "Measure enabled versus disabled performance and database costs.",
+      "status": "VERIFIED",
+      "evidence": "PERF; PROBE.",
+      "remaining_or_scope": "Matched base/disabled/enabled medians, raw samples, SQL API counts and calibrated writer distributions recorded. One fresh pair exceeds the nominal ratio limit."
+    },
+    {
+      "id": "G07",
+      "requirement": "Run the required test suites on the exact final code revision.",
+      "status": "PARTIAL",
+      "evidence": "SUITE and PREP pass on the audited source and source-only tree.",
+      "remaining_or_scope": "The current candidate is tested; upstream refresh/final review may change it. Re-run on that exact final tree before submission."
+    },
+    {
+      "id": "G08",
+      "requirement": "Test harness detects invalid fixtures and misleading passes.",
+      "status": "VERIFIED",
+      "evidence": "Exact one-test assertions, compiler artifact checks, SQL calibration, OS fault-hit markers, SIGKILL exit checks, restored-source controls.",
+      "remaining_or_scope": "Earlier invalid fixtures and a wrongly selected mutation target are documented and corrected; no invalid pass is reused."
+    },
+    {
+      "id": "H01",
+      "requirement": "Record tested commit, command, environment, logs, and outcome.",
+      "status": "VERIFIED",
+      "evidence": "SUITE/PREP/PERF/PROBE/FAULT/CONCUR/OLD artifacts and workflows; round-3 report.",
+      "remaining_or_scope": "Artifacts retain commands, hashes, native binaries or manifests and runner logs; retention is 14 days, so durable preservation remains necessary."
+    },
+    {
+      "id": "H02",
+      "requirement": "Distinguish upstream failures from newly introduced failures.",
+      "status": "PARTIAL",
+      "evidence": "Matched upstream performance; prerequisite diagnostic; recorded harness failures.",
+      "remaining_or_scope": "The latest upstream full suite has not been run. Refresh and compare failures explicitly before final attribution."
+    },
+    {
+      "id": "H03",
+      "requirement": "Refresh against upstream and revalidate the final diff.",
+      "status": "OPEN",
+      "evidence": "Upstream now 7f92f869a960a20f7d395550b4879d897ebdf4ea, 16 commits beyond tested base.",
+      "remaining_or_scope": "Refresh with overlapping main/review/email/server changes, inspect conflict resolutions and revalidate. PR 685 remains open/unmerged."
+    },
+    {
+      "id": "H04",
+      "requirement": "Do not claim email or token savings without real measurements.",
+      "status": "VERIFIED",
+      "evidence": "Design and reports make no savings claim; all review outputs are fixtures in deterministic tests.",
+      "remaining_or_scope": "Cooldown delays publication; no token/email reduction measurement or claim has been made."
+    },
+    {
+      "id": "H05",
+      "requirement": "Preserve negative results and document fairness tradeoffs.",
+      "status": "VERIFIED",
+      "evidence": "Previous FAIL_BUDGET runs, raw paired ratios and corrected harness failures retained; design limitations.",
+      "remaining_or_scope": "Includes unauthenticated/shared authors, cold history, retained storage and indivisible quarantine limitations."
+    },
+    {
+      "id": "H06",
+      "requirement": "Required model-assisted self-review is completed or explicitly marked blocked.",
+      "status": "BLOCKED",
+      "evidence": "All reports explicitly mark required Sashiko review pending; no model invocation or spend.",
+      "remaining_or_scope": "Disclosure requirement is met, but the mandatory completion gate is not. Secret readiness is unconfirmed."
+    },
+    {
+      "id": "H07",
+      "requirement": "Rehearse dry-run, rollback, and pending-work preservation.",
+      "status": "PARTIAL",
+      "evidence": "ROUTE uses local recording transport; OLD rehearses stop/cancel and old DB access.",
+      "remaining_or_scope": "No full production-daemon downgrade or complete dry-run/pending-work continuation matrix. Do not substitute cancellation evidence for preservation of runnable work."
+    },
+    {
+      "id": "H08",
+      "requirement": "No unauthorized emails, pushes, deployment changes, secret leaks, or paid calls.",
+      "status": "VERIFIED",
+      "evidence": "Authorized fork-only checkpoints; temporary recording transports; no upstream PR/deployment/model calls.",
+      "remaining_or_scope": "No external mail or paid AI call was made by this work. Source publication remains separately gated."
+    }
+  ],
+  "completion_gates": [
+    {
+      "requirement": "Verify the feature is still missing in current upstream.",
+      "status": "VERIFIED",
+      "assessment": "At upstream 7f92f869a960a20f7d395550b4879d897ebdf4ea, checked db.rs/email_policy.rs contain no adaptive_cooldown, CooldownContext or review_cooldown persistence/configuration. This is the target feature check, not an assertion that fixed embargoes are missing."
+    },
+    {
+      "requirement": "Recover historical tests and identify coverage gaps.",
+      "status": "PARTIAL",
+      "assessment": "Existing clean-review, no-AI, release-ACL, supersession and failure tests were inspected and mapped. The complete historical corpus/shadow replay and prior change-history audit are not complete."
+    },
+    {
+      "requirement": "Get maintainer agreement on the intended cooldown policy.",
+      "status": "OPEN",
+      "assessment": "No recorded upstream maintainer agreement. Resolve policy semantics, zero values, cross-post/opt-out precedence, author normalization/fairness, cap and indivisible ownership-group exceptions. No outreach was performed."
+    },
+    {
+      "requirement": "Implement the smallest defensible change.",
+      "status": "PARTIAL",
+      "assessment": "Prerequisite and feature are split in source-only artifacts; duplicate SQL reads were removed. Scope/minimality and the unbounded ownership exception still need maintainer/model review."
+    },
+    {
+      "requirement": "Run all applicable regression and integration tests.",
+      "status": "PARTIAL",
+      "assessment": "Audited candidate checks pass; 23 partial and 3 open scenario rows still identify missing coverage. Latest-upstream refreshed final tree does not yet exist."
+    },
+    {
+      "requirement": "Validate performance and document tradeoffs.",
+      "status": "VERIFIED",
+      "assessment": "Declared median screening limits pass on audited source; query reduction is measured. Raw fresh pair above 20%, synthetic workloads and writer outliers are explicitly retained; no production performance guarantee."
+    },
+    {
+      "requirement": "Complete applicable Sashiko self-review requirements.",
+      "status": "BLOCKED",
+      "assessment": "Required local Sashiko model review not run; provider-secret readiness unconfirmed. Subsequent upstream bot findings can only be handled after separately approved submission."
+    },
+    {
+      "requirement": "Confirm no regressions against upstream.",
+      "status": "OPEN",
+      "assessment": "Matched baseline/disabled trace is equal within its scope, but current upstream is 16 commits newer with overlapping changes. Full refreshed comparison and final-tree checks required."
+    },
+    {
+      "requirement": "Produce reproducible evidence with exact commit hashes.",
+      "status": "VERIFIED",
+      "assessment": "Evidence index records source, baseline, source-only tree, workflow commands, logs, hashes and outcomes. Artifacts have 14-day retention and need durable preservation."
+    },
+    {
+      "requirement": "Prepare a clean PR for separate approval before publishing.",
+      "status": "PARTIAL",
+      "assessment": "Clean two-commit source-only bundle and draft materials exist. Refresh, policy agreement, gaps and model review remain; no upstream PR was submitted."
+    }
+  ],
+  "overall_ready_for_maintainer_review": false,
+  "checklist_reconciliation_complete": true,
+  "historical_shadow_replay_performed": false,
+  "model_review_performed": false,
+  "definition_of_complete": "The applicable tests pass, limitations are documented, existing behavior is preserved when disabled, and the implementation is ready for maintainer review—not merely that the checklist has been ticked."
+}
