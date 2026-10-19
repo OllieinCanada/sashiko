@@ -11,6 +11,7 @@
             let db = Database::new(&settings).await?;
             db.migrate().await?;
             if phase == "prepare" {
+                db.ensure_project_stamp(crate::project::ProjectId::Sashiko).await?;
                 let mut ctx = context("list@example.test", "dev@example.test");
                 ctx.policy.burst = 1;
                 ctx.policy.window_seconds = 86400;

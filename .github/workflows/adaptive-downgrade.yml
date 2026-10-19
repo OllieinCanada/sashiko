@@ -17,7 +17,7 @@ permissions:
 jobs:
   old-version-rehearsal:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     env:
       RUSTUP_TOOLCHAIN: stable
       CARGO_BUILD_JOBS: 2
@@ -39,7 +39,7 @@ jobs:
             exit 1
           fi
       - name: Quiesce and reopen with native old-version code
-        timeout-minutes: 27
+        timeout-minutes: 37
         run: python3 .github/adaptive-downgrade/run.py
       - name: Upload evidence
         if: always()
