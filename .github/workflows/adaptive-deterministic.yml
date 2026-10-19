@@ -36,6 +36,7 @@ jobs:
         with:
           cache-on-failure: true
       - name: Check fork checkpoint and isolated runner
+        id: preflight
         run: |
           if pgrep -x sashiko; then
             exit 1
@@ -47,11 +48,20 @@ jobs:
           yamllint .
           python3 -m py_compile .github/adaptive-deterministic/run.py
           df -h .
+          if git diff --name-only HEAD~1 HEAD |
+            rg -q '^src/|^Cargo\.|^\.github/adaptive-review-cancel/'; then
+            echo "review_cancel=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "review_cancel=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Run bounded native coverage and semantic controls
         id: coverage
         run: python3 .github/adaptive-deterministic/run.py
       - name: Validate active-review cancellation and semantic controls
-        if: ${{ !cancelled() }}
+        if: >-
+          ${{ !cancelled() &&
+          (github.event_name == 'workflow_dispatch' ||
+          steps.preflight.outputs.review_cancel == 'true') }}
         run: python3 .github/adaptive-review-cancel/run.py
       - name: Check restored checkout once
         if: ${{ !cancelled() }}

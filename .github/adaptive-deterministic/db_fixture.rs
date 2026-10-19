@@ -21,7 +21,14 @@
         admit_at(&active, late, &msg, 4000).await?;
         let (backward, _, msg) = seed(&active, "det6-clock-back", 1).await?;
         assert!(admit_at(&active, backward, &msg, 3999).await.is_err());
-        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 1);
+        // History retention uses the global maximum window, not this policy's
+        // 100-second counting window. All three committed events remain.
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 3);
+        let row = db.conn.query(
+            "SELECT prior_count FROM review_cooldown_intents WHERE patchset_id=?",
+            libsql::params![late]).await?.next().await?.context("late decision")?;
+        assert_eq!(row.get::<i64>(0)?, 0, "expired history affected current window");
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events WHERE admitted_at=3999").await?, 0);
         assert!(db.release_patchset_embargo(held, 4000).await?);
         db.create_patch(held, &message, 1, "diff").await?;
         assert_eq!(db.get_patchset_details(held, None, None).await?.unwrap()["embargo_until"], serde_json::Value::Null);
