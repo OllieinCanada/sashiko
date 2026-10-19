@@ -18,7 +18,7 @@ jobs:
           python3 - <<'PY'
           import json, os, urllib.error, urllib.request
           base = "https://api.github.com/repos/OllieinCanada/sashiko"
-          keep = {"cancel-all-current-deterministic-runs"}
+          keep = {"diagnose-failed-focused-run"}
           names = {"Adaptive deterministic coverage expansion", "Adaptive active review cancellation"}
           headers = {"Authorization": "Bearer " + os.environ["GH_TOKEN"], "Accept": "application/vnd.github+json"}
           cancelled = []
@@ -28,7 +28,7 @@ jobs:
                   runs = json.load(response)["workflow_runs"]
               for run in runs:
                   if (run["head_sha"] in keep or run["name"] not in names
-                          or run["status"] == "completed"):
+                          or run["status"] == "completed" or run["id"] != 39333144037):
                       continue
                   request = urllib.request.Request(base + "/actions/runs/" + str(run["id"]) + "/cancel",
                                                    headers=headers, data=b"", method="POST")
