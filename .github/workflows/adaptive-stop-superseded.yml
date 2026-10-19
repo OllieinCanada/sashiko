@@ -18,7 +18,7 @@ jobs:
           python3 - <<'PY'
           import json, os, urllib.error, urllib.request
           base = "https://api.github.com/repos/OllieinCanada/sashiko"
-          keep = "3d13997f427c366feba675cfe880586f746d7687"
+          keep = "a7837db72ad13f91dfbe9d4683ae9b1d2ad6bdd4"
           names = {"Adaptive deterministic coverage expansion"}
           headers = {"Authorization": "Bearer " + os.environ["GH_TOKEN"], "Accept": "application/vnd.github+json"}
           cancelled = []
