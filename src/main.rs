@@ -3819,7 +3819,10 @@ mod tests {
                     },
                     None,
                     policy,
-                    &[],
+                    &[sashiko::settings::SubsystemMapping {
+                        pattern: "^list@example[.]test$".into(),
+                        name: "fixture".into(),
+                    }],
                 )
                 .await,
                 ProcessStatus::Ingested
