@@ -209,8 +209,18 @@ try:
     REPORT["initial_binary_sha256"] = {
         kind: hashlib.sha256(Path(path).read_bytes()).hexdigest()
         for kind, path in binaries.items()}
+    # Every fixture owns its database and process. Collect independent failures
+    # in one batch rather than hiding later coverage behind the first assertion.
+    failures = []
     for label, kind, target, seconds in TESTS:
-        test(binaries[kind], target, label, seconds)
+        try:
+            test(binaries[kind], target, label, seconds)
+        except Exception as error:
+            failures.append({"name": label, "error": str(error)})
+            REPORT["fixture_failures"] = failures
+            save()
+    if failures:
+        raise RuntimeError("independent fixtures failed: " + ", ".join(row["name"] for row in failures))
     command(["cargo", "clippy", "--locked", "--offline", "--all-targets", "--all-features",
              "--", "-D", "warnings"], "clippy-fixtures", 600)
     # Verify that the two new matrices detect removal of their intended guard.

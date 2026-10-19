@@ -64,7 +64,7 @@ jobs:
           steps.preflight.outputs.review_cancel == 'true') }}
         run: python3 .github/adaptive-review-cancel/run.py
       - name: Check restored checkout once
-        if: ${{ !cancelled() }}
+        if: ${{ success() }}
         run: |
           export PATH="/tmp/adaptive-deterministic-lint/bin:$PATH"
           make check-pr RANGE=HEAD~1..HEAD

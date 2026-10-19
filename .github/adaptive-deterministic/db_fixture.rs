@@ -30,6 +30,10 @@
         assert_eq!(row.get::<i64>(0)?, 0, "expired history affected current window");
         assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events WHERE admitted_at=3999").await?, 0);
         assert!(db.release_patchset_embargo(held, 4000).await?);
+        // Authorization waives time; the release worker clears the embargo
+        // only after queuing notifications. Exercise both distinct states.
+        assert_eq!(db.get_patchset_details(held, None, None).await?.unwrap()["embargo_until"], serde_json::json!(1011));
+        db.clear_patchset_embargo(held).await?;
         db.create_patch(held, &message, 1, "diff").await?;
         assert_eq!(db.get_patchset_details(held, None, None).await?.unwrap()["embargo_until"], serde_json::Value::Null);
         assert_eq!(scalar(&db, "SELECT released_at FROM review_cooldown_intents WHERE admitted_at=1001").await?, 4000);
