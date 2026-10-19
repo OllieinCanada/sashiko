@@ -9258,6 +9258,36 @@ impl Database {
         Ok(cancelled_count)
     }
 
+    /// Retires a reviewed series whose notifications are still held back.
+    ///
+    /// A non-NULL deadline also covers expired holds awaiting their release
+    /// worker. Keep that deadline so cancellation does not disclose findings
+    /// early, and leave already-published review history unchanged.
+    async fn cancel_superseded_series_patchset(&self, id: i64) -> Result<bool> {
+        if self.cancel_patchset(id, true).await? {
+            return Ok(true);
+        }
+
+        let tx = self.begin_immediate_transaction().await?;
+        let count = tx
+            .execute(
+                "UPDATE patchsets SET status = 'Cancelled'
+                 WHERE id = ? AND status = 'Reviewed' AND embargo_until IS NOT NULL",
+                libsql::params![id],
+            )
+            .await?;
+        if count == 0 {
+            tx.rollback().await?;
+            return Ok(false);
+        }
+
+        self.with_connection((*tx).clone())
+            .cancel_outbox_for_patchset(id, "Cancelled: superseded held series")
+            .await?;
+        tx.commit().await?;
+        Ok(true)
+    }
+
     pub async fn reconcile_superseded_series_patchsets(
         &self,
         current_id: i64,
@@ -9291,14 +9321,31 @@ impl Database {
         let mut rows = self
             .conn
             .query(
-                "SELECT id, author, subject, subject_index, total_parts
-                 FROM patchsets
-                 WHERE id != ?
-                   AND status IN ('Fetching', 'Incomplete', 'Pending', 'In Review')
-                   AND date BETWEEN ? AND ?
-                 ORDER BY date DESC, id DESC
-                 LIMIT 100",
-                libsql::params![current_id, window_start, window_end],
+                // Preserve the existing active-series allowance independently
+                // of held reviews. Each group remains bounded to 100 rows.
+                "SELECT id, author, subject, subject_index, total_parts FROM (
+                     SELECT id, author, subject, subject_index, total_parts
+                     FROM patchsets
+                     WHERE id != ?
+                       AND status IN ('Fetching', 'Incomplete', 'Pending', 'In Review')
+                       AND date BETWEEN ? AND ?
+                     ORDER BY date DESC, id DESC
+                     LIMIT 100
+                 )
+                 UNION ALL
+                 SELECT id, author, subject, subject_index, total_parts FROM (
+                     SELECT id, author, subject, subject_index, total_parts
+                     FROM patchsets
+                     WHERE id != ?
+                       AND status = 'Reviewed' AND embargo_until IS NOT NULL
+                       AND date BETWEEN ? AND ?
+                     ORDER BY date DESC, id DESC
+                     LIMIT 100
+                 )",
+                libsql::params![
+                    current_id, window_start, window_end,
+                    current_id, window_start, window_end
+                ],
             )
             .await?;
 
@@ -9360,31 +9407,21 @@ impl Database {
             }
 
             if cand_ver < curr_ver {
-                if self.cancel_patchset(cand_id, true).await? {
+                if self.cancel_superseded_series_patchset(cand_id).await? {
                     cancelled_count += 1;
                     info!(
                         "Cancelled superseded patchset {} (v{}) after ingesting patchset {} (v{})",
                         cand_id, cand_ver, current_id, curr_ver
                     );
                 }
-                self.cancel_outbox_for_patchset(
-                    cand_id,
-                    "Cancelled: superseded by newer patchset version",
-                )
-                .await?;
             } else if cand_ver > curr_ver {
-                if self.cancel_patchset(current_id, true).await? {
+                if self.cancel_superseded_series_patchset(current_id).await? {
                     cancelled_count += 1;
                     info!(
                         "Cancelled older patchset {} (v{}) because newer patchset {} (v{}) already exists",
                         current_id, curr_ver, cand_id, cand_ver
                     );
                 }
-                self.cancel_outbox_for_patchset(
-                    current_id,
-                    "Cancelled: superseded by newer patchset version",
-                )
-                .await?;
             }
         }
 
@@ -20497,6 +20534,341 @@ mod tests {
             Some("Pending"),
             "unrelated series by same author must not be cancelled"
         );
+    }
+
+    async fn insert_reviewed_series_for_supersession(
+        db: &Database,
+        version: u32,
+        author: &str,
+        title: &str,
+        date: i64,
+        embargo_until: Option<i64>,
+    ) -> Result<(i64, i64, String)> {
+        let message_id = format!("held-series-{date}-v{version}@example.test");
+        let subject = format!("[PATCH v{version}] {title}");
+        let thread = db.create_thread(&message_id, &subject, date).await?;
+        db.create_message(
+            &message_id,
+            thread,
+            None,
+            author,
+            &subject,
+            date,
+            "fixture body",
+            "list@example.test",
+            "",
+            None,
+            None,
+        )
+        .await?;
+        let patchset = db
+            .create_patchset(
+                thread,
+                Some(&message_id),
+                &message_id,
+                &subject,
+                author,
+                date,
+                1,
+                3,
+                "list@example.test",
+                "",
+                Some(version),
+                1,
+                None,
+                true,
+                None,
+                None,
+            )
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("fixture patchset was not created"))?;
+        let patch = db.create_patch(patchset, &message_id, 1, "diff").await?;
+        let review = db
+            .create_review(patchset, Some(patch), "test", "test-model", None, None)
+            .await?;
+        db.complete_review(
+            review,
+            "Reviewed",
+            "Review completed successfully.",
+            Some("fixture finding"),
+            None,
+            Some("fixture inline review"),
+            None,
+        )
+        .await?;
+        db.create_finding(Finding {
+            review_id: review,
+            severity: Severity::Low,
+            severity_explanation: None,
+            problem: "fixture finding".to_string(),
+            preexisting: Some(false),
+            locations: None,
+        })
+        .await?;
+        db.update_patch_status(patch, "Reviewed").await?;
+        db.update_patchset_status(patchset, "Reviewed").await?;
+        if let Some(until) = embargo_until {
+            db.set_patchset_embargo_until(patchset, until).await?;
+        }
+        Ok((patchset, patch, message_id))
+    }
+
+    #[tokio::test]
+    async fn test_superseded_series_held_review_is_not_released() -> Result<()> {
+        let now = 1_800_000_000;
+        // Expired but unflushed holds still own unpublished notifications.
+        // A NULL deadline is the already-published compatibility control.
+        for deadline in [Some(now + 3600), Some(now - 1), None] {
+            let dir = tempfile::tempdir()?;
+            let settings = DatabaseSettings {
+                url: dir.path().join("held.db").to_string_lossy().into_owned(),
+                token: String::new(),
+            };
+            let db = Database::new(&settings).await?;
+            db.migrate().await?;
+            let (old, old_patch, old_message) = insert_reviewed_series_for_supersession(
+                &db,
+                1,
+                "Dev <dev@example.test>",
+                "net: preserve held reviews",
+                now,
+                deadline,
+            )
+            .await?;
+            db.insert_email_outbox(
+                old_patch,
+                "Pending",
+                "list@example.test",
+                "",
+                "old review",
+                &old_message,
+                &old_message,
+                "old finding",
+            )
+            .await?;
+            db.insert_patchwork_outbox(
+                &old_message,
+                "https://patchwork.example.test/api",
+                "fail",
+                "old finding",
+                "https://review.example.test/old",
+                "test",
+            )
+            .await?;
+
+            let (latest, _, _) = insert_reviewed_series_for_supersession(
+                &db,
+                2,
+                "Dev <dev@example.test>",
+                "net: preserve held reviews",
+                now + 1,
+                Some(now + 3600),
+            )
+            .await?;
+            let expected = if deadline.is_some() {
+                "Cancelled"
+            } else {
+                "Reviewed"
+            };
+            assert_eq!(db.get_patchset_status(old).await?.as_deref(), Some(expected));
+
+            // Cancellation must not shorten the held result's visibility gate.
+            let mut rows = db
+                .conn
+                .query(
+                    "SELECT embargo_until FROM patchsets WHERE id = ?",
+                    libsql::params![old],
+                )
+                .await?;
+            assert_eq!(rows.next().await?.unwrap().get::<Option<i64>>(0)?, deadline);
+            drop(rows);
+            assert!(!db.claim_patchset_embargo_release(old, now + 7200).await?);
+            let releasable = db.get_releasable_embargoed_patchsets(now + 7200, 10).await?;
+            assert!(!releasable.iter().any(|row| row.id == old));
+            assert!(releasable.iter().any(|row| row.id == latest));
+
+            let email = db.lock_pending_email().await?;
+            let patchwork = db.lock_pending_patchwork().await?;
+            assert_eq!(email.is_none(), deadline.is_some());
+            assert_eq!(patchwork.is_none(), deadline.is_some());
+
+            // Reconstruct the actual file-backed owner, not a cloned handle.
+            drop(db);
+            let reopened = Database::new(&settings).await?;
+            assert_eq!(
+                reopened.get_patchset_status(old).await?.as_deref(),
+                Some(expected)
+            );
+            assert!(!reopened.claim_patchset_embargo_release(old, now + 7200).await?);
+            assert!(reopened.claim_patchset_embargo_release(latest, now + 7200).await?);
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_held_supersession_preserves_unrelated_reviews() -> Result<()> {
+        let now = 1_800_000_000;
+        for (author, title) in [
+            ("Other <other@example.test>", "net: preserve held reviews"),
+            ("Dev <dev@example.test>", "mm: unrelated review"),
+        ] {
+            let db = setup_db().await;
+            let (old, _, _) = insert_reviewed_series_for_supersession(
+                &db,
+                1,
+                "Dev <dev@example.test>",
+                "net: preserve held reviews",
+                now,
+                Some(now + 3600),
+            )
+            .await?;
+            insert_reviewed_series_for_supersession(
+                &db,
+                2,
+                author,
+                title,
+                now + 1,
+                Some(now + 3600),
+            )
+            .await?;
+            assert_eq!(db.get_patchset_status(old).await?.as_deref(), Some("Reviewed"));
+            assert!(db.claim_patchset_embargo_release(old, now + 7200).await?);
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_held_supersession_outbox_failure_rolls_back() -> Result<()> {
+        let db = setup_db().await;
+        let now = 1_800_000_000;
+        let (old, patch, message) = insert_reviewed_series_for_supersession(
+            &db, 1, "Dev <dev@example.test>", "net: rollback held review",
+            now, Some(now + 3600),
+        ).await?;
+        db.insert_email_outbox(
+            patch, "Pending", "list@example.test", "", "old review",
+            &message, &message, "old finding",
+        ).await?;
+        db.insert_patchwork_outbox(
+            &message, "https://patchwork.example.test/api", "fail",
+            "old finding", "https://review.example.test/old", "test",
+        ).await?;
+        let (latest, _, _) = insert_reviewed_series_for_supersession(
+            &db, 2, "Dev <dev@example.test>", "temporary fixture title",
+            now + 1, Some(now + 3600),
+        ).await?;
+        db.execute(
+            "UPDATE patchsets SET subject = ? WHERE id = ?",
+            libsql::params!["[PATCH v2] net: rollback held review", latest],
+        ).await?;
+        // Fail the final outbox update, after the email update has succeeded.
+        db.execute(
+            "CREATE TRIGGER fail_held_cancellation BEFORE UPDATE ON patchwork_outbox
+             BEGIN SELECT RAISE(ABORT, 'injected cancellation failure'); END",
+            (),
+        ).await?;
+        assert!(db.reconcile_superseded_series_patchsets(
+            latest, "Dev <dev@example.test>", "[PATCH v2] net: rollback held review",
+            1, Some(2), now + 1,
+        ).await.is_err());
+        assert_eq!(db.get_patchset_status(old).await?.as_deref(), Some("Reviewed"));
+        for table in ["email_outbox", "patchwork_outbox"] {
+            let mut rows = db.conn.query(&format!("SELECT status FROM {table}"), ()).await?;
+            assert_eq!(rows.next().await?.unwrap().get::<String>(0)?, "Pending");
+        }
+        let mut rows = db.conn.query(
+            "SELECT embargo_until FROM patchsets WHERE id = ?", libsql::params![old],
+        ).await?;
+        assert_eq!(rows.next().await?.unwrap().get::<i64>(0)?, now + 3600);
+        drop(rows);
+        db.execute("DROP TRIGGER fail_held_cancellation", ()).await?;
+        assert_eq!(db.reconcile_superseded_series_patchsets(
+            latest, "Dev <dev@example.test>", "[PATCH v2] net: rollback held review",
+            1, Some(2), now + 1,
+        ).await?, 1);
+        assert_eq!(db.get_patchset_status(old).await?.as_deref(), Some("Cancelled"));
+        for table in ["email_outbox", "patchwork_outbox"] {
+            let mut rows = db.conn.query(&format!("SELECT status FROM {table}"), ()).await?;
+            assert_eq!(rows.next().await?.unwrap().get::<String>(0)?, "Cancelled");
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_held_reviews_do_not_displace_active_supersession_candidates() -> Result<()> {
+        let db = setup_db().await;
+        let now = 1_800_000_000;
+        let (old, _, _) = insert_reviewed_series_for_supersession(
+            &db, 1, "Dev <dev@example.test>", "net: preserve active allowance",
+            now, None,
+        ).await?;
+        db.update_patchset_status(old, "Pending").await?;
+        // These newer held rows exhausted the first draft's shared LIMIT 100.
+        for index in 1..=100 {
+            insert_reviewed_series_for_supersession(
+                &db, 1, "Other <other@example.test>",
+                &format!("unrelated fixture {index}"), now + index,
+                Some(now + 3600),
+            ).await?;
+        }
+        insert_reviewed_series_for_supersession(
+            &db, 2, "Dev <dev@example.test>", "net: preserve active allowance",
+            now + 101, Some(now + 3600),
+        ).await?;
+        assert_eq!(db.get_patchset_status(old).await?.as_deref(), Some("Cancelled"));
+        let mut rows = db.conn.query(
+            "SELECT COUNT(*) FROM patchsets WHERE author = ? AND status = 'Reviewed'",
+            libsql::params!["Other <other@example.test>"],
+        ).await?;
+        assert_eq!(rows.next().await?.unwrap().get::<i64>(0)?, 100);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_held_candidate_released_before_cancellation_keeps_notifications() -> Result<()> {
+        let db = setup_db().await;
+        let now = 1_800_000_000;
+        let author = "Dev <dev@example.test>";
+        let (old, patch, message) = insert_reviewed_series_for_supersession(
+            &db, 1, author, "net: released candidate", now, Some(now + 3600),
+        ).await?;
+        db.insert_email_outbox(
+            patch, "Pending", "list@example.test", "", "released review",
+            &message, &message, "released finding",
+        ).await?;
+        let (active, _, _) = insert_reviewed_series_for_supersession(
+            &db, 2, author, "temporary active title", now + 1, None,
+        ).await?;
+        let (latest, _, _) = insert_reviewed_series_for_supersession(
+            &db, 3, author, "temporary current title", now + 2, None,
+        ).await?;
+        db.execute(
+            "UPDATE patchsets SET status = 'Pending', subject = ? WHERE id = ?",
+            libsql::params!["[PATCH v2] net: released candidate", active],
+        ).await?;
+        db.execute(
+            "UPDATE patchsets SET subject = ? WHERE id = ?",
+            libsql::params!["[PATCH v3] net: released candidate", latest],
+        ).await?;
+        // The active candidate is processed first. Model the release worker's
+        // final clear after candidate materialization, before the held update.
+        db.execute(
+            &format!(
+                "CREATE TRIGGER release_selected_candidate AFTER UPDATE OF status ON patchsets
+                 WHEN NEW.id = {active} AND NEW.status = 'Cancelled'
+                 BEGIN UPDATE patchsets SET embargo_until = NULL WHERE id = {old}; END"
+            ),
+            (),
+        ).await?;
+        assert_eq!(db.reconcile_superseded_series_patchsets(
+            latest, author, "[PATCH v3] net: released candidate", 1, Some(3), now + 2,
+        ).await?, 1);
+        assert_eq!(db.get_patchset_status(old).await?.as_deref(), Some("Reviewed"));
+        let mut rows = db.conn.query(
+            "SELECT status FROM email_outbox WHERE patch_id = ?", libsql::params![patch],
+        ).await?;
+        assert_eq!(rows.next().await?.unwrap().get::<String>(0)?, "Pending");
+        Ok(())
     }
 
     #[tokio::test]

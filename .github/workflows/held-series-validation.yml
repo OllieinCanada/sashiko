@@ -1,0 +1,67 @@
+name: Held series native validation
+
+on:
+  push:
+    branches: [codex/held-series-ci-20261019]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: held-series-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  formatting:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install pinned formatter
+        run: rustup toolchain install 1.90.0 --profile minimal --component rustfmt
+      - name: Check formatting and emit repair diff
+        run: |
+          set +e
+          cargo +1.90.0 fmt --all -- --check > /tmp/format-check.log 2>&1
+          result=$?
+          cat /tmp/format-check.log
+          if [ "$result" -ne 0 ]; then
+            cargo +1.90.0 fmt --all
+            git diff -- src/db.rs
+          fi
+          exit "$result"
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      RUSTUP_TOOLCHAIN: 1.90.0
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install pinned toolchain
+        run: rustup toolchain install 1.90.0 --profile minimal
+      - uses: Swatinem/rust-cache@v2
+      - name: Validate runner classification
+        run: python3 .github/scripts/held_series_validation.py --self-check
+      - name: Run baseline and candidate regressions
+        run: >-
+          python3 .github/scripts/held_series_validation.py
+          --allow-dependency-downloads
+      - name: Include diagnostic tails in job log
+        if: always()
+        run: |
+          find "$RUNNER_TEMP/held-series-validation/evidence/native-runs" \
+            -name '*.log' -type f -exec tail -n 100 {} +
+          find "$RUNNER_TEMP/held-series-validation/evidence/native-runs" \
+            -name manifest.json -type f -exec cat {} +
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: held-series-${{ github.sha }}
+          path: ${{ runner.temp }}/held-series-validation/evidence/
+          retention-days: 7
