@@ -84,4 +84,87 @@
             assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_intents").await?, 18);
             Ok(())
         }
+
+        #[tokio::test]
+        #[ignore = "hosted stale delivery lease after durable quarantine"]
+        async fn test_cooldown_hosted_stale_leases_recheck_quarantine() -> Result<()> {
+            let directory = tempfile::tempdir()?;
+            let settings = DatabaseSettings {
+                url: directory.path().join("lease-recovery.db").to_string_lossy().into_owned(),
+                token: String::new(),
+            };
+            let db = Database::new(&settings).await?;
+            db.migrate().await?;
+            let active = db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+            let (id, thread, message) = seed(&active, "lease-recovery", 1).await?;
+            let patch = active.create_patch(id, &message, 1, "diff").await?;
+            db.insert_email_outbox(patch, "Pending", "sink@example.test", "", "review", &message, "", "body").await?;
+            db.insert_patchwork_notification("Pending", "sink@example.test", "notification", &format!("<{message}>"), "", "body").await?;
+            db.insert_patchwork_outbox(&message, "https://patchwork.example.test", "warning", "fixture", "https://review.example.test", "review").await?;
+            assert!(db.lock_pending_email().await?.is_some());
+            assert!(db.lock_pending_email().await?.is_some());
+            assert!(db.lock_pending_email().await?.is_none());
+            assert!(db.lock_pending_patchwork().await?.is_some());
+            // A correction arrives after claiming, before any external delivery.
+            assert!(active.create_message(&message, thread, None, "dev@example.test", "[PATCH] changed", 1, "changed", "list@example.test", "", None, None).await.is_err());
+            assert_eq!(db.get_patchset_status(id).await?.as_deref(), Some("Cooldown blocked"));
+            db.conn.execute("UPDATE email_outbox SET locked_at=0 WHERE status='Sending'", ()).await?;
+            db.conn.execute("UPDATE patchwork_outbox SET locked_at=0 WHERE status='Sending'", ()).await?;
+            drop(active);
+            drop(db);
+            let db = Database::new(&settings).await?;
+            assert_eq!(db.sweep_ghost_emails().await?, 2);
+            assert_eq!(db.sweep_ghost_patchwork().await?, 1);
+            assert!(db.lock_pending_email().await?.is_none());
+            assert!(db.lock_pending_patchwork().await?.is_none());
+            assert!(!db.release_patchset_embargo(id, chrono::Utc::now().timestamp()).await?);
+            assert!(!db.claim_patchset_for_review(id).await?);
+            assert!(db.cancel_patchset(id, false).await?);
+            assert_eq!(scalar(&db, "SELECT COUNT(*) FROM email_outbox WHERE status='Cancelled'").await?, 2);
+            assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patchwork_outbox WHERE status='Cancelled'").await?, 1);
+            assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 1);
+            Ok(())
+        }
+
+        #[tokio::test]
+        #[ignore = "hosted disable and cancellation rollback rehearsal"]
+        async fn test_cooldown_hosted_disable_cancel_reopen() -> Result<()> {
+            let directory = tempfile::tempdir()?;
+            let settings = DatabaseSettings {
+                url: directory.path().join("disable-rehearsal.db").to_string_lossy().into_owned(),
+                token: String::new(),
+            };
+            let db = Database::new(&settings).await?;
+            db.migrate().await?;
+            let mut ctx = context("list@example.test", "dev@example.test");
+            ctx.policy.burst = 1;
+            let active = db.with_cooldown_context(Some(ctx));
+            let (prior, _, first) = seed(&active, "disable-prior", 1).await?;
+            active.create_patch(prior, &first, 1, "diff").await?;
+            let (held, _, message) = seed(&active, "disable-held", 1).await?;
+            active.create_patch(held, &message, 1, "diff").await?;
+            let (waiting, _, _) = seed(&active, "disable-waiting", 2).await?;
+            let frozen_sql = format!("SELECT decided_deadline FROM review_cooldown_intents WHERE patchset_id={held}");
+            let before = scalar(&db, &frozen_sql).await?;
+            // The ordinary handle represents ingestion after configuration disable.
+            let (legacy, _, message) = seed(&db, "disable-new-legacy", 1).await?;
+            db.create_patch(legacy, &message, 1, "diff").await?;
+            assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_intents").await?, 3);
+            assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 2);
+            assert_eq!(scalar(&db, &frozen_sql).await?, before);
+            assert!(!db.claim_patchset_for_review(waiting).await?);
+            assert!(db.cancel_patchset(waiting, false).await?);
+            assert!(db.cancel_patchset(held, false).await?);
+            drop(active);
+            drop(db);
+            let db = Database::new(&settings).await?;
+            db.migrate().await?;
+            assert_eq!(db.get_patchset_status(waiting).await?.as_deref(), Some("Cancelled"));
+            assert_eq!(db.get_patchset_status(held).await?.as_deref(), Some("Cancelled"));
+            assert_eq!(scalar(&db, &frozen_sql).await?, before);
+            assert!(db.lock_pending_email().await?.is_none());
+            assert!(db.lock_pending_patchwork().await?.is_none());
+            assert_eq!(scalar(&db, "PRAGMA user_version").await?, 15);
+            Ok(())
+        }
     }
