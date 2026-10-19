@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Run isolated deterministic additions on unchanged production source."""
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import subprocess
 import time
@@ -21,6 +23,29 @@ PATHS = {
     "src/server.rs": ["server_fixture.rs"],
 }
 ORIGINAL = {p: (ROOT / p).read_text() for p in PATHS}
+SPEC = importlib.util.spec_from_file_location(
+    "rust_scanner", ROOT / ".github/adaptive-observability/instrument.py")
+SCANNER = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(SCANNER)
+
+def test_module_end(source):
+    code = SCANNER.mask(source)
+    matches = list(re.finditer(r"\bmod\s+tests\s*\{", code))
+    if len(matches) != 1:
+        raise RuntimeError("missing or ambiguous test-module anchor")
+    opening = matches[0].end() - 1
+    depth = 1
+    closing = opening + 1
+    while closing < len(code) and depth:
+        if code[closing] == "{":
+            depth += 1
+        elif code[closing] == "}":
+            depth -= 1
+        closing += 1
+    if depth:
+        raise RuntimeError("unclosed test module")
+    return closing - 1
+
 ENV = os.environ.copy()
 ENV.update({"HTTP_PROXY": "http://127.0.0.1:9",
             "HTTPS_PROXY": "http://127.0.0.1:9",
@@ -109,6 +134,13 @@ def test(binary, name, label, timeout, negative=False):
         raise RuntimeError(label + ": missing exact-one-test control")
     if negative and not ("panicked at" in text or "Error:" in text):
         raise RuntimeError(label + ": missing semantic failure")
+    intended = {
+        "negative-ignore-ingestion": "ignored-global/review_cooldown_events",
+        "negative-review-privacy": "called `Result::unwrap_err()` on an `Ok` value",
+    }.get(label)
+    if intended and intended not in text:
+        print(text[-12000:], flush=True)
+        raise RuntimeError(label + ": failure did not exercise intended guard")
     row = {"name": label, "test": name, "seconds": seconds,
            "status": "KILLED" if negative else "PASS"}
     REPORT["checks"].append(row)
@@ -141,7 +173,7 @@ try:
         raise RuntimeError("production source differs from frozen checked base")
     for path, fixtures in PATHS.items():
         source = ORIGINAL[path]
-        closing = source.rfind("}")
+        closing = test_module_end(source)
         if closing < 0:
             raise RuntimeError("missing test-module closing brace")
         addition = ""
