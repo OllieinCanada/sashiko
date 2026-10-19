@@ -192,7 +192,14 @@ try:
                 command.append("--offline")
             command += ["--lib", name, "--", "--exact", "--nocapture"]
             code, output = run(label, command, checkout)
-            if not executed_one(output, code, name, failure=failure):
+            verified = executed_one(output, code, name, failure=failure)
+            manifest.setdefault("native_test_results", []).append({
+                "label": label, "name": name, "fixture": checkout.name,
+                "expected_failure": failure, "required_result_verified": verified,
+            })
+            manifest["native_tests"] = "PARTIAL; see native_test_results and command logs"
+            save()
+            if not verified:
                 blocked(label+": did not produce the required single-test native result; inspect log")
         test(before, "failing-before", PRIMARY, failure=True)
         test(before, "baseline-negative-control", CONTROL)

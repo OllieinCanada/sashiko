@@ -45,9 +45,17 @@ jobs:
           persist-credentials: false
       - name: Install pinned toolchain
         run: rustup toolchain install 1.90.0 --profile minimal
+      - name: Resolve target cache path
+        id: target-cache
+        run: |
+          python3 - <<'PYTHON' >> "$GITHUB_OUTPUT"
+          import os
+          target = os.path.join(os.environ["RUNNER_TEMP"], "held-series-validation", "target")
+          print("path=" + os.path.relpath(target, os.environ["GITHUB_WORKSPACE"]))
+          PYTHON
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: . -> ${{ runner.temp }}/held-series-validation/target
+          workspaces: . -> ${{ steps.target-cache.outputs.path }}
           cache-on-failure: true
       - name: Validate runner classification
         run: python3 .github/scripts/held_series_validation.py --self-check
@@ -68,3 +76,47 @@ jobs:
           name: held-series-${{ github.sha }}
           path: ${{ runner.temp }}/held-series-validation/evidence/
           retention-days: 7
+
+  source-checks:
+    needs: formatting
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install upstream CI toolchain
+        run: >-
+          rustup toolchain install stable --profile minimal
+          --component rustfmt --component clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Toolchain identity
+        run: |
+          rustc --version
+          cargo --version
+          git rev-parse HEAD
+      - name: YAML lint
+        run: |
+          if ! command -v yamllint >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends yamllint
+          fi
+          yamllint .
+      - name: Formatting
+        run: cargo fmt --all -- --check
+      - name: Clippy all features
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Clippy local profile
+        run: cargo clippy --locked --all-targets --no-default-features -- -D warnings
+      - name: Clippy local cache profile
+        run: >-
+          cargo clippy --locked --all-targets --no-default-features
+          --features cache -- -D warnings
+      - name: Full tests
+        run: cargo test --locked --all-features
