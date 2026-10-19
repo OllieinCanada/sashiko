@@ -300,11 +300,22 @@ impl EmailPolicyConfig {
     /// Adaptive policy uses actual To/Cc and the configured NNTP source, never
     /// file-path subsystem labels. Shared publication across lists stays legacy.
     pub fn adaptive_context(
-        &self, source: crate::events::MessageSource, group: &str,
-        to: &str, cc: &str, author: &str, legacy_deadline: Option<i64>,
+        &self,
+        source: crate::events::MessageSource,
+        group: &str,
+        to: &str,
+        cc: &str,
+        author: &str,
+        legacy_deadline: Option<i64>,
     ) -> anyhow::Result<crate::cooldown::CooldownSelection> {
-        if source != crate::events::MessageSource::Nntp { return Ok(crate::cooldown::CooldownSelection::Legacy); }
-        if !self.lists.values().any(|p| p.adaptive_cooldown.as_ref().is_some_and(|c| c.enabled)) {
+        if source != crate::events::MessageSource::Nntp {
+            return Ok(crate::cooldown::CooldownSelection::Legacy);
+        }
+        if !self
+            .lists
+            .values()
+            .any(|p| p.adaptive_cooldown.as_ref().is_some_and(|c| c.enabled))
+        {
             return Ok(crate::cooldown::CooldownSelection::Legacy);
         }
         let raw = format!("To: {to}\r\nCc: {cc}\r\n\r\n");
@@ -330,14 +341,28 @@ impl EmailPolicyConfig {
                 matched.push((bare, policy));
             }
         }
-        if matched.len() > 1 { return Ok(crate::cooldown::CooldownSelection::CrossPost); }
-        if matched.is_empty() { return Ok(crate::cooldown::CooldownSelection::Legacy); }
+        if matched.len() > 1 {
+            return Ok(crate::cooldown::CooldownSelection::CrossPost);
+        }
+        if matched.is_empty() {
+            return Ok(crate::cooldown::CooldownSelection::Legacy);
+        }
         let (list, policy) = matched.remove(0);
-        let Some(config) = &policy.adaptive_cooldown else { return Ok(crate::cooldown::CooldownSelection::Legacy); };
-        let Some(policy) = config.resolve(self.defaults.adaptive_cooldown.as_ref())? else { return Ok(crate::cooldown::CooldownSelection::Legacy); };
-        Ok(crate::cooldown::CooldownSelection::Enabled(crate::cooldown::CooldownContext {
-            list, author: crate::cooldown::author_key(author)?, policy, legacy_deadline,
-        }))
+        let Some(config) = &policy.adaptive_cooldown else {
+            return Ok(crate::cooldown::CooldownSelection::Legacy);
+        };
+        let Some(policy) = config.resolve(self.defaults.adaptive_cooldown.as_ref())? else {
+            return Ok(crate::cooldown::CooldownSelection::Legacy);
+        };
+        Ok(crate::cooldown::CooldownSelection::Enabled(
+            crate::cooldown::CooldownContext {
+                list,
+                author: crate::cooldown::author_key(author)?,
+                policy,
+                legacy_deadline,
+                source_snapshot: None,
+            },
+        ))
     }
 
     /// Returns `(short_name, nntp_group)` pairs for all lists in this config

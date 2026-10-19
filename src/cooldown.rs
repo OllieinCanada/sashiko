@@ -62,6 +62,13 @@ impl CooldownConfig {
                 bail!("adaptive cooldown {name} is outside supported bounds");
             }
         }
+        if let (Some(step), Some(cap)) = (
+            self.step_seconds.or(inherited.step_seconds),
+            self.max_extra_seconds.or(inherited.max_extra_seconds),
+        ) && step > cap
+        {
+            bail!("adaptive cooldown step exceeds its cap");
+        }
         let values = (
             self.window_seconds.or(inherited.window_seconds),
             self.burst.or(inherited.burst),
@@ -94,6 +101,43 @@ pub struct CooldownContext {
     pub author: String,
     pub policy: CooldownPolicy,
     pub legacy_deadline: Option<i64>,
+    pub source_snapshot: Option<SourceSnapshot>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SourceSnapshot {
+    pub message_id: String,
+    pub fingerprint: String,
+}
+
+/// The same parsed facts used for attribution, prepared before the writer lane.
+pub fn source_fingerprint(
+    author: &str,
+    subject: &str,
+    to: &str,
+    cc: &str,
+    parent: Option<&str>,
+    body_hash: &str,
+) -> Result<String> {
+    let facts = serde_json::to_vec(&(
+        crate::email_policy::extract_bare_email(author),
+        subject,
+        to,
+        cc,
+        parent,
+        body_hash,
+    ))?;
+    Ok(content_fingerprint(&facts))
+}
+
+pub fn content_fingerprint(bytes: &[u8]) -> String {
+    use std::fmt::Write as _;
+    let digest = <sha2::Sha256 as sha2::Digest>::digest(bytes);
+    let mut hex = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        let _ = write!(hex, "{byte:02x}");
+    }
+    hex
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

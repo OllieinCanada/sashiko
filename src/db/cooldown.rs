@@ -16,7 +16,9 @@ impl Database {
 
     pub fn with_cooldown_selection(&self, selection: crate::cooldown::CooldownSelection) -> Self {
         match selection {
-            crate::cooldown::CooldownSelection::Enabled(context) => self.with_cooldown_context(Some(context)),
+            crate::cooldown::CooldownSelection::Enabled(context) => {
+                self.with_cooldown_context(Some(context))
+            }
             crate::cooldown::CooldownSelection::Legacy => self.with_cooldown_context(None),
             crate::cooldown::CooldownSelection::CrossPost => {
                 let mut handle = self.with_cooldown_context(None);
@@ -39,10 +41,12 @@ impl Database {
         conn: &libsql::Connection,
         message: &str,
     ) -> Result<Option<i64>> {
-        let key = message_key(message)?;
+        // Legacy quarantines may own IDs outside the opt-in grammar. Look them
+        // up exactly; creation/accounting still validates with message_key.
+        let key = message_key(message).unwrap_or_else(|_| message.to_owned());
         let mut rows = conn
             .query(
-                "SELECT patchset_id FROM review_cooldown_messages WHERE message_id = ? UNION ALL SELECT b.patchset_id FROM review_cooldown_blocks b JOIN patchsets p ON p.id = b.patchset_id WHERE p.cover_letter_message_id = ? UNION ALL SELECT b.patchset_id FROM review_cooldown_blocks b JOIN patches p ON p.patchset_id = b.patchset_id WHERE p.message_id = ? LIMIT 1",
+                "SELECT patchset_id FROM review_cooldown_messages WHERE message_id = ? UNION ALL SELECT b.patchset_id FROM review_cooldown_guards b JOIN patchsets p ON p.id = b.patchset_id WHERE p.cover_letter_message_id = ? UNION ALL SELECT b.patchset_id FROM review_cooldown_guards b JOIN patches p ON p.patchset_id = b.patchset_id WHERE p.message_id = ? LIMIT 1",
                 libsql::params![key.clone(), key.clone(), key],
             )
             .await?;
@@ -68,23 +72,36 @@ impl Database {
     /// before the caller receives the error, so a retry cannot publish old state.
     pub(super) async fn bind_cooldown_message(&self, id: i64, message: &str) -> Result<()> {
         let tx = self.begin_immediate_transaction().await?;
-        let mut rows = tx.query("SELECT list, author, state FROM review_cooldown_intents WHERE patchset_id = ?", libsql::params![id]).await?;
+        let mut rows = tx
+            .query(
+                "SELECT list, author, state FROM review_cooldown_intents WHERE patchset_id = ?",
+                libsql::params![id],
+            )
+            .await?;
         if let Some(row) = rows.next().await? {
             let list: String = row.get(0)?;
             let author: String = row.get(1)?;
             let state: String = row.get(2)?;
-            let changed_list = self.cooldown_context.as_ref().is_some_and(|c| c.list != list && c.author == author);
+            let changed_list = self
+                .cooldown_context
+                .as_ref()
+                .is_some_and(|c| c.list != list && c.author == author);
             if state == "waiting" && (self.cooldown_cross_post || changed_list) {
                 // No event exists yet. Restore the single shared legacy policy;
                 // retain an explicit exclusion reason without ownership locks.
                 tx.execute("INSERT INTO review_cooldown_exclusions(patchset_id, reason, released_at) SELECT patchset_id, 'cross-post', released_at FROM review_cooldown_intents WHERE patchset_id = ? ON CONFLICT(patchset_id) DO NOTHING", libsql::params![id]).await?;
-                tx.execute("DELETE FROM review_cooldown_messages WHERE patchset_id = ?", libsql::params![id]).await?;
+                tx.execute(
+                    "DELETE FROM review_cooldown_messages WHERE patchset_id = ?",
+                    libsql::params![id],
+                )
+                .await?;
                 tx.execute("DELETE FROM review_cooldown_intents WHERE patchset_id = ? AND state = 'waiting'", libsql::params![id]).await?;
                 tx.commit().await?;
                 return Ok(());
             }
         }
-        let result = Self::bind_cooldown_message_tx(&tx, id, message, self.cooldown_context.as_ref()).await;
+        let result =
+            Self::bind_cooldown_message_tx(&tx, id, message, self.cooldown_context.as_ref()).await;
         match result {
             Ok(()) => tx.commit().await,
             Err(error) => {
@@ -95,67 +112,164 @@ impl Database {
         }
     }
 
+    /// Subject display can lose a version when a lower-index unversioned part
+    /// arrives. Recover only explicit versions of this owned adaptive revision.
+    pub(super) async fn cooldown_canonical_version(
+        &self,
+        id: i64,
+        displayed: Option<u32>,
+    ) -> Result<Option<u32>> {
+        if displayed.is_some() {
+            return Ok(displayed);
+        }
+        let mut intents = self
+            .conn
+            .query(
+                "SELECT verified_version FROM review_cooldown_intents WHERE patchset_id = ?",
+                libsql::params![id],
+            )
+            .await?;
+        let Some(intent) = intents.next().await? else {
+            return Ok(None);
+        };
+        if let Some(version) = intent.get::<Option<u32>>(0)? {
+            return Ok(Some(version));
+        }
+        let mut parts = self.conn.query("SELECT m.subject FROM patches p JOIN messages m ON m.message_id = p.message_id WHERE p.patchset_id = ? LIMIT ?",libsql::params![id,MAX_SERIES_PARTS+1]).await?;
+        let mut version = None;
+        let mut count = 0;
+        while let Some(part) = parts.next().await? {
+            count += 1;
+            if count > MAX_SERIES_PARTS {
+                bail!("adaptive series exceeds supported part bound");
+            }
+            if let Some(explicit) = crate::patch::parse_subject_version(&part.get::<String>(0)?) {
+                if version.is_some_and(|old| old != explicit) {
+                    bail!("adaptive series has conflicting explicit versions");
+                }
+                version = Some(explicit);
+            }
+        }
+        Ok(version)
+    }
+
     pub(super) async fn bind_cooldown_message_tx(
         conn: &libsql::Connection,
         id: i64,
         message: &str,
         context: Option<&CooldownContext>,
     ) -> Result<()> {
+        Self::bind_cooldown_source_tx(conn, id, message, context, false).await
+    }
+
+    async fn bind_cooldown_source_tx(
+        conn: &libsql::Connection,
+        id: i64,
+        message: &str,
+        context: Option<&CooldownContext>,
+        late_cover: bool,
+    ) -> Result<()> {
         let mut rows = conn.query("SELECT list, author, policy, state FROM review_cooldown_intents WHERE patchset_id = ?", libsql::params![id]).await?;
         let Some(row) = rows.next().await? else {
-            let mut blocked = conn.query("SELECT 1 FROM review_cooldown_blocks WHERE patchset_id = ?", libsql::params![id]).await?;
-            if blocked.next().await?.is_some() { bail!("canonical series is quarantined"); }
+            let mut blocked = conn.query("SELECT 1 FROM review_cooldown_guards WHERE patchset_id = ? AND state != 'decided'", libsql::params![id]).await?;
+            if blocked.next().await?.is_some() {
+                bail!("canonical series is quarantined");
+            }
             return Ok(());
         };
         let list: String = row.get(0)?;
         let author: String = row.get(1)?;
         let policy: CooldownPolicy = serde_json::from_str(&row.get::<String>(2)?)?;
+        policy.validate()?;
         let state: String = row.get(3)?;
         if state == "blocked" {
             bail!("adaptive cooldown is quarantined");
         }
         let key = message_key(message)?;
-        if let Some(owner) = Self::cooldown_owner(conn, &key).await? {
-            if owner != id {
+        let mut aliases = conn.query("SELECT patchset_id, source_hash FROM review_cooldown_messages WHERE message_id = ?", libsql::params![key.clone()]).await?;
+        let alias = aliases.next().await?;
+        let frozen: Option<String> = if let Some(alias) = &alias {
+            if alias.get::<i64>(0)? != id {
                 bail!("adaptive message belongs to another canonical series");
             }
-            // Frozen input can be retried after policy disable/reload.
-            if context.is_none() && state == "decided" {
-                return Ok(());
+            alias.get(1)?
+        } else {
+            if state == "decided" && !late_cover {
+                bail!("cannot append to an admitted adaptive revision");
             }
-        } else if state == "decided" {
-            bail!("cannot append to an admitted adaptive revision");
-        }
-        let Some(context) = context else {
-            bail!("adaptive series requires matching mail policy");
+            None
         };
-        if context.list != list || context.author != author || (state != "decided" && context.policy != policy) {
-            bail!("adaptive scope or policy changed during ingestion");
+        let mut sources = conn
+            .query(
+                "SELECT cooldown_source_hash, subject FROM messages WHERE message_id = ?",
+                libsql::params![key.clone()],
+            )
+            .await?;
+        let current: Option<String> = match sources.next().await? {
+            Some(source) if source.get::<String>(1)? != "(placeholder)" => source.get(0)?,
+            Some(_) => None,
+            None => None,
+        };
+        if frozen.is_some() && frozen != current {
+            bail!("adaptive source changed after ownership was established");
         }
-        conn.execute("INSERT INTO review_cooldown_messages(message_id, patchset_id) VALUES (?, ?) ON CONFLICT(message_id) DO NOTHING", libsql::params![key, id]).await?;
+        if let Some(context) = context {
+            if context.list != list
+                || context.author != author
+                || (state != "decided" && context.policy != policy)
+            {
+                bail!("adaptive scope or policy changed during ingestion");
+            }
+        } else if state != "decided" || frozen.is_none() {
+            bail!("adaptive series requires matching mail policy");
+        }
+        let incoming = context
+            .and_then(|c| c.source_snapshot.as_ref())
+            .filter(|source| message_key(&source.message_id).ok().as_ref() == Some(&key));
+        let verified = if let Some(incoming) = incoming {
+            if current.as_deref() != Some(incoming.fingerprint.as_str()) {
+                bail!("mail policy source changed before canonical binding");
+            }
+            Some(incoming.fingerprint.clone())
+        } else if frozen.is_some() {
+            frozen
+        } else if current.is_none()
+            && state == "waiting"
+            && context.is_some_and(|c| c.source_snapshot.is_some())
+        {
+            // Reserve an unseen cover ID. It must acquire its own immutable
+            // source snapshot before it can participate in admission.
+            None
+        } else {
+            bail!("adaptive source snapshot is missing");
+        };
+        conn.execute("INSERT INTO review_cooldown_messages(message_id, patchset_id, source_hash) VALUES (?, ?, ?) ON CONFLICT(message_id) DO UPDATE SET source_hash = COALESCE(review_cooldown_messages.source_hash, excluded.source_hash)", libsql::params![key, id, verified]).await?;
         Ok(())
     }
 
-    /// Only call after the canonical matcher establishes that the new message
-    /// is this revision's own late cover. It does not add an activity event.
+    /// The canonical matcher establishes this revision's own late cover before
+    /// this helper validates and binds its source. It never adds an event.
     pub(super) async fn bind_cooldown_late_cover(&self, id: i64, message: &str) -> Result<()> {
         let tx = self.begin_immediate_transaction().await?;
-        let mut rows = tx.query("SELECT list, author, policy, state FROM review_cooldown_intents WHERE patchset_id = ?", libsql::params![id]).await?;
-        if let Some(row) = rows.next().await? && row.get::<String>(3)? == "decided" {
-            let policy: CooldownPolicy = serde_json::from_str(&row.get::<String>(2)?)?;
-            let list: String = row.get(0)?;
-            let author: String = row.get(1)?;
-            let compatible = self.cooldown_context.as_ref().is_some_and(|context|
-                context.list == list
-                    && context.author == author
-                    && policy.validate().is_ok());
-            if compatible {
+        let result = async {
+            let mut rows = tx.query("SELECT verified_parts FROM review_cooldown_intents WHERE patchset_id = ? AND state = 'decided'", libsql::params![id]).await?;
+            if let Some(row) = rows.next().await? {
+                let verified: u32 = row.get(0)?;
                 let key = message_key(message)?;
-                tx.execute("INSERT INTO review_cooldown_messages(message_id,patchset_id) VALUES (?, ?) ON CONFLICT(message_id) DO NOTHING", libsql::params![key,id]).await?;
+                let mut cover = tx.query("SELECT subject FROM messages WHERE message_id = ?", libsql::params![key]).await?;
+                let subject = cover.next().await?.context("late cover has no stored source")?.get::<String>(0)?;
+                if crate::patch::parse_subject_index(&subject) != (0, verified) {
+                    bail!("late cover contradicts admitted size");
+                }
             }
+            Self::bind_cooldown_source_tx(&tx, id, message, self.cooldown_context.as_ref(), true).await
+        }.await;
+        if let Err(error) = result {
+            Self::block_cooldown(&tx, id, "conflicting late cover source").await?;
+            tx.commit().await?;
+            return Err(error);
         }
-        tx.commit().await?;
-        self.bind_cooldown_message(id, message).await
+        tx.commit().await
     }
 
     pub(super) async fn insert_cooldown_intent(
@@ -168,14 +282,13 @@ impl Database {
             return Ok(());
         };
         context.policy.validate()?;
-        self.conn.execute("INSERT INTO review_cooldown_intents(patchset_id, list, author, policy, state, created_at) VALUES (?, ?, ?, ?, 'waiting', ?)", libsql::params![id, context.list.clone(), context.author.clone(), serde_json::to_string(&context.policy)?, Self::cooldown_now()?]).await?;
+        self.execute("INSERT INTO review_cooldown_intents(patchset_id, list, author, policy, state, created_at) VALUES (?, ?, ?, ?, 'waiting', ?)", libsql::params![id, context.list.clone(), context.author.clone(), serde_json::to_string(&context.policy)?, Self::cooldown_now()?]).await?;
         if let Some(until) = context.legacy_deadline {
-            self.conn
-                .execute(
-                    "UPDATE patchsets SET embargo_until = ? WHERE id = ?",
-                    libsql::params![until, id],
-                )
-                .await?;
+            self.execute(
+                "UPDATE patchsets SET embargo_until = ? WHERE id = ?",
+                libsql::params![until, id],
+            )
+            .await?;
         }
         Self::bind_cooldown_message_tx(&self.conn, id, message, Some(context)).await?;
         if let Some(cover) = cover {
@@ -199,7 +312,9 @@ impl Database {
                 bail!("adaptive cooldown is quarantined");
             }
             if state == "waiting" {
-                let Some(context) = context else { bail!("adaptive admission disabled while intent remains unresolved"); };
+                let Some(context) = context else {
+                    bail!("adaptive admission disabled while intent remains unresolved");
+                };
                 let list: String = row.get(0)?;
                 let author: String = row.get(1)?;
                 let policy: CooldownPolicy = serde_json::from_str(&row.get::<String>(2)?)?;
@@ -217,8 +332,9 @@ impl Database {
                 if total == 0 || total > MAX_SERIES_PARTS {
                     bail!("adaptive series exceeds supported part bound");
                 }
-                let mut parts = conn.query("SELECT p.part_index, p.message_id, m.author, m.subject, c.patchset_id FROM patches p LEFT JOIN messages m ON m.message_id = p.message_id LEFT JOIN review_cooldown_messages c ON c.message_id = p.message_id WHERE p.patchset_id = ? ORDER BY p.part_index, p.id LIMIT ?", libsql::params![id, MAX_SERIES_PARTS + 1]).await?;
+                let mut parts = conn.query("SELECT p.part_index, p.message_id, m.author, m.subject, c.patchset_id, p.cooldown_content_hash, m.cooldown_body_hash, c.source_hash, m.cooldown_source_hash FROM patches p LEFT JOIN messages m ON m.message_id = p.message_id LEFT JOIN review_cooldown_messages c ON c.message_id = p.message_id WHERE p.patchset_id = ? ORDER BY p.part_index, p.id LIMIT ?", libsql::params![id, MAX_SERIES_PARTS + 1]).await?;
                 let mut count = 0;
+                let mut verified_version = None;
                 while let Some(part) = parts.next().await? {
                     count += 1;
                     let index: u32 = part.get(0)?;
@@ -226,6 +342,16 @@ impl Database {
                     let stored_author: String = part.get(2)?;
                     let subject: String = part.get(3)?;
                     let owner: Option<i64> = part.get(4)?;
+                    let content_hash: Option<String> = part.get(5)?;
+                    let body_hash: Option<String> = part.get(6)?;
+                    let frozen_source: Option<String> = part.get(7)?;
+                    let current_source: Option<String> = part.get(8)?;
+                    if let Some(version) = crate::patch::parse_subject_version(&subject) {
+                        if verified_version.is_some_and(|old| old != version) {
+                            bail!("adaptive series has conflicting explicit versions");
+                        }
+                        verified_version = Some(version);
+                    }
                     let (subject_index, subject_total) =
                         crate::patch::parse_subject_index(&subject);
                     if count > total
@@ -235,6 +361,10 @@ impl Database {
                         || subject_index != index
                         || subject_total != total
                         || message_key(&message)? != message
+                        || content_hash.is_none()
+                        || content_hash != body_hash
+                        || frozen_source.is_none()
+                        || frozen_source != current_source
                         || owner != Some(id)
                     {
                         bail!("adaptive series has inconsistent parts or ownership");
@@ -276,6 +406,30 @@ impl Database {
                 {
                     bail!("adaptive admission clock moved backwards");
                 }
+                let activation_key = format!("cooldown.history_since:{list}");
+                conn.execute(
+                    "INSERT INTO meta(key,value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING",
+                    libsql::params![activation_key.clone(), now.to_string()],
+                )
+                .await?;
+                let mut coverage = conn
+                    .query(
+                        "SELECT value FROM meta WHERE key = ?",
+                        libsql::params![activation_key],
+                    )
+                    .await?;
+                let activation: i64 = coverage
+                    .next()
+                    .await?
+                    .context("missing cooldown history boundary")?
+                    .get::<String>(0)?
+                    .parse()
+                    .context("invalid cooldown history boundary")?;
+                if activation < 0 || activation > now {
+                    bail!("invalid cooldown history coverage");
+                }
+                let history_since = activation
+                    .max(now.saturating_sub(i64::from(crate::cooldown::MAX_WINDOW_SECONDS)));
                 let mut latest = conn.query("SELECT admitted_at FROM review_cooldown_events WHERE list = ? AND author = ? ORDER BY admitted_at DESC LIMIT 1", libsql::params![list.clone(), author.clone()]).await?;
                 if let Some(latest) = latest.next().await?
                     && latest.get::<i64>(0)? > now
@@ -300,7 +454,7 @@ impl Database {
                     libsql::params![deadline, id],
                 )
                 .await?;
-                conn.execute("UPDATE review_cooldown_intents SET state = 'decided', admitted_at = ?, prior_count = ?, extra_seconds = ?, decided_deadline = ?, verified_parts = ? WHERE patchset_id = ? AND state = 'waiting'", libsql::params![now, prior, extra, deadline, total, id]).await?;
+                conn.execute("UPDATE review_cooldown_intents SET state = 'decided', admitted_at = ?, prior_count = ?, extra_seconds = ?, decided_deadline = ?, verified_parts = ?, verified_version = ?, history_since = ? WHERE patchset_id = ? AND state = 'waiting'", libsql::params![now, prior, extra, deadline, total, verified_version, history_since, id]).await?;
                 conn.execute(
                     "UPDATE review_cooldown_clock SET last_admitted_at = ? WHERE singleton = 1",
                     libsql::params![now],
@@ -318,12 +472,24 @@ impl Database {
 
     pub(super) async fn complete_patchset(&self, id: i64) -> Result<()> {
         let tx = self.begin_immediate_transaction().await?;
-        Self::complete_patchset_tx(&tx, id, Self::cooldown_now()?, self.cooldown_context.as_ref()).await?;
+        Self::complete_patchset_tx(
+            &tx,
+            id,
+            Self::cooldown_now()?,
+            self.cooldown_context.as_ref(),
+        )
+        .await?;
         tx.commit().await
     }
 
     pub async fn cooldown_publication_blocked(&self, id: i64) -> Result<bool> {
-        let mut rows = self.conn.query("SELECT 1 FROM review_cooldown_guards WHERE patchset_id = ? AND state != 'decided'", libsql::params![id]).await?;
+        let mut rows = self
+            .conn
+            .query(
+                "SELECT 1 FROM review_cooldown_guards WHERE patchset_id = ? AND state != 'decided'",
+                libsql::params![id],
+            )
+            .await?;
         Ok(rows.next().await?.is_some())
     }
 }
@@ -353,10 +519,15 @@ mod tests {
                 max_extra_seconds: 30,
             },
             legacy_deadline: None,
+            source_snapshot: None,
         }
     }
 
     async fn seed(db: &Database, token: &str, total: u32) -> Result<(i64, i64, String)> {
+        let author = db
+            .cooldown_context
+            .as_ref()
+            .map_or("dev@example.test", |c| c.author.as_str());
         let message = format!("{token}-1@example.test");
         let subject = format!("[PATCH 1/{total}] {token}");
         let thread = db.create_thread(&message, &subject, 1).await?;
@@ -364,23 +535,25 @@ mod tests {
             &message,
             thread,
             None,
-            "Dev <dev@example.test>",
+            author,
             &subject,
             1,
-            "body",
+            if total == 1 { "diff" } else { "diff1" },
             "list@example.test",
             "",
             None,
             None,
         )
         .await?;
+        let scoped = fixture_source_handle(db, &message).await?;
+        let db = &scoped;
         let id = db
             .create_patchset(
                 thread,
                 Some(&message),
                 &message,
                 &subject,
-                "Dev <dev@example.test>",
+                author,
                 1,
                 total,
                 3,
@@ -398,11 +571,34 @@ mod tests {
         Ok((id, thread, message))
     }
 
+    async fn fixture_source_handle(db: &Database, message: &str) -> Result<Database> {
+        let mut context = db.cooldown_context.clone();
+        if let Some(context) = &mut context {
+            let mut rows = db
+                .conn
+                .query(
+                    "SELECT cooldown_source_hash FROM messages WHERE message_id = ?",
+                    libsql::params![message],
+                )
+                .await?;
+            let fingerprint: String = rows
+                .next()
+                .await?
+                .context("missing fixture source")?
+                .get(0)?;
+            context.source_snapshot = Some(crate::cooldown::SourceSnapshot {
+                message_id: message.into(),
+                fingerprint,
+            });
+        }
+        Ok(db.with_cooldown_context(context))
+    }
+
     async fn admit_at(db: &Database, id: i64, message: &str, now: i64) -> Result<()> {
         let tx = db.begin_immediate_transaction().await?;
         tx.execute(
-            "INSERT INTO patches(patchset_id,message_id,part_index,diff) VALUES (?, ?, 1, 'diff')",
-            libsql::params![id, message],
+            "INSERT INTO patches(patchset_id,message_id,part_index,diff,cooldown_content_hash) VALUES (?, ?, 1, 'diff', ?)",
+            libsql::params![id, message, crate::cooldown::content_fingerprint(b"diff")],
         )
         .await?;
         tx.execute(
@@ -484,14 +680,17 @@ mod tests {
                 "DEV@EXAMPLE.TEST",
                 "[PATCH 2/2] second",
                 1,
-                "body2",
+                "diff2",
                 "list@example.test",
                 "",
                 None,
                 None,
             )
             .await?;
-        active.bind_cooldown_message(id, second).await?;
+        fixture_source_handle(&active, second)
+            .await?
+            .bind_cooldown_message(id, second)
+            .await?;
         active.create_patch(id, second, 2, "diff2").await?;
         assert_eq!(
             scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
@@ -705,15 +904,55 @@ mod tests {
     #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
     async fn test_cooldown_two_connections_own_opposite_parts_once() -> Result<()> {
         let directory = tempfile::tempdir()?;
-        let settings = DatabaseSettings { url: directory.path().join("race.db").to_string_lossy().into_owned(), token: String::new() };
+        let settings = DatabaseSettings {
+            url: directory
+                .path()
+                .join("race.db")
+                .to_string_lossy()
+                .into_owned(),
+            token: String::new(),
+        };
         let first = Database::new(&settings).await?;
         first.migrate().await?;
         let second = Database::new(&settings).await?;
-        let first = first.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
-        let second = second.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
-        let thread = first.create_thread("race-cover@example.test", "race", 1).await?;
+        let first =
+            first.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let second =
+            second.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let thread = first
+            .create_thread("race-cover@example.test", "race", 1)
+            .await?;
+        first
+            .create_message(
+                "race-cover@example.test",
+                thread,
+                None,
+                "unknown",
+                "(placeholder)",
+                1,
+                "",
+                "",
+                "",
+                None,
+                None,
+            )
+            .await?;
         for index in [1, 2] {
-            first.create_message(&format!("race-{index}@example.test"), thread, Some("race-cover@example.test"), "dev@example.test", &format!("[PATCH {index}/2] race {index}"), 1, "body", "list@example.test", "", None, None).await?;
+            first
+                .create_message(
+                    &format!("race-{index}@example.test"),
+                    thread,
+                    Some("race-cover@example.test"),
+                    "dev@example.test",
+                    &format!("[PATCH {index}/2] race {index}"),
+                    1,
+                    "diff",
+                    "list@example.test",
+                    "",
+                    None,
+                    None,
+                )
+                .await?;
         }
         let barrier = Arc::new(tokio::sync::Barrier::new(2));
         let mut tasks = Vec::new();
@@ -722,36 +961,102 @@ mod tests {
             tasks.push(tokio::spawn(async move {
                 barrier.wait().await;
                 let message = format!("race-{index}@example.test");
-                let id = db.create_patchset(thread, Some("race-cover@example.test"), &message, &format!("[PATCH {index}/2] race {index}"), "dev@example.test", 1, 2, 3, "list@example.test", "", None, index, None, true, None, None).await?.context("missing race owner")?;
-                db.create_patch(id, &message, index, "diff").await?;
+                let db = fixture_source_handle(&db, &message).await?;
+                let id = db
+                    .create_patchset(
+                        thread,
+                        Some("race-cover@example.test"),
+                        &message,
+                        &format!("[PATCH {index}/2] race {index}"),
+                        "dev@example.test",
+                        1,
+                        2,
+                        3,
+                        "list@example.test",
+                        "",
+                        None,
+                        index,
+                        None,
+                        true,
+                        None,
+                        None,
+                    )
+                    .await?
+                    .context("missing race owner")?;
+                db.create_patch(id, &message, index, "diff")
+                    .await
+                    .context("racing patch persistence")?;
                 Ok::<i64, anyhow::Error>(id)
             }));
         }
-        let a = tokio::time::timeout(std::time::Duration::from_secs(15), tasks.remove(0)).await???;
-        let b = tokio::time::timeout(std::time::Duration::from_secs(15), tasks.remove(0)).await???;
+        let a =
+            tokio::time::timeout(std::time::Duration::from_secs(15), tasks.remove(0)).await???;
+        let b =
+            tokio::time::timeout(std::time::Duration::from_secs(15), tasks.remove(0)).await???;
         assert_eq!(a, b);
         let reopened = Database::new(&settings).await?;
-        assert_eq!(scalar(&reopened, "SELECT COUNT(*) FROM patchsets").await?, 1);
+        assert_eq!(
+            scalar(&reopened, "SELECT COUNT(*) FROM patchsets").await?,
+            1
+        );
         assert_eq!(scalar(&reopened, "SELECT COUNT(*) FROM patches").await?, 2);
-        assert_eq!(scalar(&reopened, "SELECT COUNT(*) FROM review_cooldown_events").await?, 1);
-        assert_eq!(scalar(&reopened, "SELECT COUNT(*) FROM review_cooldown_messages").await?, 3);
+        assert_eq!(
+            scalar(&reopened, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            1
+        );
+        assert_eq!(
+            scalar(&reopened, "SELECT COUNT(*) FROM review_cooldown_messages").await?,
+            3
+        );
         Ok(())
     }
 
     #[tokio::test]
     async fn test_cooldown_crosspost_before_admission_is_legacy() -> Result<()> {
         let db = database().await?;
-        let active = db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
         let (id, thread, first) = seed(&active, "crosspost", 2).await?;
         active.create_patch(id, &first, 1, "diff1").await?;
-        let other = db.with_cooldown_context(Some(context("other@example.test", "dev@example.test")));
+        let other =
+            db.with_cooldown_context(Some(context("other@example.test", "dev@example.test")));
         let second = "crosspost-2@example.test";
-        other.create_message(second, thread, Some(&first), "dev@example.test", "[PATCH 2/2] second", 1, "body2", "other@example.test", "", None, None).await?;
-        other.bind_cooldown_message(id, second).await?;
+        other
+            .create_message(
+                second,
+                thread,
+                Some(&first),
+                "dev@example.test",
+                "[PATCH 2/2] second",
+                1,
+                "diff2",
+                "other@example.test",
+                "",
+                None,
+                None,
+            )
+            .await?;
+        fixture_source_handle(&other, second)
+            .await?
+            .bind_cooldown_message(id, second)
+            .await?;
         other.create_patch(id, second, 2, "diff2").await?;
-        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 0);
-        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_intents").await?, 0);
-        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_exclusions WHERE reason = 'cross-post'").await?, 1);
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            0
+        );
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_intents").await?,
+            0
+        );
+        assert_eq!(
+            scalar(
+                &db,
+                "SELECT COUNT(*) FROM review_cooldown_exclusions WHERE reason = 'cross-post'"
+            )
+            .await?,
+            1
+        );
         assert!(db.claim_patchset_for_review(id).await?);
         Ok(())
     }
@@ -759,12 +1064,20 @@ mod tests {
     #[tokio::test]
     async fn test_cooldown_owned_content_cannot_change_without_context() -> Result<()> {
         let db = database().await?;
-        let active = db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
         let (id, _, msg) = seed(&active, "immutablepatch", 1).await?;
         active.create_patch(id, &msg, 1, "diff").await?;
-        assert!(db.create_patch(id, &msg, 1, "different diff").await.is_err());
+        assert!(
+            db.create_patch(id, &msg, 1, "different diff")
+                .await
+                .is_err()
+        );
         assert!(db.cooldown_publication_blocked(id).await?);
-        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patches WHERE diff = 'diff'").await?, 1);
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM patches WHERE diff = 'diff'").await?,
+            1
+        );
         assert!(db.update_patchset_status(id, "Pending").await.is_err());
         Ok(())
     }
@@ -772,24 +1085,62 @@ mod tests {
     #[tokio::test]
     async fn test_cooldown_live_claims_and_null_patch_notification() -> Result<()> {
         let db = database().await?;
-        let active = db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
         let (id, _, msg) = seed(&active, "claimed", 1).await?;
         let patch = active.create_patch(id, &msg, 1, "diff").await?;
-        db.insert_email_outbox(patch, "Pending", "sink@example.test", "", "review", &msg, "", "result").await?;
-        db.insert_patchwork_notification("Pending", "sink@example.test", "patchwork", &format!("<{msg}>"), "", "result").await?;
+        db.insert_email_outbox(
+            patch,
+            "Pending",
+            "sink@example.test",
+            "",
+            "review",
+            &msg,
+            "",
+            "result",
+        )
+        .await?;
+        db.insert_patchwork_notification(
+            "Pending",
+            "sink@example.test",
+            "patchwork",
+            &format!("<{msg}>"),
+            "",
+            "result",
+        )
+        .await?;
         let tx = db.begin_immediate_transaction().await?;
         Database::block_cooldown(&tx, id, "fixture race after enqueue").await?;
         tx.commit().await?;
         assert!(db.lock_pending_email().await?.is_none());
-        assert!(db.insert_patchwork_notification("Pending", "other@example.test", "new patchwork", &format!("<{msg}>"), "", "result").await.is_err());
-        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM email_outbox WHERE status = 'Sending'").await?, 0);
+        assert!(
+            db.insert_patchwork_notification(
+                "Pending",
+                "other@example.test",
+                "new patchwork",
+                &format!("<{msg}>"),
+                "",
+                "result"
+            )
+            .await
+            .is_err()
+        );
+        assert_eq!(
+            scalar(
+                &db,
+                "SELECT COUNT(*) FROM email_outbox WHERE status = 'Sending'"
+            )
+            .await?,
+            0
+        );
         Ok(())
     }
 
     #[tokio::test]
     async fn test_cooldown_policy_reload_preserves_decided_but_blocks_waiting() -> Result<()> {
         let db = database().await?;
-        let active = db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
         let (decided, _, msg) = seed(&active, "decidedreload", 1).await?;
         active.create_patch(decided, &msg, 1, "diff").await?;
         let mut changed = context("list@example.test", "dev@example.test");
@@ -801,38 +1152,82 @@ mod tests {
         let (waiting, _, msg) = seed(&active, "waitingreload", 1).await?;
         db.execute_batch("CREATE TRIGGER fail_cooldown_event BEFORE INSERT ON review_cooldown_events BEGIN SELECT RAISE(ABORT, 'fixture failure'); END;").await?;
         assert!(active.create_patch(waiting, &msg, 1, "diff").await.is_err());
-        db.execute_batch("DROP TRIGGER fail_cooldown_event;").await?;
+        db.execute_batch("DROP TRIGGER fail_cooldown_event;")
+            .await?;
         assert!(db.create_patch(waiting, &msg, 1, "diff").await.is_err());
-        assert_eq!(db.get_patchset_status(waiting).await?.as_deref(), Some("Cooldown blocked"));
-        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 1);
+        assert_eq!(
+            db.get_patchset_status(waiting).await?.as_deref(),
+            Some("Cooldown blocked")
+        );
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            1
+        );
         Ok(())
     }
 
     #[tokio::test]
     async fn test_cooldown_crosspost_preserves_early_release() -> Result<()> {
         let db = database().await?;
-        let active = db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
         let (id, _, msg) = seed(&active, "crossrelease", 1).await?;
         assert!(db.release_patchset_embargo(id, 1).await?);
         let cross = db.with_cooldown_selection(crate::cooldown::CooldownSelection::CrossPost);
         cross.bind_cooldown_message(id, &msg).await?;
-        db.set_patchset_embargo_until_if_non_terminal(id, i64::MAX).await?;
+        db.set_patchset_embargo_until_if_non_terminal(id, i64::MAX)
+            .await?;
         db.create_patch(id, &msg, 1, "diff").await?;
-        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patchsets WHERE embargo_until IS NOT NULL").await?, 0);
-        assert_eq!(scalar(&db, "SELECT released_at FROM review_cooldown_exclusions").await?, 1);
+        assert_eq!(
+            scalar(
+                &db,
+                "SELECT COUNT(*) FROM patchsets WHERE embargo_until IS NOT NULL"
+            )
+            .await?,
+            0
+        );
+        assert_eq!(
+            scalar(&db, "SELECT released_at FROM review_cooldown_exclusions").await?,
+            1
+        );
         Ok(())
     }
 
     #[tokio::test]
     async fn test_cooldown_legacy_quarantine_is_durable_and_cancellable() -> Result<()> {
         let directory = tempfile::tempdir()?;
-        let settings = DatabaseSettings { url: directory.path().join("legacy-block.db").to_string_lossy().into_owned(), token: String::new() };
+        let settings = DatabaseSettings {
+            url: directory
+                .path()
+                .join("legacy-block.db")
+                .to_string_lossy()
+                .into_owned(),
+            token: String::new(),
+        };
         let db = Database::new(&settings).await?;
         db.migrate().await?;
         let (id, thread, msg) = seed(&db, "legacyblock", 1).await?;
         let patch = db.create_patch(id, &msg, 1, "diff").await?;
-        db.insert_email_outbox(patch, "Pending", "sink@example.test", "", "ordinary", &msg, "", "body").await?;
-        db.insert_patchwork_notification("Pending", "sink@example.test", "patchwork", &format!("<{msg}>"), "", "body").await?;
+        db.insert_email_outbox(
+            patch,
+            "Pending",
+            "sink@example.test",
+            "",
+            "ordinary",
+            &msg,
+            "",
+            "body",
+        )
+        .await?;
+        db.insert_patchwork_notification(
+            "Pending",
+            "sink@example.test",
+            "patchwork",
+            &format!("<{msg}>"),
+            "",
+            "body",
+        )
+        .await?;
         let tx = db.begin_immediate_transaction().await?;
         Database::block_cooldown(&tx, id, "mixed merge fixture").await?;
         tx.commit().await?;
@@ -842,10 +1237,617 @@ mod tests {
         assert!(db.update_patchset_status(id, "Pending").await.is_err());
         assert!(db.lock_pending_email().await?.is_none());
         assert!(db.cancel_patchset(id, false).await?);
-        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM email_outbox WHERE status = 'Cancelled'").await?, 2);
-        assert!(db.create_message(&msg, thread, None, "victim@example.test", "changed", 1, "changed", "list@example.test", "", None, None).await.is_err());
-        assert_eq!(db.get_patchset_status(id).await?.as_deref(), Some("Cancelled"));
+        assert_eq!(
+            scalar(
+                &db,
+                "SELECT COUNT(*) FROM email_outbox WHERE status = 'Cancelled'"
+            )
+            .await?,
+            2
+        );
+        assert!(
+            db.create_message(
+                &msg,
+                thread,
+                None,
+                "victim@example.test",
+                "changed",
+                1,
+                "changed",
+                "list@example.test",
+                "",
+                None,
+                None
+            )
+            .await
+            .is_err()
+        );
+        assert_eq!(
+            db.get_patchset_status(id).await?.as_deref(),
+            Some("Cancelled")
+        );
         assert!(db.lock_pending_email().await?.is_none());
+        Ok(())
+    }
+    #[allow(clippy::too_many_arguments)]
+    async fn mail_part(
+        db: &Database,
+        thread: i64,
+        cover: &str,
+        message: &str,
+        subject: &str,
+        author: &str,
+        index: u32,
+        total: u32,
+    ) -> Result<i64> {
+        if message != cover && db.get_message_id_by_msg_id(cover).await?.is_none() {
+            db.create_message(
+                cover,
+                thread,
+                None,
+                "unknown",
+                "(placeholder)",
+                1,
+                "",
+                "",
+                "",
+                None,
+                None,
+            )
+            .await?;
+        }
+        db.create_message(
+            message,
+            thread,
+            Some(cover),
+            author,
+            subject,
+            1,
+            "diff",
+            "list@example.test",
+            "",
+            None,
+            None,
+        )
+        .await?;
+        let handle = fixture_source_handle(db, message).await?;
+        let id = handle
+            .create_patchset(
+                thread,
+                Some(cover),
+                message,
+                subject,
+                author,
+                1,
+                total,
+                3,
+                "list@example.test",
+                "",
+                crate::patch::parse_subject_version(subject),
+                index,
+                None,
+                true,
+                None,
+                None,
+            )
+            .await?
+            .context("missing mail owner")?;
+        if index > 0 {
+            handle.create_patch(id, message, index, "diff").await?;
+        }
+        Ok(id)
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_real_versions_and_late_cover_remain_separate() -> Result<()> {
+        let db = database().await?;
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let root = "versions-cover@example.test";
+        let thread = db.create_thread(root, "versions", 1).await?;
+        let v1 = mail_part(
+            &active,
+            thread,
+            root,
+            "versions-v1-1@example.test",
+            "[PATCH v1 1/2] first",
+            "dev@example.test",
+            1,
+            2,
+        )
+        .await?;
+        assert_eq!(
+            mail_part(
+                &active,
+                thread,
+                root,
+                "versions-v1-2@example.test",
+                "[PATCH v1 2/2] second",
+                "dev@example.test",
+                2,
+                2
+            )
+            .await?,
+            v1
+        );
+        let v2 = mail_part(
+            &active,
+            thread,
+            root,
+            "versions-v2-1@example.test",
+            "[PATCH v2 1/2] first",
+            "dev@example.test",
+            1,
+            2,
+        )
+        .await?;
+        assert_ne!(v1, v2);
+        assert_eq!(
+            mail_part(
+                &active,
+                thread,
+                root,
+                "versions-v2-2@example.test",
+                "[PATCH v2 2/2] second",
+                "dev@example.test",
+                2,
+                2
+            )
+            .await?,
+            v2
+        );
+        assert_eq!(
+            mail_part(
+                &active,
+                thread,
+                root,
+                root,
+                "[PATCH v1 0/2] series",
+                "dev@example.test",
+                0,
+                2
+            )
+            .await?,
+            v1
+        );
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            2
+        );
+        assert_eq!(
+            scalar(
+                &db,
+                "SELECT COUNT(*) FROM review_cooldown_intents WHERE state = 'blocked'"
+            )
+            .await?,
+            0
+        );
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patches").await?, 4);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_policy_source_race_cannot_bind_changed_recipients() -> Result<()> {
+        let db = database().await?;
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let msg = "source-race@example.test";
+        let thread = db.create_thread(msg, "race", 1).await?;
+        db.create_message(
+            msg,
+            thread,
+            None,
+            "dev@example.test",
+            "[PATCH 1/1] race",
+            1,
+            "diff",
+            "list@example.test",
+            "",
+            None,
+            None,
+        )
+        .await?;
+        let stale = fixture_source_handle(&active, msg).await?;
+        // Another unowned ingestion wins before canonical binding.
+        db.create_message(
+            msg,
+            thread,
+            None,
+            "dev@example.test",
+            "[PATCH 1/1] race",
+            1,
+            "diff",
+            "other@example.test",
+            "",
+            None,
+            None,
+        )
+        .await?;
+        assert!(
+            stale
+                .create_patchset(
+                    thread,
+                    Some(msg),
+                    msg,
+                    "[PATCH 1/1] race",
+                    "dev@example.test",
+                    1,
+                    1,
+                    3,
+                    "list@example.test",
+                    "",
+                    None,
+                    1,
+                    None,
+                    true,
+                    None,
+                    None
+                )
+                .await
+                .is_err()
+        );
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patchsets").await?, 0);
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            0
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_mixed_canonical_merge_blocks_before_moving_rows() -> Result<()> {
+        let db = database().await?;
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let root = "merge-cover@example.test";
+        let thread = db.create_thread(root, "merge", 1).await?;
+        let a = mail_part(
+            &active,
+            thread,
+            "merge-first@example.test",
+            "merge-first@example.test",
+            "[PATCH 1/2] first",
+            "dev@example.test",
+            1,
+            2,
+        )
+        .await?;
+        // Reproduce two existing canonical owners from legacy ingestion.
+        db.create_message(
+            "merge-second@example.test",
+            thread,
+            Some(root),
+            "dev@example.test",
+            "[PATCH 2/2] second",
+            1,
+            "diff",
+            "list@example.test",
+            "",
+            None,
+            None,
+        )
+        .await?;
+        let b = db.query_returning_i64("INSERT INTO patchsets(thread_id,cover_letter_message_id,subject,author,date,total_parts,received_parts,status,subject_index) VALUES (?, 'merge-second@example.test', '[PATCH 2/2] second', 'dev@example.test', 1, 2, 0, 'Incomplete', 2) RETURNING id",libsql::params![thread]).await?.context("missing legacy owner")?;
+        db.create_patch(b, "merge-second@example.test", 2, "diff")
+            .await?;
+        assert!(
+            mail_part(
+                &active,
+                thread,
+                root,
+                root,
+                "[PATCH 0/2] merge",
+                "dev@example.test",
+                0,
+                2
+            )
+            .await
+            .is_err()
+        );
+        assert!(db.cooldown_publication_blocked(a).await?);
+        assert!(db.cooldown_publication_blocked(b).await?);
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patches").await?, 2);
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patchsets").await?, 2);
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            0
+        );
+        assert!(db.cancel_patchset(a, false).await?);
+        assert!(db.cancel_patchset(b, false).await?);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_coverage_and_backward_clock_fail_closed() -> Result<()> {
+        let db = database().await?;
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let (a, _, msg) = seed(&active, "clock-first", 1).await?;
+        admit_at(&active, a, &msg, 1000).await?;
+        assert_eq!(
+            db.get_meta("cooldown.history_since:list@example.test")
+                .await?
+                .as_deref(),
+            Some("1000")
+        );
+        assert_eq!(
+            scalar(
+                &db,
+                "SELECT history_since FROM review_cooldown_intents WHERE admitted_at = 1000"
+            )
+            .await?,
+            1000
+        );
+        let (b, _, msg) = seed(&active, "clock-backward", 1).await?;
+        assert!(admit_at(&active, b, &msg, 999).await.is_err());
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            1
+        );
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patches").await?, 1);
+        admit_at(&active, b, &msg, 1001).await?;
+        let (c, _, msg) = seed(&active, "clock-corrupt", 1).await?;
+        db.set_meta("cooldown.history_since:list@example.test", "bad")
+            .await?;
+        assert!(admit_at(&active, c, &msg, 1002).await.is_err());
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            2
+        );
+        Ok(())
+    }
+    #[tokio::test]
+    async fn test_cooldown_same_version_extension_cannot_escape_frozen_owner() -> Result<()> {
+        let db = database().await?;
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let root = "frozen-cover@example.test";
+        let thread = db.create_thread(root, "frozen", 1).await?;
+        let a = mail_part(
+            &active,
+            thread,
+            root,
+            "frozen-1@example.test",
+            "[PATCH v1 1/2] first",
+            "dev@example.test",
+            1,
+            2,
+        )
+        .await?;
+        mail_part(
+            &active,
+            thread,
+            root,
+            "frozen-2@example.test",
+            "[PATCH v1 2/2] second",
+            "dev@example.test",
+            2,
+            2,
+        )
+        .await?;
+        assert!(
+            mail_part(
+                &active,
+                thread,
+                root,
+                "frozen-new@example.test",
+                "[PATCH v1 1/2] replacement",
+                "dev@example.test",
+                1,
+                2
+            )
+            .await
+            .is_err()
+        );
+        assert!(db.cooldown_publication_blocked(a).await?);
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            1
+        );
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patchsets").await?, 1);
+        Ok(())
+    }
+    #[tokio::test]
+    async fn test_cooldown_late_cover_recovers_explicit_part_version() -> Result<()> {
+        let db = database().await?;
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let root = "late-version-cover@example.test";
+        let thread = db.create_thread(root, "late version", 1).await?;
+        let a = mail_part(
+            &active,
+            thread,
+            root,
+            "late-version-2@example.test",
+            "[PATCH v2 2/2] second",
+            "dev@example.test",
+            2,
+            2,
+        )
+        .await?;
+        assert_eq!(
+            mail_part(
+                &active,
+                thread,
+                root,
+                "late-version-1@example.test",
+                "[PATCH 1/2] first",
+                "dev@example.test",
+                1,
+                2
+            )
+            .await?,
+            a
+        );
+        assert!(db.claim_patchset_for_review(a).await?);
+        assert_eq!(
+            mail_part(
+                &active,
+                thread,
+                root,
+                root,
+                "[PATCH v2 0/2] series",
+                "dev@example.test",
+                0,
+                2
+            )
+            .await?,
+            a
+        );
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patchsets").await?, 1);
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            1
+        );
+        assert!(!db.cooldown_publication_blocked(a).await?);
+        Ok(())
+    }
+    async fn completed_fixture(db: &Database, id: i64, findings: bool) -> Result<()> {
+        let mut rows = db
+            .conn
+            .query(
+                "SELECT id FROM patches WHERE patchset_id = ?",
+                libsql::params![id],
+            )
+            .await?;
+        let patch: i64 = rows
+            .next()
+            .await?
+            .context("missing fixture patch")?
+            .get(0)?;
+        let review = db
+            .create_review(id, Some(patch), "fixture", "no-model", None, None)
+            .await?;
+        db.complete_review(
+            review,
+            "Reviewed",
+            "completed",
+            Some("result"),
+            None,
+            None,
+            None,
+        )
+        .await?;
+        if findings {
+            db.create_finding(Finding {
+                review_id: review,
+                severity: Severity::High,
+                severity_explanation: None,
+                problem: "fixture finding".into(),
+                preexisting: Some(false),
+                locations: None,
+            })
+            .await?;
+        }
+        db.update_patch_status(patch, "Reviewed").await?;
+        db.update_patchset_status(id, "Reviewed").await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_cooldown_deadline_boundary_clean_exception_and_isolation() -> Result<()> {
+        let db = database().await?;
+        let mut ctx = context("list@example.test", "dev@example.test");
+        ctx.policy.burst = 1;
+        let active = db.with_cooldown_context(Some(ctx));
+        let (a, _, msg) = seed(&active, "boundary-prior", 1).await?;
+        admit_at(&active, a, &msg, 1000).await?;
+        let (held, _, msg) = seed(&active, "boundary-held", 1).await?;
+        admit_at(&active, held, &msg, 1001).await?;
+        completed_fixture(&db, held, true).await?;
+        assert!(
+            !db.get_releasable_embargoed_patchsets(1010, 100)
+                .await?
+                .iter()
+                .any(|p| p.id == held)
+        );
+        assert!(!db.claim_patchset_embargo_release(held, 1010).await?);
+        assert!(
+            db.get_releasable_embargoed_patchsets(1011, 100)
+                .await?
+                .iter()
+                .any(|p| p.id == held)
+        );
+        assert!(db.claim_patchset_embargo_release(held, 1011).await?);
+        let (clean, _, msg) = seed(&active, "boundary-clean", 1).await?;
+        admit_at(&active, clean, &msg, 1002).await?;
+        completed_fixture(&db, clean, false).await?;
+        assert!(
+            db.get_releasable_embargoed_patchsets(1002, 100)
+                .await?
+                .iter()
+                .any(|p| p.id == clean)
+        );
+        let other =
+            db.with_cooldown_context(Some(context("list@example.test", "other@example.test")));
+        let (id, _, msg) = seed(&other, "other-author", 1).await?;
+        admit_at(&other, id, &msg, 1003).await?;
+        assert_eq!(scalar(&db,"SELECT prior_count FROM review_cooldown_intents WHERE author = 'other@example.test'").await?,0);
+        // Later admissions cannot move the already committed held decision.
+        assert_eq!(
+            scalar(
+                &db,
+                "SELECT embargo_until FROM patchsets WHERE subject LIKE '%boundary-held%'"
+            )
+            .await?,
+            1011
+        );
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn test_cooldown_distinct_connections_serialize_author_history() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let settings = DatabaseSettings {
+            url: directory
+                .path()
+                .join("distinct.db")
+                .to_string_lossy()
+                .into_owned(),
+            token: String::new(),
+        };
+        let first = Database::new(&settings).await?;
+        first.migrate().await?;
+        let second = Database::new(&settings).await?;
+        let first =
+            first.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let second =
+            second.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let (a, _, a_msg) = seed(&first, "distinct-first", 1).await?;
+        let (b, _, b_msg) = seed(&second, "distinct-second", 1).await?;
+        let barrier = Arc::new(tokio::sync::Barrier::new(2));
+        let mut tasks = Vec::new();
+        for (db, id, msg) in [(first, a, a_msg), (second, b, b_msg)] {
+            let barrier = barrier.clone();
+            tasks.push(tokio::spawn(async move {
+                barrier.wait().await;
+                admit_at(&db, id, &msg, 1000).await
+            }));
+        }
+        for task in tasks {
+            tokio::time::timeout(std::time::Duration::from_secs(15), task).await???;
+        }
+        let db = Database::new(&settings).await?;
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            2
+        );
+        assert_eq!(
+            scalar(&db, "SELECT MIN(prior_count) FROM review_cooldown_intents").await?,
+            0
+        );
+        assert_eq!(
+            scalar(&db, "SELECT MAX(prior_count) FROM review_cooldown_intents").await?,
+            1
+        );
+        assert_eq!(
+            scalar(
+                &db,
+                "SELECT COUNT(DISTINCT prior_count) FROM review_cooldown_intents"
+            )
+            .await?,
+            2
+        );
         Ok(())
     }
 }

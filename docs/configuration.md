@@ -488,3 +488,31 @@ Downstream tools can parse this format with simple line splitting.
 | `SASHIKO_PATCHWORK_TOKEN` | Patchwork API token. Fills in `patchwork.token` for enabled subsystems that have `api_url` set but no explicit token in TOML. |
 | `NO_COLOR` | Disable ANSI color output. |
 | `SASHIKO_LOG_PLAIN` | Use plain log format (no level/target/timestamp). |
+
+### Experimental per-list publication cooldown
+
+In projects/<project>/mailing_lists.toml, explicitly enable one consenting list:
+
+```toml
+[lists."example@lists.example.org".adaptive_cooldown]
+enabled = true
+window_seconds = 86400
+burst = 2
+step_seconds = 3600
+max_extra_seconds = 21600
+```
+
+These are illustrative values, not recommended production policy. Numeric fields
+may inherit from [defaults.adaptive_cooldown], whose enabled value must remain
+false. Omission and enabled=false preserve the legacy policy. Values must be
+positive; unknown keys and contradictory or excessive bounds fail configuration
+validation. The policy counts complete revisions, with no size multiplier.
+
+For p prior revisions within the window, the adaptive increment is
+min(max_extra_seconds, step_seconds * max(0, p+1-burst)). Publication uses the
+later of its trusted admission time plus that increment and its fixed deadline.
+A zero increment preserves the legacy deadline exactly. Cross-posts and non-NNTP
+sources retain legacy behavior. Existing held decisions survive disable/reload;
+unresolved intents require restored policy or cancellation. See
+[the design and rollback contract](../designs/ADAPTIVE_PUBLICATION_COOLDOWN.md)
+for cold-start history, identity limitations, quarantine and resource bounds.

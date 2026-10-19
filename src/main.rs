@@ -3341,7 +3341,7 @@ async fn process_parsed_article(
             None
         };
 
-        let context = match policy.adaptive_context(
+        let mut context = match policy.adaptive_context(
             source,
             &group,
             &metadata.to,
@@ -3355,6 +3355,27 @@ async fn process_parsed_article(
                 return ProcessStatus::Error;
             }
         };
+        if let sashiko::cooldown::CooldownSelection::Enabled(context) = &mut context {
+            let body_hash = sashiko::cooldown::content_fingerprint(metadata.body.as_bytes());
+            let fingerprint = match sashiko::cooldown::source_fingerprint(
+                &metadata.author,
+                &metadata.subject,
+                &metadata.to,
+                &metadata.cc,
+                metadata.in_reply_to.as_deref(),
+                &body_hash,
+            ) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Failed to snapshot adaptive source: {}", error);
+                    return ProcessStatus::Error;
+                }
+            };
+            context.source_snapshot = Some(sashiko::cooldown::SourceSnapshot {
+                message_id: metadata.message_id.clone(),
+                fingerprint,
+            });
+        }
         let adaptive_db = worker_db.with_cooldown_selection(context);
         let worker_db = &adaptive_db;
         match worker_db
@@ -3777,6 +3798,7 @@ mod tests {
     #[cfg(feature = "server")]
     #[tokio::test]
     async fn test_cooldown_config_to_real_release_and_sendmail() -> anyhow::Result<()> {
+        use anyhow::Context as _;
         use sashiko::db::{Finding, Severity};
         use sashiko::settings::{DatabaseSettings, MailTransport, SmtpSettings};
         let directory = tempfile::tempdir()?;

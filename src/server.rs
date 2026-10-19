@@ -964,10 +964,15 @@ async fn attach_patchset_flags(
     include_logs: bool,
 ) -> Result<(), StatusCode> {
     let now = chrono::Utc::now().timestamp();
-    let is_embargoed = details
-        .get("embargo_until")
-        .and_then(|v| v.as_i64())
-        .is_some_and(|until| until > now);
+    let publication_blocked = details
+        .get("publication_blocked")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let is_embargoed = publication_blocked
+        || details
+            .get("embargo_until")
+            .and_then(|v| v.as_i64())
+            .is_some_and(|until| until > now);
     let (can_view, can_release) = if is_embargoed
         && let Some(ps_id) = details.get("id").and_then(|v| v.as_i64())
     {
@@ -986,7 +991,7 @@ async fn attach_patchset_flags(
                 obj.insert("reviews".to_string(), serde_json::Value::Array(reviews));
             }
         }
-        (view, release)
+        (view, release && !publication_blocked)
     } else {
         (false, false)
     };
@@ -1073,8 +1078,14 @@ async fn enforce_review_embargo(
     details: &serde_json::Value,
 ) -> Result<(), StatusCode> {
     let now = chrono::Utc::now().timestamp();
-    if details.get("publication_blocked").and_then(|v| v.as_bool()).unwrap_or(false)
-        || details.get("embargo_until").and_then(|v| v.as_i64()).is_some_and(|until| until > now)
+    if details
+        .get("publication_blocked")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+        || details
+            .get("embargo_until")
+            .and_then(|v| v.as_i64())
+            .is_some_and(|until| until > now)
     {
         let Some(ps_id) = details.get("patchset_id").and_then(|v| v.as_i64()) else {
             return Err(StatusCode::NOT_FOUND);
@@ -5422,32 +5433,211 @@ F:	net/
         let db = Arc::new(Database::new(&settings.database).await?);
         db.migrate().await?;
         let active = db.with_cooldown_context(Some(CooldownContext {
-            list: "list@example.test".into(), author: "dev@example.test".into(),
-            policy: CooldownPolicy {window_seconds:100,burst:2,step_seconds:10,max_extra_seconds:30},
+            list: "list@example.test".into(),
+            author: "dev@example.test".into(),
+            policy: CooldownPolicy {
+                window_seconds: 100,
+                burst: 2,
+                step_seconds: 10,
+                max_extra_seconds: 30,
+            },
             legacy_deadline: Some(1),
+            source_snapshot: None,
         }));
         let msg = "direct-review@example.test";
         let thread = active.create_thread(msg, "[PATCH] direct", 1).await?;
-        active.create_message(msg, thread, None, "dev@example.test", "[PATCH] direct", 1, "body", "list@example.test", "", None, None).await?;
-        let id = active.create_patchset(thread, Some(msg), msg, "[PATCH] direct", "dev@example.test", 1, 1, 3, "list@example.test", "", None, 1, None, true, None, None).await?.unwrap();
+        active
+            .create_message(
+                msg,
+                thread,
+                None,
+                "dev@example.test",
+                "[PATCH] direct",
+                1,
+                "diff",
+                "list@example.test",
+                "",
+                None,
+                None,
+            )
+            .await?;
+        let mut context = crate::cooldown::CooldownContext {
+            list: "list@example.test".into(),
+            author: "dev@example.test".into(),
+            policy: CooldownPolicy {
+                window_seconds: 100,
+                burst: 2,
+                step_seconds: 10,
+                max_extra_seconds: 30,
+            },
+            legacy_deadline: Some(1),
+            source_snapshot: None,
+        };
+        let fingerprint: String = db
+            .conn
+            .query(
+                "SELECT cooldown_source_hash FROM messages WHERE message_id = ?",
+                libsql::params![msg],
+            )
+            .await?
+            .next()
+            .await?
+            .unwrap()
+            .get(0)?;
+        context.source_snapshot = Some(crate::cooldown::SourceSnapshot {
+            message_id: msg.into(),
+            fingerprint,
+        });
+        let active = db.with_cooldown_context(Some(context));
+        let id = active
+            .create_patchset(
+                thread,
+                Some(msg),
+                msg,
+                "[PATCH] direct",
+                "dev@example.test",
+                1,
+                1,
+                3,
+                "list@example.test",
+                "",
+                None,
+                1,
+                None,
+                true,
+                None,
+                None,
+            )
+            .await?
+            .unwrap();
         let patch = active.create_patch(id, msg, 1, "diff").await?;
-        let review = db.create_review(id, Some(patch), "fixture", "no-model", None, None).await?;
-        db.complete_review(review,"Reviewed","private fixture output",Some("result"),None,Some("inline"),Some("private fixture logs")).await?;
-        db.update_patch_status(patch,"Reviewed").await?;
-        db.update_patchset_status(id,"Reviewed").await?;
-        assert!(db.create_message(msg,thread,None,"changed@example.test","[PATCH] changed",1,"changed","list@example.test","",None,None).await.is_err());
+        let review = db
+            .create_review(id, Some(patch), "fixture", "no-model", None, None)
+            .await?;
+        db.complete_review(
+            review,
+            "Reviewed",
+            "private fixture output",
+            Some("result"),
+            None,
+            Some("inline"),
+            Some("private fixture logs"),
+        )
+        .await?;
+        db.update_patch_status(patch, "Reviewed").await?;
+        db.update_patchset_status(id, "Reviewed").await?;
+        assert!(
+            db.create_message(
+                msg,
+                thread,
+                None,
+                "changed@example.test",
+                "[PATCH] changed",
+                1,
+                "changed",
+                "list@example.test",
+                "",
+                None,
+                None
+            )
+            .await
+            .is_err()
+        );
+        settings.server.acl.admins = vec!["operator@example.test".into()];
+        let settings = Arc::new(settings);
         let (event_tx, _event_rx) = mpsc::channel(1);
         let (fetch_tx, _fetch_rx) = mpsc::channel(1);
-        let app = build_router(Arc::new(settings),db,event_tx,fetch_tx,ServerOptions::default());
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
-        let addr = listener.local_addr()?;
-        let server = tokio::spawn(async move { axum::serve(listener,app.into_make_service_with_connect_info::<SocketAddr>()).await });
-        let client = reqwest::Client::builder().timeout(Duration::from_secs(2)).build()?;
-        for endpoint in [format!("review?id={review}"),format!("review?patchset_id={id}"),format!("review_log?id={review}"),format!("review_log?patchset_id={id}")] {
-            let response = client.get(format!("http://{addr}/api/{endpoint}")).send().await?;
-            assert_eq!(response.status(),StatusCode::NOT_FOUND,"{endpoint}");
+        let state = Arc::new(AppState {
+            db: db.clone(),
+            sender: event_tx,
+            fetch_sender: fetch_tx,
+            settings: settings.clone(),
+            read_only: false,
+            allow_all_submit: false,
+            smtp_enabled: false,
+            dry_run: true,
+            local_token: None,
+            email_worker_heartbeat: None,
+            forge_registry: Arc::new(crate::forge::ForgeRegistry::new()),
+            patchsets_homepage_cache: AsyncCache::new(Duration::from_secs(2)),
+            messages_homepage_cache: AsyncCache::new(Duration::from_secs(2)),
+            patchsets_count_cache: AsyncCache::new(Duration::from_secs(10)),
+            messages_count_cache: AsyncCache::new(Duration::from_secs(10)),
+            stats_timeline_cache: AsyncMapCache::new(Duration::from_secs(60)),
+            stats_reviews_cache: AsyncCache::new(Duration::from_secs(60)),
+            stats_tools_cache: AsyncCache::new(Duration::from_secs(60)),
+            bug_subsystems_cache: AsyncMapCache::new(Duration::from_secs(60)),
+            sign_in_link_rate_limiter: SignInLinkRateLimiter::new(),
+        });
+        let headers = axum::http::HeaderMap::new();
+        for query in [
+            ReviewQuery {
+                id: Some(review),
+                patchset_id: None,
+            },
+            ReviewQuery {
+                id: None,
+                patchset_id: Some(id),
+            },
+        ] {
+            let result = get_review(
+                crate::auth::OptionalAuthUser(None),
+                OptionalPrincipal(Principal::anonymous()),
+                headers.clone(),
+                State(state.clone()),
+                Query(ReviewQuery {
+                    id: query.id,
+                    patchset_id: query.patchset_id,
+                }),
+            )
+            .await;
+            assert_eq!(result.unwrap_err(), StatusCode::NOT_FOUND);
+            let result = get_review_log(
+                crate::auth::OptionalAuthUser(None),
+                OptionalPrincipal(Principal::anonymous()),
+                headers.clone(),
+                State(state.clone()),
+                Query(query),
+            )
+            .await;
+            assert_eq!(result.unwrap_err(), StatusCode::NOT_FOUND);
         }
-        server.abort(); let _ = server.await;
+        let query = || PatchQuery {
+            id: id.to_string(),
+            page: None,
+            per_page: None,
+        };
+        let Json(public) = get_patchset(
+            crate::auth::OptionalAuthUser(None),
+            OptionalPrincipal(Principal::anonymous()),
+            headers.clone(),
+            State(state.clone()),
+            Query(query()),
+        )
+        .await
+        .unwrap();
+        assert!(public["reviews"].as_array().unwrap().is_empty());
+        assert_eq!(public["can_view_embargoed"], false);
+        let principal = Principal::resolve("operator@example.test", &settings.server.acl, None);
+        let auth = crate::auth::OptionalAuthUser(Some(crate::auth::AuthUser {
+            email: "operator@example.test".into(),
+            typ: Some("session".into()),
+            iat: Some(1),
+            sid: None,
+            max_bug_access: None,
+        }));
+        let Json(authorized) = get_patchset(
+            auth,
+            OptionalPrincipal(principal),
+            headers,
+            State(state),
+            Query(query()),
+        )
+        .await
+        .unwrap();
+        assert_eq!(authorized["can_view_embargoed"], true);
+        assert_eq!(authorized["can_release_embargo"], false);
+        assert_eq!(authorized["reviews"].as_array().unwrap().len(), 1);
         Ok(())
     }
 

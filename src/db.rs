@@ -134,6 +134,7 @@ async fn select_git_patch_id(
 }
 
 #[cfg(feature = "server")]
+#[allow(clippy::too_many_arguments)]
 async fn write_patch_if_unchanged(
     conn: &libsql::Connection,
     old_patch: Option<StoredPatchState>,
@@ -142,6 +143,7 @@ async fn write_patch_if_unchanged(
     part_index: u32,
     diff: libsql::Value,
     git_patch_id: Option<String>,
+    content_hash: &str,
 ) -> Result<Option<(i64, bool)>> {
     let existing_in_patchset = old_patch.is_some();
     let mut rows = if let Some(old_patch) = old_patch {
@@ -150,7 +152,7 @@ async fn write_patch_if_unchanged(
             Err(diff) => diff.as_ref().clone(),
         };
         conn.query(
-            "UPDATE patches SET part_index = ?, diff = ?, git_patch_id = ?
+            "UPDATE patches SET part_index = ?, diff = ?, git_patch_id = ?, cooldown_content_hash = ?
              WHERE patchset_id = ? AND message_id = ?
                AND diff IS ? AND git_patch_id IS ?
              RETURNING id",
@@ -158,6 +160,7 @@ async fn write_patch_if_unchanged(
                 part_index,
                 diff,
                 git_patch_id,
+                content_hash,
                 patchset_id,
                 message_id,
                 old_diff,
@@ -168,11 +171,18 @@ async fn write_patch_if_unchanged(
     } else {
         conn.query(
             "INSERT INTO patches
-                (patchset_id, message_id, part_index, diff, git_patch_id)
-             VALUES (?, ?, ?, ?, ?)
+                (patchset_id, message_id, part_index, diff, git_patch_id, cooldown_content_hash)
+             VALUES (?, ?, ?, ?, ?, ?)
              ON CONFLICT(patchset_id, message_id) DO NOTHING
              RETURNING id",
-            libsql::params![patchset_id, message_id, part_index, diff, git_patch_id],
+            libsql::params![
+                patchset_id,
+                message_id,
+                part_index,
+                diff,
+                git_patch_id,
+                content_hash
+            ],
         )
         .await?
     };
@@ -2075,6 +2085,22 @@ impl Database {
 
         if current_version < 14 {
             let tx = self.begin_immediate_transaction().await?;
+            for (table, column) in [
+                ("messages", "cooldown_body_hash"),
+                ("messages", "cooldown_source_hash"),
+                ("patches", "cooldown_content_hash"),
+            ] {
+                let mut rows = tx.query(&format!("PRAGMA table_info({table})"), ()).await?;
+                let mut exists = false;
+                while let Some(row) = rows.next().await? {
+                    exists |= row.get::<String>(1)? == column;
+                }
+                drop(rows);
+                if !exists {
+                    tx.execute(&format!("ALTER TABLE {table} ADD COLUMN {column} TEXT"), ())
+                        .await?;
+                }
+            }
             tx.execute_batch(include_str!("migrations/014_publication_cooldown.sql"))
                 .await?;
             tx.execute("PRAGMA user_version = 14", ()).await?;
@@ -5809,11 +5835,14 @@ impl Database {
         mailing_list: Option<&str>,
         references_hdr: Option<&str>,
     ) -> Result<()> {
+        let body_hash = crate::cooldown::content_fingerprint(body.as_bytes());
+        let source_hash =
+            crate::cooldown::source_fingerprint(author, subject, to, cc, in_reply_to, &body_hash)?;
         let compressed_body = crate::compression::compress_string_if_needed(body);
         let tx = self.begin_immediate_transaction().await?;
 
         if let Some(owner) = Self::cooldown_owner(&tx, message_id).await? {
-            let mut stored = tx.query("SELECT author, subject, body, to_recipients, cc_recipients, in_reply_to FROM messages WHERE message_id = ?", libsql::params![message_id]).await?;
+            let mut stored = tx.query("SELECT author, subject, cooldown_body_hash, to_recipients, cc_recipients, in_reply_to FROM messages WHERE message_id = ?", libsql::params![message_id]).await?;
             if let Some(row) = stored.next().await? {
                 let old_subject: String = row.get(1)?;
                 let changed = old_subject != "(placeholder)"
@@ -5824,7 +5853,7 @@ impl Database {
                         })
                         .is_none()
                         || old_subject != subject
-                        || row.get::<libsql::Value>(2)? != compressed_body
+                        || row.get::<Option<String>>(2)?.as_deref() != Some(body_hash.as_str())
                         || row.get::<Option<String>>(3)?.as_deref().unwrap_or("") != to
                         || row.get::<Option<String>>(4)?.as_deref().unwrap_or("") != cc
                         || row.get::<Option<String>>(5)?.as_deref() != in_reply_to);
@@ -5902,8 +5931,8 @@ impl Database {
         // But main.rs logic should ensure consistency.
         // Use INSERT OR REPLACE.
         tx.execute(
-            "INSERT INTO messages (message_id, thread_id, in_reply_to, author, subject, date, body, to_recipients, cc_recipients, git_blob_hash, mailing_list, references_hdr) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            "INSERT INTO messages (message_id, thread_id, in_reply_to, author, subject, date, body, to_recipients, cc_recipients, git_blob_hash, mailing_list, references_hdr, cooldown_body_hash, cooldown_source_hash)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON CONFLICT(message_id) DO UPDATE SET
                 thread_id=excluded.thread_id,
                 in_reply_to=excluded.in_reply_to,
@@ -5915,8 +5944,10 @@ impl Database {
                 cc_recipients=excluded.cc_recipients,
                 git_blob_hash=excluded.git_blob_hash,
                 mailing_list=excluded.mailing_list,
-                references_hdr=excluded.references_hdr",
-            libsql::params![message_id, thread_id, in_reply_to, author, subject, date, compressed_body, to, cc, git_blob_hash, mailing_list, references_hdr],
+                references_hdr=excluded.references_hdr,
+                cooldown_body_hash=excluded.cooldown_body_hash,
+                cooldown_source_hash=excluded.cooldown_source_hash",
+            libsql::params![message_id, thread_id, in_reply_to, author, subject, date, compressed_body, to, cc, git_blob_hash, mailing_list, references_hdr, body_hash, source_hash],
         ).await?;
         tx.commit().await?;
         Ok(())
@@ -6505,7 +6536,12 @@ impl Database {
                     || existing_status == "Fetching"
                     || (existing_status == "Failed" && existing_received == 0);
 
-                let existing_version = crate::patch::parse_subject_version(&existing_subject);
+                let existing_version = self
+                    .cooldown_canonical_version(
+                        id,
+                        crate::patch::parse_subject_version(&existing_subject),
+                    )
+                    .await?;
                 let same_thread = existing_thread_id == Some(thread_id);
                 // A forge series is one pull request: its parts are commits
                 // whose subjects carry no version tag of their own, so the
@@ -6647,6 +6683,7 @@ impl Database {
             baseline_part: Option<u32>,
             patches_reply_to_new_cover: bool,
             is_placeholder: bool,
+            closed_late_cover: bool,
         }
 
         let mut matches: Vec<CandidateMatch> = Vec::new();
@@ -6670,7 +6707,12 @@ impl Database {
             let is_duplicate = self.patchset_holds_message(id, message_id).await?;
 
             // Parse version from existing subject
-            let existing_version = crate::patch::parse_subject_version(&existing_subject);
+            let existing_version = self
+                .cooldown_canonical_version(
+                    id,
+                    crate::patch::parse_subject_version(&existing_subject),
+                )
+                .await?;
 
             // Clean subjects for comparison
             let clean_new = crate::patch::clean_subject(subject);
@@ -6760,16 +6802,18 @@ impl Database {
                     && author_or_series_match
                     && !index_collision;
                 if is_late_own_cover {
-                    self.bind_cooldown_late_cover(id, message_id).await?;
-                    if let Some(clid) = cover_letter_message_id {
-                        self.adopt_series_identity(id, clid, 0, false).await?;
-                    }
-                    self.execute(
-                            "UPDATE patchsets SET subject = ?, subject_index = 0 WHERE id = ? AND subject_index > 0",
-                            libsql::params![subject, id],
-                        )
-                        .await?;
-                    return Ok(Some(id));
+                    matches.push(CandidateMatch {
+                        id,
+                        subject: existing_subject,
+                        subject_index: existing_subject_index,
+                        total_parts: existing_total,
+                        cover_id: existing_cover_id,
+                        baseline_id: existing_baseline_id,
+                        baseline_part: existing_baseline_part,
+                        patches_reply_to_new_cover,
+                        is_placeholder: false,
+                        closed_late_cover: true,
+                    });
                 }
                 continue;
             }
@@ -6850,6 +6894,7 @@ impl Database {
                     baseline_part: existing_baseline_part,
                     patches_reply_to_new_cover,
                     is_placeholder,
+                    closed_late_cover: false,
                 });
             }
         }
@@ -6857,6 +6902,39 @@ impl Database {
         if !matches.is_empty() {
             // Keep the row with the lowest ID (created first) as the primary target
             matches.sort_by_key(|k| k.id);
+
+            if let Some(closed) = matches.iter().find(|candidate| candidate.closed_late_cover) {
+                if matches.len() > 1 {
+                    let tx = self.begin_immediate_transaction().await?;
+                    let mut adaptive = false;
+                    for candidate in &matches {
+                        let mut guards = tx.query("SELECT 1 FROM review_cooldown_guards WHERE patchset_id = ? UNION ALL SELECT 1 FROM review_cooldown_exclusions WHERE patchset_id = ? AND released_at IS NOT NULL", libsql::params![candidate.id,candidate.id]).await?;
+                        adaptive |= guards.next().await?.is_some();
+                    }
+                    if adaptive {
+                        for candidate in &matches {
+                            Self::block_cooldown(
+                                &tx,
+                                candidate.id,
+                                "ambiguous canonical late cover",
+                            )
+                            .await?;
+                        }
+                        tx.commit().await?;
+                        bail!("adaptive late cover quarantined before moving rows");
+                    }
+                    tx.commit().await?;
+                }
+                // Preserve the existing closed-series metadata behavior. Other
+                // versions and authors were rejected by the canonical matcher.
+                self.bind_cooldown_late_cover(closed.id, message_id).await?;
+                if let Some(clid) = cover_letter_message_id {
+                    self.adopt_series_identity(closed.id, clid, 0, false)
+                        .await?;
+                }
+                self.execute("UPDATE patchsets SET subject = ?, subject_index = 0 WHERE id = ? AND subject_index > 0", libsql::params![subject,closed.id]).await?;
+                return Ok(Some(closed.id));
+            }
 
             let target_id = matches[0].id;
             let mut current_subject_index = matches[0].subject_index;
@@ -6870,8 +6948,8 @@ impl Database {
                 for candidate in &matches {
                     let mut rows = tx
                         .query(
-                            "SELECT 1 FROM review_cooldown_intents WHERE patchset_id = ?",
-                            libsql::params![candidate.id],
+                            "SELECT 1 FROM review_cooldown_guards WHERE patchset_id = ? UNION ALL SELECT 1 FROM review_cooldown_exclusions WHERE patchset_id = ? AND released_at IS NOT NULL",
+                            libsql::params![candidate.id,candidate.id],
                         )
                         .await?;
                     has_adaptive |= rows.next().await?.is_some();
@@ -7271,12 +7349,44 @@ impl Database {
             .as_ref()
             .map(|tx| self.with_connection((**tx).clone()));
         let insert_db = insert_db.as_ref().unwrap_or(self);
-        // Also enforce existing ownership after disable/config removal.
-        for key in [Some(message_id), cover_letter_message_id]
-            .into_iter()
-            .flatten()
+        // Message ownership always wins for a duplicate. A parent cover owned
+        // by an explicitly different revision is lineage, not this revision's
+        // canonical identity; give the new revision its own name instead.
+        for key in [
+            Some(message_id.to_string()),
+            cover_letter_message_id.map(str::to_owned),
+            final_cover_id.clone(),
+        ]
+        .into_iter()
+        .flatten()
         {
-            if let Some(owner) = Self::cooldown_owner(&insert_db.conn, key).await? {
+            if let Some(owner) = Self::cooldown_owner(&insert_db.conn, &key).await? {
+                let mut owner_rows = insert_db
+                    .conn
+                    .query(
+                        "SELECT subject FROM patchsets WHERE id = ?",
+                        libsql::params![owner],
+                    )
+                    .await?;
+                let owner_subject = owner_rows
+                    .next()
+                    .await?
+                    .context("missing canonical owner")?
+                    .get::<String>(0)?;
+                let owner_version = insert_db
+                    .cooldown_canonical_version(
+                        owner,
+                        crate::patch::parse_subject_version(&owner_subject),
+                    )
+                    .await?;
+                if key != message_id
+                    && owner_version.is_some()
+                    && version.is_some()
+                    && owner_version != version
+                {
+                    final_cover_id = Some(message_id.to_string());
+                    continue;
+                }
                 if let Some(tx) = insert_tx {
                     let result = Self::bind_cooldown_message_tx(
                         &tx,
@@ -7301,14 +7411,22 @@ impl Database {
                 return Ok(Some(owner));
             }
         }
-        if insert_tx.is_some() && let Some(cover) = cover_letter_message_id {
-            let mut rows = insert_db.conn.query("SELECT id, author, total_parts FROM patchsets WHERE cover_letter_message_id = ? LIMIT 1", libsql::params![cover]).await?;
+        if insert_tx.is_some()
+            && let Some(cover) = final_cover_id.as_deref()
+        {
+            let mut rows = insert_db.conn.query("SELECT id, author, total_parts, subject FROM patchsets WHERE cover_letter_message_id = ? LIMIT 1", libsql::params![cover]).await?;
             if let Some(row) = rows.next().await? {
                 let existing_id: i64 = row.get(0)?;
-                if crate::cooldown::author_key(&row.get::<String>(1)?)? != crate::cooldown::author_key(author)? || row.get::<u32>(2)? != total_parts {
+                if crate::cooldown::author_key(&row.get::<String>(1)?)?
+                    != crate::cooldown::author_key(author)?
+                    || row.get::<u32>(2)? != total_parts
+                    || crate::patch::parse_subject_version(&row.get::<String>(3)?) != version
+                {
                     bail!("concurrent legacy canonical owner is incompatible");
                 }
-                if let Some(tx) = insert_tx { tx.commit().await?; }
+                if let Some(tx) = insert_tx {
+                    tx.commit().await?;
+                }
                 return Ok(Some(existing_id));
             }
         }
@@ -7321,7 +7439,7 @@ impl Database {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Failed to retrieve patchset ID after insert"))?;
         insert_db
-            .insert_cooldown_intent(id, message_id, cover_letter_message_id)
+            .insert_cooldown_intent(id, message_id, final_cover_id.as_deref())
             .await?;
         if let Some(tx) = insert_tx {
             tx.commit().await?;
@@ -7356,8 +7474,12 @@ impl Database {
     ) -> Result<i64> {
         let diff: Arc<str> = Arc::from(diff);
         let diff_to_compress = Arc::clone(&diff);
-        let compressed_diff = tokio::task::spawn_blocking(move || {
-            crate::compression::compress_string_if_needed(diff_to_compress.as_ref())
+        let (compressed_diff, content_hash) = tokio::task::spawn_blocking(move || {
+            let fingerprint = crate::cooldown::content_fingerprint(diff_to_compress.as_bytes());
+            (
+                crate::compression::compress_string_if_needed(diff_to_compress.as_ref()),
+                fingerprint,
+            )
         })
         .await
         .context("patch compression task failed")?;
@@ -7369,7 +7491,9 @@ impl Database {
             // Clone the prepared value before taking the write lock. A large
             // compressed diff should not add memory-copy time to the lock.
             let diff_to_write = compressed_diff.clone();
-            let owned_content_changed = old_patch.as_ref().is_some_and(|old| old.diff.as_ref() != &diff_to_write || old.part_index != part_index);
+            let owned_content_changed = old_patch.as_ref().is_some_and(|old| {
+                old.diff.as_ref() != &diff_to_write || old.part_index != part_index
+            });
             let tx = self.begin_immediate_transaction().await?;
             match Self::write_patch_transaction(
                 tx,
@@ -7381,6 +7505,7 @@ impl Database {
                 selected_patch_id,
                 owned_content_changed,
                 self.cooldown_context.as_ref(),
+                &content_hash,
             )
             .await?
             {
@@ -7403,8 +7528,11 @@ impl Database {
         git_patch_id: Option<String>,
         owned_content_changed: bool,
         cooldown_context: Option<&crate::cooldown::CooldownContext>,
+        content_hash: &str,
     ) -> Result<PatchWriteOutcome> {
-        if let Err(error) = Self::bind_cooldown_message_tx(&tx, patchset_id, message_id, cooldown_context).await {
+        if let Err(error) =
+            Self::bind_cooldown_message_tx(&tx, patchset_id, message_id, cooldown_context).await
+        {
             Self::block_cooldown(&tx, patchset_id, "patch write has unresolved ownership").await?;
             tx.commit().await?;
             return Err(error);
@@ -7417,6 +7545,26 @@ impl Database {
             .await?;
         if let Some(row) = intent.next().await? {
             let decided = row.get::<String>(0)? == "decided";
+            let mut source = tx
+                .query(
+                    "SELECT cooldown_body_hash FROM messages WHERE message_id = ?",
+                    libsql::params![message_id],
+                )
+                .await?;
+            let source_hash = match source.next().await? {
+                Some(row) => row.get::<Option<String>>(0)?,
+                None => None,
+            };
+            if source_hash.as_deref() != Some(content_hash) {
+                Self::block_cooldown(
+                    &tx,
+                    patchset_id,
+                    "patch differs from the owned source snapshot",
+                )
+                .await?;
+                tx.commit().await?;
+                bail!("adaptive source content changed before patch persistence");
+            }
             let changed = owned_content_changed || (old_patch.is_none() && decided);
             if changed {
                 Self::block_cooldown(&tx, patchset_id, "owned patch content or index changed")
@@ -7450,6 +7598,7 @@ impl Database {
             part_index,
             diff,
             git_patch_id,
+            content_hash,
         )
         .await?
         else {
@@ -7465,7 +7614,8 @@ impl Database {
             .await?;
         }
 
-        Self::complete_patchset_tx(&tx, patchset_id, Self::cooldown_now()?, cooldown_context).await?;
+        Self::complete_patchset_tx(&tx, patchset_id, Self::cooldown_now()?, cooldown_context)
+            .await?;
 
         tx.commit().await?;
         Ok(PatchWriteOutcome::Written(patch_id))
@@ -8306,6 +8456,7 @@ impl Database {
                 "baseline": baseline,
                 "provider": provider,
                 "embargo_until": embargo_until,
+                "publication_blocked": row.get::<i64>(20)? != 0,
                 "mr_url": mr_url,
                 "slug": slug
             })))
@@ -8503,6 +8654,7 @@ impl Database {
                 "baseline": baseline,
                 "provider": provider,
                 "embargo_until": embargo_until,
+                "publication_blocked": row.get::<i64>(20)? != 0,
                 "mr_url": mr_url,
                 "slug": slug
             })))
@@ -9312,7 +9464,7 @@ impl Database {
         let count = self
             .execute(
                 &format!(
-                    "UPDATE patchsets SET status = 'Cancelled' WHERE id = ? AND status IN {}",
+                    "UPDATE patchsets SET status = 'Cancelled' WHERE id = ? AND status != 'Cancelled' AND (status IN {} OR EXISTS (SELECT 1 FROM review_cooldown_guards c WHERE c.patchset_id = patchsets.id AND c.state = 'blocked'))",
                     allowed_statuses
                 ),
                 libsql::params![id],

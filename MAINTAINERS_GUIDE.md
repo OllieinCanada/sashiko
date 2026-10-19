@@ -82,3 +82,16 @@ reply_to = ["author", "list", "recipients"]
 ```
 
 **Configuration:** To request a change to your mailing list configuration in [`projects/linux/mailing_lists.toml`](projects/linux/mailing_lists.toml), please open a GitHub Pull Request or Issue, or email the development mailing list (`sashiko@lists.linux.dev`).
+
+### Experimental adaptive publication policy
+
+Adaptive cooldown is an explicit per-list opt-in; no list is enabled by default.
+It delays publication of complete revisions during bursts within one normalized
+author/list/project scope. It does not defer computation, authenticate From or
+provide independent deadlines for cross-post recipients. Values and rollout need
+maintainer agreement. See [configuration](docs/configuration.md) and the
+[design and rollback contract](designs/ADAPTIVE_PUBLICATION_COOLDOWN.md).
+Disable preserves already held work. Ambiguous canonical merges quarantine all
+matching owners before moving rows; inspect and cancel rather than overriding
+identity quarantine as a time embargo. Retain schema and deduplication tombstones
+until all affected work and outboxes have been reconciled before binary rollback.

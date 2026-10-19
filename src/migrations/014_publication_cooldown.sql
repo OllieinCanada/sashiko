@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS review_cooldown_intents (
     extra_seconds INTEGER,
     decided_deadline INTEGER,
     verified_parts INTEGER,
+    verified_version INTEGER,
+    history_since INTEGER,
     released_at INTEGER,
     reason TEXT,
     CHECK ((admitted_at IS NULL AND prior_count IS NULL AND extra_seconds IS NULL)
@@ -19,7 +21,8 @@ CREATE TABLE IF NOT EXISTS review_cooldown_intents (
 );
 CREATE TABLE IF NOT EXISTS review_cooldown_messages (
     message_id TEXT PRIMARY KEY,
-    patchset_id INTEGER NOT NULL REFERENCES review_cooldown_intents(patchset_id) ON DELETE RESTRICT
+    patchset_id INTEGER NOT NULL REFERENCES review_cooldown_intents(patchset_id) ON DELETE RESTRICT,
+    source_hash TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_cooldown_messages_owner ON review_cooldown_messages(patchset_id);
 CREATE TABLE IF NOT EXISTS review_cooldown_exclusions (
@@ -107,6 +110,6 @@ WHEN EXISTS (SELECT 1 FROM review_cooldown_intents c WHERE c.patchset_id = OLD.i
     ELSE NEW.author END))))
 BEGIN
     UPDATE review_cooldown_intents SET state = 'blocked', reason = 'admitted canonical metadata changed' WHERE patchset_id = OLD.id;
-    UPDATE patchsets SET status = 'Cooldown blocked', failed_reason = 'admitted canonical metadata changed' WHERE id = OLD.id;
+    UPDATE patchsets SET status = 'Cooldown blocked', failed_reason = 'admitted canonical metadata changed' WHERE id = OLD.id AND status != 'Cancelled';
     SELECT RAISE(IGNORE);
 END;

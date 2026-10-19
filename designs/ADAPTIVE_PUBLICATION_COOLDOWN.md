@@ -1,46 +1,101 @@
 # Opt-in adaptive publication grace period
 
-This is an experimental per-list publication policy, not a deployment default.
-The existing fixed embargo, recipient policy, clean exception and external
-transport guarantees remain authoritative. No real list configuration is changed.
+This experimental policy delays publication, not review computation. It changes
+no deployed list configuration. The existing fixed embargo, clean-review
+exception, recipients, access control, cancellation and delivery retry rules
+continue to apply. Maintainers must approve any rollout and policy values.
 
-An explicit per-list enabled=true selects bounded capped-linear activity delay.
-Numeric templates alone cannot enable a list. One complete canonical mail-series
-revision is counted within (project, configured list, normalized bare author).
-Covers, duplicate parts, mirrors, retries and reruns do not add events. Cross-posts
-and non-mail sources retain the legacy policy. Size has no multiplier in v1.
+## Scope and policy
 
-Let p be prior distinct admissions in (t-window,t], B the unpenalized burst, s the
-step and C the extra cap. extra=min(C,s*max(0,p+1-B)); effective=max(legacy,t+extra).
-An extra of zero preserves the legacy deadline, including NULL. t is successful
-local admission time, never Date/Received. Later activity never moves a decision.
+A list must explicitly set adaptive_cooldown.enabled = true. Numeric defaults
+are templates and cannot enable a list. Attribution uses configured mailing-list
+addresses in actual To/Cc and the configured NNTP source, never file-path labels.
+Exactly one configured list must match. Cross-posts and non-NNTP sources use the
+existing shared legacy deadline; independent recipient deadlines are unsupported.
 
-Durable intent is inserted with a new canonical row, before Pending can become
-visible. Existing legacy rows are not retroactively enrolled. A shared transaction
-helper handles part, cover and merge completion. Complete means actual unique
-indices 1..N with consistent source metadata, not received_parts >= total_parts.
-The existing Database writer serializes event uniqueness, bounded history lookup,
-decision, embargo_until and Pending transition. Publication stays unresolved on
-errors; no zero-history fallback. No lock spans compression, delivery or sleeps.
+One complete canonical revision counts once in the project database, configured
+list and normalized bare-author scope. Covers, parts, mirrors, retries and reruns
+do not add events. All actual unique indices 1..N, source identities and content
+fingerprints must agree before admission. Series size has no multiplier in v1;
+this avoids a separate unapproved size penalty. Ordinary ASCII mailbox addresses
+are supported; malformed identities fail explicitly, never share an unknown key.
+From is unauthenticated. Shared or forged addresses can affect another person's
+scope; this feature is not an identity or abuse-prevention system.
 
-Canonical merges must reconcile intent before deleting a donor. Waiting intents
-may collapse only with compatible scope. A decided record and release marker may
-move only when the accounted message/content set is unchanged. Conflicting decided
-identities are quarantined durably, not silently deleted. Message corrections and
-part rewrites cannot bypass that guard by occurring before canonical resolution.
+For prior admissions p in (t-window,t], burst B, step s and incremental cap C:
 
-The single live deadline remains patchsets.embargo_until. Authorized release gets
-an irreversible marker, including before admission. Clean successful review keeps
-its existing exception. Waiting and blocked intent cannot enter review claims or
-publication; retries and reload cannot silently remove intent. Existing claimed
-external deliveries have the existing residual cancellation race.
+    extra = min(C, s * max(0, p + 1 - B))
+    deadline = max(legacy_deadline, t + extra)
 
-Policy limits are validation/resource ceilings, not production defaults. History
-queries stop at the saturation count and use a scope/time index. Compact payloads
-in bounded batches beyond the maximum supported window while retaining event and
-canonical dedup tombstones. No archive backfill or historical count synthesis.
+Zero extra preserves the exact legacy value, including NULL or explicit zero.
+The cap bounds the adaptive increment, not an independently longer fixed delay.
+t is trusted local UTC admission time, not the mail Date header. Simultaneous
+admissions serialize. Later activity never moves an earlier decision. Backward
+admission clocks and arithmetic overflow fail closed; arbitrary clock corruption
+is outside the guarantee.
 
-Before upstream review: validate the configuration-to-publication route, upgrade,
-restart, independent writers, overrides, ambiguous identity, source corrections,
-mutation sensitivity and matched disabled/enabled load. Report unsupported states
-and measured overhead. No adaptive feature claim follows from helper-only tests.
+## Persistence and canonical ownership
+
+New opt-in canonical rows acquire durable waiting intent before Pending can be
+visible. Existing legacy rows are never retroactively enrolled. One existing
+Database writer transaction validates compact immutable source snapshots, counts
+bounded indexed history, inserts the unique event, persists the decision and live
+patchsets.embargo_until, then permits Pending. Compression, hashing, network
+operations and subprocesses remain outside the writer lane.
+
+The first successful admission records each list's history boundary in meta.
+Each decision records available history_since. Cold start counts only locally
+admitted revisions; no archive history is fabricated. Retention covers the maximum
+supported window so a later longer window can use available local history. Policy
+reload does not recalculate decided work. Missing or changed policy for a waiting
+intent is an error and blocks progress until restored or explicitly cancelled.
+
+Unseen cover IDs are reservations, not activity. A late own cover is validated
+against the frozen size and existing canonical version/author matcher. Exact
+post-admission mirror replay preserves frozen attribution; changing actual source
+bytes, To/Cc, author, index, denominator or content quarantines the revision.
+Before admission, cross-post observation excludes the whole revision and restores
+legacy behavior, preserving any early release marker.
+
+Multiowner canonical merges involving adaptive, quarantined or explicitly released
+excluded state are unsupported in v1. Every matching owner is durably quarantined
+before any patches move or owner is deleted. Compatible-looking waiting owners
+are also quarantined. There is no automatic reconciliation command; inspect the
+inputs and cancel the affected work. Independent explicit revisions and authors
+must not be captured merely because they reply to the same old cover.
+
+## Publication, bounds and rollback
+
+Waiting and quarantined work cannot enter review claims, publication release,
+outbox claims or public review endpoints. Authorized users may view held results;
+identity quarantine cannot be released through the time-embargo override. A normal
+authorized early release is irreversible, including before admission. Completeness
+still applies. A completely successful clean review retains its existing release
+exception; missing, failed or partial output is not a clean review.
+
+There is one live deadline. The frozen decision is diagnostic evidence, not a
+second scheduler. Queue uniqueness does not promise exactly-once SMTP delivery:
+remote acceptance followed by a crash before local acknowledgement can retry.
+Supersession or quarantine cannot recall a delivery already accepted remotely;
+existing claims retain their residual cancellation window.
+
+Resource ceilings are 31 days of history, seven days of adaptive increment,
+1,024 actual parts and 4,096 history rows to saturation. They are not deployment
+defaults. The covering scope/time index reads at most B-1+ceil(C/s) rows. Each
+admission removes at most 16 expired event payloads using the retention index;
+that maintenance batch bounds writer work, not accepted policy. Compact intent,
+release and message ownership tombstones remain, so storage is not globally
+bounded and requires operator retention planning.
+
+Disable stops new enrollment; existing decisions and unresolved guards remain.
+Do not drop tables or roll back the binary while adaptive work is waiting or held.
+Stop ingestion, inspect and explicitly finish, release eligible time holds or
+cancel affected work, then verify all outboxes before rollback. Preserve schema
+and tombstones in backups. Production migration or rollout is not authorized by
+a passing test suite.
+
+Validation must cover the complete mail-to-recording-transport route, fresh and
+upgraded databases, reopened workers, independent writers, source races, version
+separation, mutations and matched baseline/disabled/enabled load. The task's
+evidence matrix records actual outcomes and limitations separately from this
+contract. No performance or effectiveness claim follows from helper-only tests.
