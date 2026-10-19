@@ -1,0 +1,50 @@
+
+    mod hosted_downgrade {
+        use super::*;
+        #[tokio::test]
+        #[ignore = "hosted quiesce before old-version native access"]
+        async fn test_cooldown_downgrade_candidate_phases() -> Result<()> {
+            let settings = DatabaseSettings {
+                url: std::env::var("COOLDOWN_DOWNGRADE_DB")?, token: String::new(),
+            };
+            let phase = std::env::var("COOLDOWN_DOWNGRADE_PHASE")?;
+            let db = Database::new(&settings).await?;
+            db.migrate().await?;
+            if phase == "prepare" {
+                let mut ctx = context("list@example.test", "dev@example.test");
+                ctx.policy.burst = 1;
+                let active = db.with_cooldown_context(Some(ctx));
+                let (prior, _, msg) = seed(&active, "rollback-prior", 1).await?;
+                active.create_patch(prior, &msg, 1, "diff").await?;
+                let (held, _, msg) = seed(&active, "rollback-held", 1).await?;
+                let patch = active.create_patch(held, &msg, 1, "diff").await?;
+                seed(&active, "rollback-waiting", 2).await?;
+                db.insert_email_outbox(patch, "Pending", "sink@example.test", "", "held", &msg, "", "fixture").await?;
+                db.insert_patchwork_notification("Pending", "sink@example.test", "held notification", &format!("<{msg}>"), "", "fixture").await?;
+                db.insert_patchwork_outbox(&msg, "https://patchwork.example.test", "warning", "fixture", "https://review.example.test", "review").await?;
+                assert!(db.lock_pending_email().await?.is_none());
+                assert!(db.lock_pending_patchwork().await?.is_none());
+                return Ok(());
+            }
+            if phase == "quiesce" {
+                let mut rows = db.conn.query("SELECT id FROM patchsets ORDER BY id", ()).await?;
+                let mut ids = Vec::new();
+                while let Some(row) = rows.next().await? { ids.push(row.get::<i64>(0)?); }
+                drop(rows);
+                assert_eq!(ids.len(), 3);
+                for id in ids { assert!(db.cancel_patchset(id, false).await?); }
+                assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patchsets WHERE status='Cancelled'").await?, 3);
+            } else {
+                anyhow::ensure!(phase == "verify", "unknown downgrade phase");
+            }
+            assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?, 2);
+            assert_eq!(scalar(&db, "SELECT COUNT(*) FROM review_cooldown_intents").await?, 3);
+            assert_eq!(scalar(&db, "SELECT COUNT(*) FROM email_outbox WHERE status IN ('Pending','Embargoed','Sending')").await?, 0);
+            assert_eq!(scalar(&db, "SELECT COUNT(*) FROM patchwork_outbox WHERE status IN ('Pending','Sending')").await?, 0);
+            assert_eq!(scalar(&db, "PRAGMA user_version").await?, 15);
+            let result: String = db.conn.query("PRAGMA integrity_check", ()).await?.next().await?
+                .context("missing integrity result")?.get(0)?;
+            assert_eq!(result, "ok");
+            Ok(())
+        }
+    }
