@@ -1,11 +1,6 @@
 name: Adaptive active review cancellation
 
 'on':
-  push:
-    branches: [codex/held-series-ci-20261019]
-    paths:
-      - '.github/adaptive-review-cancel/**'
-      - '.github/workflows/adaptive-review-cancel.yml'
   workflow_dispatch:
 
 permissions:

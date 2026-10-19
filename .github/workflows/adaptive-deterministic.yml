@@ -6,6 +6,8 @@ name: Adaptive deterministic coverage expansion
     paths:
       - '.github/adaptive-deterministic/**'
       - '.github/workflows/adaptive-deterministic.yml'
+      - '.github/adaptive-review-cancel/**'
+      - '.github/workflows/adaptive-review-cancel.yml'
   workflow_dispatch:
 
 permissions:
@@ -18,7 +20,7 @@ concurrency:
 jobs:
   focused-gaps:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       RUSTUP_TOOLCHAIN: stable
       CARGO_BUILD_JOBS: 2
@@ -41,11 +43,29 @@ jobs:
           python3 -m venv /tmp/adaptive-deterministic-lint
           /tmp/adaptive-deterministic-lint/bin/pip install yamllint==1.37.1
           export PATH="/tmp/adaptive-deterministic-lint/bin:$PATH"
-          make check-pr RANGE=HEAD~1..HEAD
+          make sob RANGE=HEAD~1..HEAD
+          yamllint .
           python3 -m py_compile .github/adaptive-deterministic/run.py
           df -h .
       - name: Run bounded native coverage and semantic controls
+        id: coverage
         run: python3 .github/adaptive-deterministic/run.py
+      - name: Validate active-review cancellation and semantic controls
+        if: ${{ !cancelled() }}
+        run: python3 .github/adaptive-review-cancel/run.py
+      - name: Check restored checkout once
+        if: ${{ !cancelled() }}
+        run: |
+          export PATH="/tmp/adaptive-deterministic-lint/bin:$PATH"
+          make check-pr RANGE=HEAD~1..HEAD
+      - name: Upload cancellation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adaptive-review-cancel-${{ github.sha }}
+          path: adaptive-review-cancel-results/
+          retention-days: 14
+          if-no-files-found: warn
       - name: Upload reproducible evidence
         if: always()
         uses: actions/upload-artifact@v4
