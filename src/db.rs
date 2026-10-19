@@ -5879,29 +5879,35 @@ impl Database {
         let compressed_body = crate::compression::compress_string_if_needed(body);
         let tx = self.begin_immediate_transaction().await?;
 
-        if let Some(owner) = Self::cooldown_owner(&tx, message_id).await? {
-            let mut stored = tx.query("SELECT subject = '(placeholder)', cooldown_source_hash FROM messages WHERE message_id = ?", libsql::params![message_id]).await?;
-            if let Some(row) = stored.next().await? {
-                let changed = row.get::<i64>(0)? == 0
-                    && row.get::<Option<String>>(1)?.as_deref() != Some(source_hash.as_str());
-                if changed {
-                    Self::block_cooldown(&tx, owner, "owned source message changed").await?;
-                    tx.commit().await?;
-                    bail!("adaptive source correction quarantined");
-                }
-            }
-        }
-
-        // Check for thread merge (Thread split resolution)
+        // Read the source guard and previous thread in one point lookup. Both
+        // decisions still use the same writer snapshot before any message write.
+        let key =
+            crate::cooldown::message_key(message_id).unwrap_or_else(|_| message_id.to_owned());
         let old_thread_id = {
+            let query = format!(
+                "SELECT m.thread_id, m.subject = '(placeholder)',
+                        m.cooldown_source_hash, ({})
+                 FROM messages m WHERE m.message_id = ?",
+                cooldown::COOLDOWN_OWNER_QUERY
+            );
             let mut rows = tx
                 .query(
-                    "SELECT thread_id FROM messages WHERE message_id = ?",
-                    libsql::params![message_id],
+                    &query,
+                    libsql::params![key.clone(), key.clone(), key, message_id],
                 )
                 .await?;
             if let Some(row) = rows.next().await? {
-                row.get::<Option<i64>>(0)?
+                let old_thread_id = get_optional_integer(&row, 0)?;
+                if let Some(owner) = get_optional_integer(&row, 3)? {
+                    let placeholder: i64 = row.get(1)?;
+                    let stored_source: Option<String> = row.get(2)?;
+                    if placeholder == 0 && stored_source.as_deref() != Some(source_hash.as_str()) {
+                        Self::block_cooldown(&tx, owner, "owned source message changed").await?;
+                        tx.commit().await?;
+                        bail!("adaptive source correction quarantined");
+                    }
+                }
+                old_thread_id
             } else {
                 None
             }
