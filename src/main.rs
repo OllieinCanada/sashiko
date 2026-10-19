@@ -3528,11 +3528,8 @@ async fn process_recipients(
     recipients: &str,
     recipient_type: &str,
 ) {
-    for raw in recipients.split(',') {
-        let raw = raw.trim();
-        if raw.is_empty() {
-            continue;
-        }
+    for raw in sashiko::patch::split_address_list(recipients) {
+        let raw = raw.as_str();
 
         let (name, email) = if let Some(start) = raw.find('<') {
             if let Some(end) = raw.find('>') {
@@ -3706,10 +3703,6 @@ fn identify_subsystems(
     mapping: &[sashiko::settings::SubsystemMapping],
 ) -> Vec<(String, String)> {
     let mut subsystems = Vec::new();
-    let mut all_recipients = String::new();
-    all_recipients.push_str(to);
-    all_recipients.push_str(", ");
-    all_recipients.push_str(cc);
 
     let compiled_rules: Vec<_> = mapping
         .iter()
@@ -3720,12 +3713,10 @@ fn identify_subsystems(
         })
         .collect();
 
-    for email in all_recipients.split(',') {
-        let email = email.trim();
-        if email.is_empty() {
-            continue;
-        }
-
+    for email in sashiko::patch::split_address_list(to)
+        .into_iter()
+        .chain(sashiko::patch::split_address_list(cc))
+    {
         let lower_email = email.to_lowercase();
         let mut matched = false;
 

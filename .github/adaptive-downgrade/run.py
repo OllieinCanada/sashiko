@@ -13,7 +13,7 @@ import tempfile
 ROOT = Path.cwd()
 OUT = ROOT / "adaptive-downgrade-results"
 OUT.mkdir(exist_ok=True)
-BASE = "715294a276efee9d39fbb55cf31eef267e96c7b1"
+BASE = "7f92f869a960a20f7d395550b4879d897ebdf4ea"
 SOURCE = ROOT / "src/db/cooldown.rs"
 ORIGINAL = SOURCE.read_text()
 ENV = os.environ.copy()

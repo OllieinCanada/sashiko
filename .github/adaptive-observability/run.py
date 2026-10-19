@@ -14,7 +14,7 @@ import importlib.util
 ROOT = Path.cwd()
 OUT = ROOT / "adaptive-observability-results"
 OUT.mkdir(exist_ok=True)
-BASE = "715294a276efee9d39fbb55cf31eef267e96c7b1"
+BASE = "7f92f869a960a20f7d395550b4879d897ebdf4ea"
 DB = ROOT / "src/db.rs"
 COOLDOWN = ROOT / "src/db/cooldown.rs"
 PROBE = ROOT / "src/db/hosted_probe.rs"

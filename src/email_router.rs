@@ -22,6 +22,11 @@ pub const KNOWN_MAILING_LIST_DOMAINS: &[&str] = &[
     "lists.ozlabs.org",
 ];
 
+/// The largest number of individual To/Cc addresses a review is relayed to
+/// under the "recipients" reply target; past it, none of them is, and the
+/// lists, the author and the configured cc addresses still get the review.
+pub const MAX_RELAYED_RECIPIENTS: usize = 128;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Action {
     Mute,
@@ -64,9 +69,47 @@ impl EmailRouter {
         }
     }
 
+    /// Compares addresses only: a display name is the sender's to choose, so
+    /// one naming a list must not select that list's delivery policy.
     fn address_matches_list(incoming: &str, list_bare: &str) -> bool {
-        let incoming_bare = extract_bare_email(incoming);
-        incoming_bare == list_bare || incoming.to_ascii_lowercase().contains(list_bare)
+        extract_bare_email(incoming) == list_bare
+    }
+
+    /// Whether the patch mail carries more individual To/Cc addresses than
+    /// MAX_RELAYED_RECIPIENTS. The sender picks them, so relaying them
+    /// unbounded lets anyone who can post to a list make the bot mail whoever
+    /// they name. The bot's own address is never mailed, and the author (when
+    /// included by policy) and configured static CCs are mailed regardless of
+    /// the "recipients" target, so none of those are counted against the cap.
+    fn too_many_individuals(
+        all_incoming: &[&String],
+        configured_lists: &HashSet<String>,
+        sashiko_bare: &str,
+        author_bare: Option<&str>,
+        static_cc: &[String],
+    ) -> bool {
+        let static_cc_bare: HashSet<String> =
+            static_cc.iter().map(|c| extract_bare_email(c)).collect();
+        let individuals: HashSet<String> = all_incoming
+            .iter()
+            .filter(|addr| !Self::is_mailing_list_address(addr, configured_lists))
+            .map(|addr| extract_bare_email(addr))
+            .filter(|bare| {
+                !bare.is_empty()
+                    && bare != sashiko_bare
+                    && author_bare != Some(bare.as_str())
+                    && !static_cc_bare.contains(bare)
+            })
+            .collect();
+        if individuals.len() <= MAX_RELAYED_RECIPIENTS {
+            return false;
+        }
+        tracing::warn!(
+            "Not relaying to {} individual recipients (limit {})",
+            individuals.len(),
+            MAX_RELAYED_RECIPIENTS
+        );
+        true
     }
 
     fn is_mailing_list_address(addr: &str, configured_lists: &HashSet<String>) -> bool {
@@ -298,6 +341,18 @@ impl EmailRouter {
             raw_to.push(patch_author.to_string());
         }
 
+        if include_recipients
+            && Self::too_many_individuals(
+                &all_incoming,
+                &configured_lists,
+                &sashiko_bare,
+                include_author.then_some(author_bare.as_str()),
+                &static_cc,
+            )
+        {
+            include_recipients = false;
+        }
+
         for addr in incoming_to {
             let is_ml = Self::is_mailing_list_address(addr, &configured_lists);
             if is_ml {
@@ -437,6 +492,19 @@ impl EmailRouter {
 
                 for cr in &policy.defaults.cc {
                     static_cc.push(cr.clone());
+                }
+
+                let author_bare = extract_bare_email(patch_author);
+                if include_recipients
+                    && Self::too_many_individuals(
+                        &all_incoming,
+                        &configured_lists,
+                        &sashiko_bare,
+                        include_author.then_some(author_bare.as_str()),
+                        &static_cc,
+                    )
+                {
+                    include_recipients = false;
                 }
 
                 let mut raw_to = Vec::new();
@@ -752,6 +820,155 @@ mod tests {
             }
             Action::Mute => panic!("Should not mute"),
         }
+    }
+
+    #[test]
+    fn test_display_name_does_not_select_list_policy() {
+        let mut lists = HashMap::new();
+        lists.insert(
+            "quiet@vger.kernel.org".to_string(),
+            MailingListPolicy {
+                reply_to: Some(vec![ReplyTarget::List]),
+                ..Default::default()
+            },
+        );
+        lists.insert(
+            "linux-kbuild@vger.kernel.org".to_string(),
+            MailingListPolicy {
+                reply_to: Some(vec![ReplyTarget::Author, ReplyTarget::Recipients]),
+                ..Default::default()
+            },
+        );
+        let policy = EmailPolicyConfig {
+            defaults: DefaultListPolicy::default(),
+            lists,
+        };
+        let action = EmailRouter::resolve_recipients(
+            &policy,
+            &["quiet@vger.kernel.org".to_string()],
+            &["\"linux-kbuild@vger.kernel.org\" <victim@example.com>".to_string()],
+            "victim@example.com",
+            "bot@sashiko.dev",
+        );
+        assert_eq!(
+            action,
+            Action::Send {
+                to: vec!["quiet@vger.kernel.org".to_string()],
+                cc: vec![],
+                positive_review: PositiveReviewPolicy::None,
+            }
+        );
+    }
+
+    #[test]
+    fn test_relayed_recipients_are_capped() {
+        let mut lists = HashMap::new();
+        lists.insert(
+            "linux-kbuild@vger.kernel.org".to_string(),
+            MailingListPolicy {
+                reply_to: Some(vec![
+                    ReplyTarget::Author,
+                    ReplyTarget::List,
+                    ReplyTarget::Recipients,
+                ]),
+                ..Default::default()
+            },
+        );
+        let policy = EmailPolicyConfig {
+            defaults: DefaultListPolicy::default(),
+            lists,
+        };
+        let resolve = |n: usize| {
+            let cc: Vec<String> = (0..n).map(|i| format!("cc{i}@example.com")).collect();
+            match EmailRouter::resolve_recipients(
+                &policy,
+                &["linux-kbuild@vger.kernel.org".to_string()],
+                &cc,
+                "author@example.com",
+                "bot@sashiko.dev",
+            ) {
+                Action::Send { to, cc, .. } => (to, cc),
+                Action::Mute => panic!("Should not mute"),
+            }
+        };
+
+        let (_, cc) = resolve(MAX_RELAYED_RECIPIENTS);
+        assert_eq!(cc.len(), MAX_RELAYED_RECIPIENTS);
+        let (_, cc) = resolve(MAX_RELAYED_RECIPIENTS + 1);
+        assert!(cc.is_empty());
+
+        // The bot's own address, the author and configured static CCs are not
+        // relayed via "recipients", so they take no slot against the cap.
+        let mut lists_with_cc = HashMap::new();
+        lists_with_cc.insert(
+            "linux-kbuild@vger.kernel.org".to_string(),
+            MailingListPolicy {
+                reply_to: Some(vec![
+                    ReplyTarget::Author,
+                    ReplyTarget::List,
+                    ReplyTarget::Recipients,
+                ]),
+                cc: vec!["maintainer@kernel.org".to_string()],
+                ..Default::default()
+            },
+        );
+        let policy_with_cc = EmailPolicyConfig {
+            defaults: DefaultListPolicy::default(),
+            lists: lists_with_cc,
+        };
+        let mut cc: Vec<String> = (0..MAX_RELAYED_RECIPIENTS)
+            .map(|i| format!("cc{i}@example.com"))
+            .collect();
+        cc.push("bot@sashiko.dev".to_string());
+        cc.push("Patch Author <author@example.com>".to_string());
+        cc.push("Maintainer <maintainer@kernel.org>".to_string());
+        match EmailRouter::resolve_recipients(
+            &policy_with_cc,
+            &["linux-kbuild@vger.kernel.org".to_string()],
+            &cc,
+            "author@example.com",
+            "bot@sashiko.dev",
+        ) {
+            Action::Send { cc, .. } => assert_eq!(cc.len(), MAX_RELAYED_RECIPIENTS + 1),
+            Action::Mute => panic!("Should not mute"),
+        }
+
+        let (to, cc) = resolve(200);
+        assert_eq!(
+            to,
+            vec![
+                "author@example.com".to_string(),
+                "linux-kbuild@vger.kernel.org".to_string()
+            ]
+        );
+        assert!(cc.is_empty());
+    }
+
+    #[test]
+    fn test_positive_review_recipients_are_capped() {
+        let mut lists = HashMap::new();
+        lists.insert(
+            "linux-kbuild@vger.kernel.org".to_string(),
+            MailingListPolicy {
+                reply_to: Some(vec![ReplyTarget::List, ReplyTarget::Recipients]),
+                positive_review: Some(PositiveReviewPolicy::All),
+                ..Default::default()
+            },
+        );
+        let policy = EmailPolicyConfig {
+            defaults: DefaultListPolicy::default(),
+            lists,
+        };
+        let cc: Vec<String> = (0..200).map(|i| format!("cc{i}@example.com")).collect();
+        let (_, pos_cc) = EmailRouter::resolve_positive_recipients(
+            &policy,
+            &["linux-kbuild@vger.kernel.org".to_string()],
+            &cc,
+            "author@example.com",
+            "bot@sashiko.dev",
+        )
+        .expect("a positive review is sent");
+        assert!(pos_cc.is_empty());
     }
 
     #[test]

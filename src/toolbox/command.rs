@@ -23,8 +23,10 @@
 
 use anyhow::{Context, Result};
 use std::process::{ExitStatus, Stdio};
+use std::time::Duration;
 use tokio::io::AsyncReadExt;
 use tokio::process::Command;
+use tokio::time::timeout;
 
 /// Bytes of stdout kept from a git subprocess.
 ///
@@ -35,6 +37,9 @@ pub const MAX_CAPTURED_STDOUT: usize = 8 * 1024 * 1024;
 
 /// Bytes of stderr kept from a git subprocess. Only ever used for messages.
 const MAX_CAPTURED_STDERR: usize = 64 * 1024;
+
+/// Bytes kept from a single stdout line when streaming line by line.
+const MAX_LINE_BYTES: usize = 64 * 1024;
 
 /// What a git subprocess produced, with stdout bounded.
 pub struct CappedOutput {
@@ -55,13 +60,115 @@ impl CappedOutput {
     }
 }
 
+/// How long one tool command may run. The model chooses the arguments, and a
+/// grep pattern is PCRE, so without a bound one call can backtrack until the
+/// whole review times out.
+pub const TOOL_COMMAND_TIMEOUT: Duration = Duration::from_secs(120);
+
 /// Runs a command and captures its output, giving up on stdout beyond
-/// [`MAX_CAPTURED_STDOUT`] bytes.
+/// [`MAX_CAPTURED_STDOUT`] bytes and killing the command after
+/// [`TOOL_COMMAND_TIMEOUT`].
 ///
 /// A capped capture is cut back to the last complete line so callers never
 /// have to reason about a partial one.
 pub async fn capped_output(cmd: &mut Command) -> Result<CappedOutput> {
-    capped_output_with_limit(cmd, MAX_CAPTURED_STDOUT).await
+    capped_output_within(cmd, TOOL_COMMAND_TIMEOUT).await
+}
+
+async fn capped_output_within(cmd: &mut Command, limit: Duration) -> Result<CappedOutput> {
+    cmd.kill_on_drop(true);
+    timeout(limit, capped_output_with_limit(cmd, MAX_CAPTURED_STDOUT))
+        .await
+        .with_context(|| format!("command timed out after {limit:?}"))?
+}
+
+/// Runs a command and streams its stdout line by line to `on_line`, killing
+/// the command after [`TOOL_COMMAND_TIMEOUT`].
+///
+/// Unlike [`capped_output`], this does not stop the command at
+/// [`MAX_CAPTURED_STDOUT`] bytes of raw output, so tools like `git_find_files`
+/// can filter a full `git ls-tree` stream in process while keeping memory
+/// bounded to one line plus whatever `on_line` retains.
+pub async fn for_each_line<F>(cmd: &mut Command, on_line: F) -> Result<CappedOutput>
+where
+    F: FnMut(&str),
+{
+    for_each_line_within(cmd, TOOL_COMMAND_TIMEOUT, on_line).await
+}
+
+async fn for_each_line_within<F>(
+    cmd: &mut Command,
+    limit: Duration,
+    mut on_line: F,
+) -> Result<CappedOutput>
+where
+    F: FnMut(&str),
+{
+    cmd.kill_on_drop(true);
+    timeout(limit, async {
+        let mut child = cmd
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .context("failed to spawn git")?;
+
+        let mut out_pipe = child.stdout.take().context("git stdout was not captured")?;
+        let err_pipe = child.stderr.take().context("git stderr was not captured")?;
+
+        let stderr_drain = tokio::spawn(drain_capped(err_pipe, MAX_CAPTURED_STDERR));
+
+        let mut line_buf = Vec::new();
+        let mut chunk = [0u8; 8192];
+        loop {
+            let n = out_pipe
+                .read(&mut chunk)
+                .await
+                .context("failed to read git stdout")?;
+            if n == 0 {
+                if !line_buf.is_empty() {
+                    emit_line(&line_buf, &mut on_line);
+                }
+                break;
+            }
+            let mut slice = &chunk[..n];
+            while let Some(pos) = slice.iter().position(|&b| b == b'\n') {
+                append_capped(&mut line_buf, &slice[..pos], MAX_LINE_BYTES);
+                emit_line(&line_buf, &mut on_line);
+                line_buf.clear();
+                slice = &slice[pos + 1..];
+            }
+            append_capped(&mut line_buf, slice, MAX_LINE_BYTES);
+        }
+
+        let status = child.wait().await.context("failed to wait for git")?;
+        let stderr = stderr_drain
+            .await
+            .context("stderr drain panicked")?
+            .context("failed to read git stderr")?;
+
+        Ok(CappedOutput {
+            status,
+            stdout: Vec::new(),
+            stderr,
+            stdout_capped: false,
+        })
+    })
+    .await
+    .with_context(|| format!("command timed out after {limit:?}"))?
+}
+
+fn append_capped(buf: &mut Vec<u8>, slice: &[u8], cap: usize) {
+    if buf.len() < cap {
+        let room = cap - buf.len();
+        buf.extend_from_slice(&slice[..slice.len().min(room)]);
+    }
+}
+
+fn emit_line<F: FnMut(&str)>(raw: &[u8], on_line: &mut F) {
+    let raw = raw.strip_suffix(b"\r").unwrap_or(raw);
+    let line = String::from_utf8_lossy(raw);
+    on_line(&line);
 }
 
 /// Runs a command and captures its output, giving up on stdout beyond
@@ -149,7 +256,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::Duration;
 
     /// Every case here must finish promptly. A capture bug shows up as a hang,
     /// and a hang is far more expensive to diagnose than a failure.
@@ -158,6 +264,36 @@ mod tests {
             .await
             .expect("capture should not block")
             .expect("capture should succeed")
+    }
+
+    #[tokio::test]
+    async fn gives_up_on_a_command_that_runs_too_long() {
+        // sleep 30 is the stand-in for a grep pattern that backtracks.
+        let mut cmd = Command::new("sleep");
+        cmd.arg("30");
+
+        let started = std::time::Instant::now();
+        let err = capped_output_within(&mut cmd, Duration::from_millis(200))
+            .await
+            .err()
+            .expect("a command past its limit is an error");
+
+        assert!(err.to_string().contains("timed out"), "{err:#}");
+        assert!(started.elapsed() < Duration::from_secs(10));
+    }
+
+    #[tokio::test]
+    async fn kills_the_command_it_gives_up_on() {
+        let dir = tempfile::tempdir().unwrap();
+        let marker = dir.path().join("still-running");
+        let mut cmd = Command::new("sh");
+        cmd.arg("-c")
+            .arg(format!("sleep 0.2 && touch {}", marker.display()));
+
+        let _ = capped_output_within(&mut cmd, Duration::from_millis(50)).await;
+        tokio::time::sleep(Duration::from_millis(350)).await;
+
+        assert!(!marker.exists(), "the command outlived its timeout");
     }
 
     #[tokio::test]
@@ -213,5 +349,17 @@ mod tests {
         assert!(!out.status.success());
         assert!(!out.stdout_capped);
         assert!(!out.is_usable());
+    }
+
+    #[tokio::test]
+    async fn streams_lines_and_bounds_slow_commands() {
+        let mut cmd = Command::new("printf");
+        cmd.arg("alpha\r\nbeta\ngamma");
+        let mut lines = Vec::new();
+        let out = for_each_line(&mut cmd, |l| lines.push(l.to_string()))
+            .await
+            .expect("for_each_line should succeed");
+        assert!(out.status.success());
+        assert_eq!(lines, vec!["alpha", "beta", "gamma"]);
     }
 }

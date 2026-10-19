@@ -10,7 +10,7 @@ import tempfile
 ROOT = Path.cwd()
 OUT = ROOT / "adaptive-source-preparation"
 OUT.mkdir(exist_ok=True)
-BASE = "715294a276efee9d39fbb55cf31eef267e96c7b1"
+BASE = "7f92f869a960a20f7d395550b4879d897ebdf4ea"
 PREREQUISITE = "a377db68dbd2c2fabfefe3136aea8b4499e4a648"
 CANDIDATE = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 IDENTITY = {"name": "Ollie Slapinski", "email": "oliverslapinski@hotmail.com"}

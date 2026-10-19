@@ -96,18 +96,27 @@ pub fn parse_email(raw_email: &[u8]) -> Result<(PatchsetMetadata, Option<Patch>)
         .parse(raw_email)
         .ok_or_else(|| anyhow!("Failed to parse email"))?;
 
-    let message_id = message
-        .message_id()
-        .ok_or_else(|| anyhow!("No Message-ID header"))?
-        .to_string();
+    let message_id = clean_display_name(
+        message
+            .message_id()
+            .ok_or_else(|| anyhow!("No Message-ID header"))?,
+    );
+    if message_id.is_empty() {
+        return Err(anyhow!("Empty Message-ID header"));
+    }
 
-    let subject = message.subject().unwrap_or("(no subject)").to_string();
+    let raw_subject = clean_display_name(message.subject().unwrap_or("(no subject)"));
+    let subject = if raw_subject.is_empty() {
+        "(no subject)".to_string()
+    } else {
+        raw_subject
+    };
 
     let mut author = message
         .from()
         .and_then(|addr| addr.first())
         .map(|a| {
-            let name = a.name().unwrap_or_default().trim();
+            let name = &clean_display_name(a.name().unwrap_or_default());
             let address = a.address().unwrap_or("unknown@localhost").trim();
             let addr = if address.is_empty() || !address.contains('@') {
                 "unknown@localhost"
@@ -117,7 +126,7 @@ pub fn parse_email(raw_email: &[u8]) -> Result<(PatchsetMetadata, Option<Patch>)
             if name.is_empty() || name.to_lowercase() == "unknown" {
                 addr.to_string()
             } else {
-                format!("\"{}\" <{}>", name.replace('"', "\\\""), addr)
+                format_mailbox(name, addr)
             }
         })
         .unwrap_or_else(|| "unknown@localhost".to_string());
@@ -126,7 +135,7 @@ pub fn parse_email(raw_email: &[u8]) -> Result<(PatchsetMetadata, Option<Patch>)
         mail_parser::HeaderValue::Address(x_orig_addr) => x_orig_addr.first(),
         _ => None,
     }) {
-        let name = first_addr.name().unwrap_or_default().trim();
+        let name = &clean_display_name(first_addr.name().unwrap_or_default());
         let address = first_addr.address().unwrap_or("").trim();
         let author_email = extract_email(&author);
         if !address.is_empty() && address.contains('@') {
@@ -134,7 +143,7 @@ pub fn parse_email(raw_email: &[u8]) -> Result<(PatchsetMetadata, Option<Patch>)
                 author = if name.is_empty() || name.to_lowercase() == "unknown" {
                     address.to_string()
                 } else {
-                    format!("\"{}\" <{}>", name.replace('"', "\\\""), address)
+                    format_mailbox(name, address)
                 };
             } else if author_email.to_lowercase().starts_with("devnull+") {
                 tracing::warn!(
@@ -155,11 +164,11 @@ pub fn parse_email(raw_email: &[u8]) -> Result<(PatchsetMetadata, Option<Patch>)
                     if address.is_empty() || !address.contains('@') {
                         None
                     } else {
-                        let name = a.name().unwrap_or_default().trim();
+                        let name = &clean_display_name(a.name().unwrap_or_default());
                         if name.is_empty() {
                             Some(address.to_string())
                         } else {
-                            Some(format!("\"{}\" <{}>", name.replace("\"", "\\\""), address))
+                            Some(format_mailbox(name, address))
                         }
                     }
                 })
@@ -177,11 +186,11 @@ pub fn parse_email(raw_email: &[u8]) -> Result<(PatchsetMetadata, Option<Patch>)
                     if address.is_empty() || !address.contains('@') {
                         None
                     } else {
-                        let name = a.name().unwrap_or_default().trim();
+                        let name = &clean_display_name(a.name().unwrap_or_default());
                         if name.is_empty() {
                             Some(address.to_string())
                         } else {
-                            Some(format!("\"{}\" <{}>", name.replace("\"", "\\\""), address))
+                            Some(format_mailbox(name, address))
                         }
                     }
                 })
@@ -191,14 +200,28 @@ pub fn parse_email(raw_email: &[u8]) -> Result<(PatchsetMetadata, Option<Patch>)
         .unwrap_or_default();
 
     let in_reply_to = match message.in_reply_to() {
-        HeaderValue::Text(t) => Some(t.to_string()),
-        HeaderValue::TextList(l) => l.first().map(|s| s.to_string()),
+        HeaderValue::Text(t) => Some(clean_display_name(t)).filter(|s| !s.is_empty()),
+        HeaderValue::TextList(l) => l
+            .iter()
+            .map(|s| clean_display_name(s))
+            .find(|s| !s.is_empty()),
         _ => None,
     };
 
     let references = match message.references() {
-        HeaderValue::Text(t) => vec![t.to_string()],
-        HeaderValue::TextList(l) => l.iter().map(|s| s.to_string()).collect(),
+        HeaderValue::Text(t) => {
+            let cleaned = clean_display_name(t);
+            if cleaned.is_empty() {
+                vec![]
+            } else {
+                vec![cleaned]
+            }
+        }
+        HeaderValue::TextList(l) => l
+            .iter()
+            .map(|s| clean_display_name(s))
+            .filter(|s| !s.is_empty())
+            .collect(),
         _ => vec![],
     };
 
@@ -416,6 +439,64 @@ pub fn clean_subject(subject: &str) -> String {
     }
 
     cleaned
+}
+
+/// Strips control characters from a display name. An RFC 2047 encoded word
+/// can decode to CR/LF, which lettre cannot write into a mailbox header.
+pub fn clean_display_name(name: &str) -> String {
+    name.chars()
+        .filter(|c| !c.is_control())
+        .collect::<String>()
+        .trim()
+        .to_string()
+}
+
+fn format_mailbox(name: &str, address: &str) -> String {
+    let escaped = name.replace('\\', "\\\\").replace('"', "\\\"");
+    format!("\"{}\" <{}>", escaped, address)
+}
+
+/// Splits a comma-separated recipient list into individual entries without
+/// splitting on commas inside double-quoted display names.
+pub fn split_address_list(list: &str) -> Vec<String> {
+    let mut result = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+    let mut escaped = false;
+
+    for ch in list.chars() {
+        if escaped {
+            current.push(ch);
+            escaped = false;
+            continue;
+        }
+        if in_quotes && ch == '\\' {
+            current.push(ch);
+            escaped = true;
+            continue;
+        }
+        if ch == '"' {
+            in_quotes = !in_quotes;
+            current.push(ch);
+            continue;
+        }
+        if ch == ',' && !in_quotes {
+            let trimmed = current.trim();
+            if !trimmed.is_empty() {
+                result.push(trimmed.to_string());
+            }
+            current.clear();
+        } else {
+            current.push(ch);
+        }
+    }
+
+    let trimmed = current.trim();
+    if !trimmed.is_empty() {
+        result.push(trimmed.to_string());
+    }
+
+    result
 }
 
 pub fn extract_email(author: &str) -> String {
@@ -902,6 +983,34 @@ Body";
         assert_eq!(
             meta.author,
             "\"Thomas Richard (TI)\" <thomas.richard@bootlin.com>"
+        );
+    }
+
+    #[test]
+    fn test_parse_email_strips_control_characters_from_names() {
+        let raw = b"From: =?utf-8?q?Bob=0D=0AX?= <bob@example.com>\r\nTo: =?utf-8?q?Al=0Ace?= <alice@example.com>\r\nCc: =?utf-8?q?=0D=0A?= <carol@example.com>\r\nMessage-ID: <123>\r\nSubject: =?utf-8?q?Sub=0D=0Aject?=\r\n\r\nbody";
+        let (meta, _) = parse_email(raw).unwrap();
+        assert_eq!(meta.author, "\"BobX\" <bob@example.com>");
+        assert_eq!(meta.to, "\"Alce\" <alice@example.com>");
+        assert_eq!(meta.cc, "carol@example.com");
+        assert_eq!(meta.subject, "Subject");
+    }
+
+    #[test]
+    fn test_split_address_list_preserves_quoted_commas() {
+        let raw = b"From: Author <author@example.com>\r\nTo: \"Tabba, Fuad\" <fuad@example.com>, \"Trail\\\\\" <trail@example.com>, list@vger.kernel.org\r\nCc: \"Doe, \\\"Jr,.,\\\" John\" <john@example.com>\r\nMessage-ID: <123>\r\nSubject: Test\r\n\r\nbody";
+        let (meta, _) = parse_email(raw).unwrap();
+        assert_eq!(
+            split_address_list(&meta.to),
+            vec![
+                "\"Tabba, Fuad\" <fuad@example.com>".to_string(),
+                "\"Trail\\\\\" <trail@example.com>".to_string(),
+                "list@vger.kernel.org".to_string(),
+            ]
+        );
+        assert_eq!(
+            split_address_list(&meta.cc),
+            vec!["\"Doe, \\\"Jr,.,\\\" John\" <john@example.com>".to_string()]
         );
     }
 

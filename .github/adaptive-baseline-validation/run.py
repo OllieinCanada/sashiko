@@ -15,7 +15,7 @@ import time
 ROOT = Path.cwd()
 OUT = ROOT / "adaptive-baseline-results"
 OUT.mkdir(exist_ok=True)
-BASE = "715294a276efee9d39fbb55cf31eef267e96c7b1"
+BASE = "7f92f869a960a20f7d395550b4879d897ebdf4ea"
 FIXTURE = (ROOT / ".github/adaptive-validation/native_fixture.rs").read_text()
 SOURCE = ROOT / "src/db/cooldown.rs"
 ORIGINAL = SOURCE.read_text()

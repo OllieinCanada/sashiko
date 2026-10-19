@@ -333,11 +333,20 @@ pub fn build_router(
         .route("/api/stats/timeline", get(stats_timeline))
         .route("/api/stats/reviews", get(stats_reviews))
         .route("/api/stats/tools", get(stats_tools))
-        .route("/api/submit", post(submit_patch))
-        .route("/api/auth/request-link", post(request_link))
+        .route(
+            "/api/submit",
+            post(submit_patch).layer(axum::extract::DefaultBodyLimit::max(25 * 1024 * 1024)),
+        )
+        .route(
+            "/api/auth/request-link",
+            post(request_link).layer(axum::extract::DefaultBodyLimit::max(64 * 1024)),
+        )
         .route("/api/auth/verify", get(verify_link))
         .route("/api/auth/refresh", post(refresh_token))
-        .route("/api/auth/token", post(create_auth_token))
+        .route(
+            "/api/auth/token",
+            post(create_auth_token).layer(axum::extract::DefaultBodyLimit::max(64 * 1024)),
+        )
         .route("/api/patchset/rerun", post(rerun_patchset))
         .route(
             "/api/patchset/release-embargo",
@@ -356,7 +365,10 @@ pub fn build_router(
         .route("/api/bug/analyze", post(analyze_bug))
         .route("/api/bug/action", post(bug_action))
         .route("/bug/{bugid}", get(redirect_bug))
-        .route("/api/webhook/{provider}", post(forge_webhook))
+        .route(
+            "/api/webhook/{provider}",
+            post(forge_webhook).layer(axum::extract::DefaultBodyLimit::max(25 * 1024 * 1024)),
+        )
         .route("/", get_service(ServeFile::new("static/index.html")))
         .route(
             "/auth/verify",
@@ -364,7 +376,6 @@ pub fn build_router(
         )
         .nest_service("/static", ServeDir::new("static"))
         .layer(middleware::from_fn(redirect_www))
-        .layer(axum::extract::DefaultBodyLimit::max(25 * 1024 * 1024))
         .with_state(state)
 }
 
@@ -421,10 +432,12 @@ async fn submit_patch(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: axum::http::HeaderMap,
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<SubmitRequest>,
-) -> Result<Json<SubmitResponse>, StatusCode> {
+    // Extracted as Json only once the caller is authorized: as an argument,
+    // axum would buffer and parse the body for anyone who asks.
+    request: axum::extract::Request,
+) -> Result<Json<SubmitResponse>, axum::response::Response> {
     if state.read_only {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(StatusCode::FORBIDDEN.into_response());
     }
 
     if !is_authorized(
@@ -434,8 +447,13 @@ async fn submit_patch(
         crate::settings::Permission::Ingest,
     ) {
         info!("Refused unauthorized patch submission from {}", addr);
-        return Err(StatusCode::FORBIDDEN);
+        return Err(StatusCode::FORBIDDEN.into_response());
     }
+
+    use axum::extract::FromRequest;
+    let Json(payload) = Json::<SubmitRequest>::from_request(request, &state)
+        .await
+        .map_err(IntoResponse::into_response)?;
 
     match payload {
         SubmitRequest::Inject {
@@ -451,11 +469,11 @@ async fn submit_patch(
                     .as_deref()
                     .is_some_and(|b| CommitId::parse(b).is_none())
             {
-                return Err(StatusCode::BAD_REQUEST);
+                return Err(StatusCode::BAD_REQUEST.into_response());
             }
             // Basic guardrail
             if !raw.contains("From ") && !raw.contains("Subject:") {
-                return Err(StatusCode::BAD_REQUEST);
+                return Err(StatusCode::BAD_REQUEST.into_response());
             }
 
             let id = generate_synthetic_id("inject");
@@ -479,7 +497,7 @@ async fn submit_patch(
 
             if let Err(e) = state.sender.send(event).await {
                 error!("Failed to send raw mbox to queue: {}", e);
-                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+                return Err(StatusCode::INTERNAL_SERVER_ERROR.into_response());
             }
 
             Ok(Json(SubmitResponse {
@@ -507,7 +525,7 @@ async fn submit_patch(
                     part.starts_with('-') || part.starts_with('+') || part.contains(':')
                 });
             if has_invalid_ref {
-                return Err(StatusCode::BAD_REQUEST);
+                return Err(StatusCode::BAD_REQUEST.into_response());
             }
             let id = sha.clone();
             let repo_display = repo.as_deref().unwrap_or("local");
@@ -551,7 +569,7 @@ async fn submit_patch(
                 .await
             {
                 error!("Failed to create placeholder patchset: {}", e);
-                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+                return Err(StatusCode::INTERNAL_SERVER_ERROR.into_response());
             }
 
             let req = FetchRequest {
@@ -564,7 +582,7 @@ async fn submit_patch(
 
             if let Err(e) = state.fetch_sender.send(req).await {
                 error!("Failed to send fetch request to queue: {}", e);
-                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+                return Err(StatusCode::INTERNAL_SERVER_ERROR.into_response());
             }
 
             Ok(Json(SubmitResponse {
@@ -1668,13 +1686,14 @@ async fn analyze_bug(
     principal: Principal,
     axum::extract::ConnectInfo(addr): axum::extract::ConnectInfo<std::net::SocketAddr>,
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<AnalyzeBugPayload>,
-) -> Result<Json<BugOutcome>, (StatusCode, String)> {
+    request: axum::extract::Request,
+) -> Result<Json<BugOutcome>, axum::response::Response> {
     if state.read_only {
         return Err((
             StatusCode::FORBIDDEN,
             "Server is running in read-only mode.".to_string(),
-        ));
+        )
+            .into_response());
     }
 
     // Filing a bug runs an LLM analysis, so it costs money and is granted
@@ -1683,15 +1702,22 @@ async fn analyze_bug(
         return Err((
             StatusCode::FORBIDDEN,
             "You don't have permissions to file bugs.".to_string(),
-        ));
+        )
+            .into_response());
     }
 
     if !state.settings.linux_bug.enabled {
         return Err((
             StatusCode::NOT_FOUND,
             "Linux bug tracking is disabled on this server.".to_string(),
-        ));
+        )
+            .into_response());
     }
+
+    use axum::extract::FromRequest;
+    let Json(payload) = Json::<AnalyzeBugPayload>::from_request(request, &state)
+        .await
+        .map_err(IntoResponse::into_response)?;
 
     // Uncached, as this asked for before the cached constructor grew to take the
     // AI settings and a database path: filing a bug is a one-off analysis.
@@ -1704,7 +1730,8 @@ async fn analyze_bug(
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Analysis is unavailable.".to_string(),
-            ));
+            )
+                .into_response());
         }
     };
 
@@ -1787,7 +1814,8 @@ async fn analyze_bug(
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Analysis failed.".to_string(),
-            ))
+            )
+                .into_response())
         }
     }
 }
@@ -2195,10 +2223,10 @@ async fn forge_webhook(
     State(state): State<Arc<AppState>>,
     Path(provider): Path<String>,
     headers: axum::http::HeaderMap,
-    body: axum::body::Bytes,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+    request: axum::extract::Request,
+) -> Result<Json<serde_json::Value>, axum::response::Response> {
     if state.read_only {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(StatusCode::FORBIDDEN.into_response());
     }
 
     let webhook_secret = state.settings.forge.webhook_secret.as_deref();
@@ -2222,7 +2250,7 @@ async fn forge_webhook(
             crate::forge::loggable(&provider),
             addr
         );
-        return Err(StatusCode::FORBIDDEN);
+        return Err(StatusCode::FORBIDDEN.into_response());
     }
 
     let forge = state.forge_registry.get(&provider).ok_or_else(|| {
@@ -2230,8 +2258,13 @@ async fn forge_webhook(
             "Unknown forge provider: {}",
             crate::forge::loggable(&provider)
         );
-        StatusCode::NOT_FOUND
+        StatusCode::NOT_FOUND.into_response()
     })?;
+
+    use axum::extract::FromRequest;
+    let body = axum::body::Bytes::from_request(request, &state)
+        .await
+        .map_err(IntoResponse::into_response)?;
 
     // A rejected delivery is reported by the forge as a bare status code, so
     // the log line is the only place an administrator can learn which event
@@ -2246,7 +2279,8 @@ async fn forge_webhook(
                 addr,
                 status
             );
-        })?;
+        })
+        .map_err(IntoResponse::into_response)?;
 
     if event == crate::forge::ForgeEvent::Handshake {
         info!(
@@ -2260,15 +2294,18 @@ async fn forge_webhook(
         })));
     }
 
-    let (action, metadata) = forge.parse_payload(&body).inspect_err(|status| {
-        warn!(
-            "Rejected {} webhook payload from {}: {} ({} bytes)",
-            forge.name(),
-            addr,
-            status,
-            body.len()
-        );
-    })?;
+    let (action, metadata) = forge
+        .parse_payload(&body)
+        .inspect_err(|status| {
+            warn!(
+                "Rejected {} webhook payload from {}: {} ({} bytes)",
+                forge.name(),
+                addr,
+                status,
+                body.len()
+            );
+        })
+        .map_err(IntoResponse::into_response)?;
 
     info!(
         "{} {}: {} - {}",
@@ -2334,7 +2371,7 @@ async fn forge_webhook(
         .await
         .map_err(|e| {
             error!("Failed to create placeholder patchset: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
         })?;
 
     let req = FetchRequest {
@@ -2347,7 +2384,7 @@ async fn forge_webhook(
 
     state.fetch_sender.send(req).await.map_err(|e| {
         error!("Failed to send fetch request to queue: {}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
+        StatusCode::INTERNAL_SERVER_ERROR.into_response()
     })?;
 
     Ok(Json(serde_json::json!({
@@ -3003,6 +3040,17 @@ mod tests {
             .unwrap();
         assert_eq!(refresh_resp.status(), StatusCode::FORBIDDEN);
 
+        // Unauthenticated request to /api/auth/token is rejected with 401 before
+        // reading or parsing the body.
+        let unauth_unparsed = client
+            .post(format!("http://{}/api/auth/token", addr))
+            .header("content-type", "application/json")
+            .body("not json")
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(unauth_unparsed.status(), StatusCode::UNAUTHORIZED);
+
         // Minted api_token cannot mint another token at /api/auth/token.
         let re_mint_resp = client
             .post(format!("http://{}/api/auth/token", addr))
@@ -3134,6 +3182,43 @@ mod tests {
             .unwrap()
             .status();
         assert_eq!(anonymous, 403, "loopback alone must not ingest");
+
+        // Refused before the body is parsed, so a body that is not JSON at
+        // all draws the same 403, not a 400.
+        let unparsed = client
+            .post(&submit)
+            .header("content-type", "application/json")
+            .body("not json")
+            .send()
+            .await
+            .unwrap()
+            .status();
+        assert_eq!(unparsed, 403, "the body was parsed before authorization");
+
+        let unparsed_wrong_token = client
+            .post(&submit)
+            .bearer_auth("0".repeat(64))
+            .header("content-type", "application/json")
+            .body("not json")
+            .send()
+            .await
+            .unwrap()
+            .status();
+        assert_eq!(unparsed_wrong_token, 403);
+
+        let unparsed_authorized = client
+            .post(&submit)
+            .bearer_auth(local_token.secret())
+            .header("content-type", "application/json")
+            .body("not json")
+            .send()
+            .await
+            .unwrap()
+            .status();
+        assert_eq!(
+            unparsed_authorized, 400,
+            "an authorized caller still gets the extractor's rejection"
+        );
 
         let wrong = client
             .post(&submit)
@@ -6423,8 +6508,8 @@ async fn create_auth_token(
     auth: crate::auth::OptionalAuthUser,
     OptionalPrincipal(principal): crate::access::OptionalPrincipal,
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
-    Json(req): Json<CreateApiTokenRequest>,
-) -> Result<Json<serde_json::Value>, (StatusCode, &'static str)> {
+    request: axum::extract::Request,
+) -> Result<Json<serde_json::Value>, axum::response::Response> {
     let is_local_operator = presents_local_token(&headers, &state);
     let (caller_email, is_operator) = match auth.0.as_ref() {
         Some(user) => {
@@ -6432,7 +6517,8 @@ async fn create_auth_token(
                 return Err((
                     StatusCode::FORBIDDEN,
                     "Only interactive sessions may mint API tokens",
-                ));
+                )
+                    .into_response());
             }
             if state.settings.server.acl.is_blocklisted(&user.email)
                 || user
@@ -6440,7 +6526,7 @@ async fn create_auth_token(
                     .as_deref()
                     .is_some_and(|sid| state.settings.server.acl.is_blocklisted(sid))
             {
-                return Err((StatusCode::FORBIDDEN, "Caller is blocklisted"));
+                return Err((StatusCode::FORBIDDEN, "Caller is blocklisted").into_response());
             }
             (
                 user.email.as_str(),
@@ -6448,10 +6534,17 @@ async fn create_auth_token(
             )
         }
         None if is_local_operator => ("", true),
-        None => return Err((StatusCode::UNAUTHORIZED, "Authentication required")),
+        None => {
+            return Err((StatusCode::UNAUTHORIZED, "Authentication required").into_response());
+        }
     };
-    let secret =
-        resolve_jwt_secret(&state).ok_or((StatusCode::NOT_IMPLEMENTED, "JWT not configured"))?;
+    let secret = resolve_jwt_secret(&state)
+        .ok_or_else(|| (StatusCode::NOT_IMPLEMENTED, "JWT not configured").into_response())?;
+
+    use axum::extract::FromRequest;
+    let Json(req) = Json::<CreateApiTokenRequest>::from_request(request, &state)
+        .await
+        .map_err(IntoResponse::into_response)?;
 
     let target_email = match req.email.as_deref().map(str::trim) {
         Some(email) if !email.is_empty() && !email.eq_ignore_ascii_case(caller_email) => {
@@ -6459,7 +6552,8 @@ async fn create_auth_token(
                 return Err((
                     StatusCode::FORBIDDEN,
                     "Only operators may mint tokens for another address",
-                ));
+                )
+                    .into_response());
             }
             email
         }
@@ -6467,17 +6561,20 @@ async fn create_auth_token(
     };
 
     if target_email.is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "Target email address is required"));
+        return Err((StatusCode::BAD_REQUEST, "Target email address is required").into_response());
     }
     if state.settings.server.acl.is_blocklisted(target_email) {
-        return Err((StatusCode::FORBIDDEN, "Target user is blocklisted"));
+        return Err((StatusCode::FORBIDDEN, "Target user is blocklisted").into_response());
     }
 
     let raw_access = req.max_bug_access.as_deref().unwrap_or("read");
-    let level = crate::access::BugAccess::parse(raw_access).ok_or((
-        StatusCode::BAD_REQUEST,
-        "Invalid max_bug_access; expected none, read, comment, or manage",
-    ))?;
+    let level = crate::access::BugAccess::parse(raw_access).ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            "Invalid max_bug_access; expected none, read, comment, or manage",
+        )
+            .into_response()
+    })?;
     let canonical_access = match level {
         crate::access::BugAccess::Read => "read",
         crate::access::BugAccess::Comment => "comment",
@@ -6490,7 +6587,8 @@ async fn create_auth_token(
         return Err((
             StatusCode::BAD_REQUEST,
             "expires_in_days must be between 1 and 90",
-        ));
+        )
+            .into_response());
     }
 
     let token = crate::auth::create_api_token(
@@ -6504,6 +6602,7 @@ async fn create_auth_token(
             StatusCode::INTERNAL_SERVER_ERROR,
             "Failed to create API token",
         )
+            .into_response()
     })?;
     let token_id = crate::auth::verify_token(&token, &secret)
         .ok()
