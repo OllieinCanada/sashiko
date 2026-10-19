@@ -12,7 +12,7 @@ SOURCE = ROOT / "src/main.rs"
 ORIGINAL = SOURCE.read_text()
 REPORT = {"status": "RUNNING", "source_sha256": hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
           "checkpoint": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
-          "checks": [], "limitations": [
+          "checks": [], "replays_after_delivery": 3, "limitations": [
               "File-backed local fixture, natural 30-second deadline, no manual release.",
               "Completed review is a fixture; no model call or real outbound delivery.",
               "Workers and DB handles reopen in one test process; separate process admission recovery is covered by the existing restart job.",
@@ -121,6 +121,39 @@ try:
         let _ = again.await;
         assert_eq!(std::fs::read_to_string(&attempts)?.lines().count(), 1);
         let accepted =''')
+    test = once(test, "        let mut target = 0;", "        let mut held_raw = String::new();\n        let mut target = 0;")
+    test = once(test, "            let (metadata, patch) = sashiko::patch::parse_email(raw.as_bytes())?;",
+                '            if token == "held" { held_raw = raw.clone(); }\n            let (metadata, patch) = sashiko::patch::parse_email(raw.as_bytes())?;')
+    test = once(test, """        wait_sent??;
+        let worker =""", '''
+        wait_sent??;
+        let frozen_sql = "SELECT json_array(c.admitted_at,c.prior_count,c.extra_seconds,c.decided_deadline,c.released_at,p.embargo_until) FROM review_cooldown_intents c JOIN patchsets p ON p.id=c.patchset_id WHERE p.id=?";
+        let before: String = db.conn.query(frozen_sql, libsql::params![target]).await?
+            .next().await?.context("missing pre-replay snapshot")?.get(0)?;
+        for attempt in 0..3 {
+            let (metadata, patch) = sashiko::patch::parse_email(held_raw.as_bytes())?;
+            let article = ParsedArticle {
+                group: "test.list".into(), article_id: format!("replay-{attempt}"),
+                source: MessageSource::Nntp, metadata: Some(metadata), patch,
+                baseline: None, failed_error: None, skip_filters: None,
+                only_filters: None, mr_url: None, mr_title: None, mr_number: None, receipt: None,
+            };
+            assert!(matches!(process_parsed_article(&db, article, None, &policy, &[]).await, ProcessStatus::Ingested));
+        }
+        let after: String = db.conn.query(frozen_sql, libsql::params![target]).await?
+            .next().await?.context("missing post-replay snapshot")?.get(0)?;
+        assert_eq!(before, after, "replay changed a frozen decision or live release");
+        let reviewer = sashiko::reviewer::Reviewer::new(db.clone(), settings.clone()).await;
+        let reviewer = tokio::spawn(async move { reviewer.start().await });
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        reviewer.abort();
+        let _ = reviewer.await;
+        let total: i64 = db.conn.query("SELECT COUNT(*) FROM email_outbox", ()).await?
+            .next().await?.context("missing replay queue count")?.get(0)?;
+        assert_eq!(total, 1);
+        println!("SCHEDULING_CHECK natural-expiry/reopen/release-restart/slow-transport/replay");
+        let worker =''')
+
     SOURCE.write_text(ORIGINAL[:end] + "\n\n" + test + ORIGINAL[end:])
     REPORT["fixture_sha256"] = hashlib.sha256(test.encode()).hexdigest()
     save()
