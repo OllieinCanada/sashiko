@@ -1,0 +1,99 @@
+name: Check configured Gemini key
+
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths:
+      - '.github/workflows/adaptive-key-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-key:
+    if: github.repository == 'OllieinCanada/sashiko'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Verify secret and one bounded generation request
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+          import urllib.error
+          import urllib.request
+          
+          key = os.environ.pop("LLM_API_KEY", "")
+          if not key:
+              print("SECRET_PRESENT=false")
+              print("RESULT=BLOCKED_MISSING_SECRET")
+              sys.exit(1)
+          print("SECRET_PRESENT=true")
+          
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+          
+          opener = urllib.request.build_opener(NoRedirect())
+          origin = "https://generativelanguage.googleapis.com/v1beta/"
+          phase = "list_models"
+          
+          def call(path, payload=None):
+              data = None if payload is None else json.dumps(payload).encode()
+              request = urllib.request.Request(
+                  origin + path, data=data,
+                  headers={"x-goog-api-key": key, "Content-Type": "application/json"})
+              with opener.open(request, timeout=20) as response:
+                  raw = response.read(2 * 1024 * 1024 + 1)
+                  if len(raw) > 2 * 1024 * 1024:
+                      raise ValueError("response size limit")
+                  return json.loads(raw)
+          
+          try:
+              listing = call("models?pageSize=1000")
+              available = {m.get("name") for m in listing.get("models", [])
+                           if "generateContent" in m.get("supportedGenerationMethods", [])}
+              print("AUTHENTICATION=ACCEPTED")
+              intended = "models/gemini-3.8-flash"
+              print("REVIEW_MODEL_AVAILABLE=" + str(intended in available).lower())
+              choices = [intended, "models/gemini-2.5-flash-lite",
+                         "models/gemini-2.5-flash"]
+              selected = next((m for m in choices if m in available), None)
+              if selected is None:
+                  print("RESULT=AUTHENTICATED_BUT_NO_ALLOWLISTED_SMOKE_MODEL")
+                  sys.exit(2)
+              print("SMOKE_MODEL=" + selected)
+              phase = "generate_content"
+              response = call(selected + ":generateContent", {
+                  "contents": [{"role": "user", "parts": [{"text": "Reply OK."}]}],
+                  "generationConfig": {"candidateCount": 1, "maxOutputTokens": 32}})
+              usage = response.get("usageMetadata", {})
+              safe_usage = {k: v for k, v in usage.items()
+                            if k in ("promptTokenCount", "candidatesTokenCount",
+                                     "thoughtsTokenCount", "totalTokenCount")
+                            and isinstance(v, int)}
+              print("USAGE=" + json.dumps(safe_usage, sort_keys=True))
+              candidates = response.get("candidates", [])
+              if not candidates:
+                  print("RESULT=GENERATION_REQUEST_ACCEPTED_WITHOUT_CANDIDATE")
+                  sys.exit(2)
+              output = "".join(p.get("text", "") for c in candidates
+                               for p in c.get("content", {}).get("parts", []))
+              print("VISIBLE_RESPONSE_PRESENT=" + str(bool(output.strip())).lower())
+              print("RESULT=KEY_WORKS_GENERATION_ACCEPTED")
+          except urllib.error.HTTPError as error:
+              print("PHASE=" + phase)
+              print("HTTP_STATUS=" + str(error.code))
+              print("RESULT=PROVIDER_REJECTED_REQUEST")
+              # Error bodies, URLs, headers and credentials are never printed.
+              sys.exit(1)
+          except Exception:
+              print("PHASE=" + phase)
+              print("RESULT=TRANSPORT_OR_RESPONSE_FAILURE")
+              sys.exit(1)
+          PY
