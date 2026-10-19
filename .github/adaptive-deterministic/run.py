@@ -100,15 +100,29 @@ def command(args, label, timeout, expected=0, runtime=False):
             process.wait()
     text = (OUT / (label + ".log")).read_text()
     if code != expected:
-        print(text[-14000:], flush=True)
+        diagnostics = []
+        for line in text.splitlines():
+            try:
+                item = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if item.get("reason") == "compiler-message":
+                rendered = item.get("message", {}).get("rendered")
+                if rendered:
+                    diagnostics.append(rendered)
+        print(("\n".join(diagnostics) if diagnostics else text)[-18000:], flush=True)
         raise RuntimeError(label + ": unexpected process exit " + str(code))
     print("PASS " + label, flush=True)
     return text, time.monotonic() - started
 
-def build(label):
-    text, _ = command(
-        ["cargo", "test", "--locked", "--offline", "--all-features", "--lib", "--bin", "sashiko",
-         "--no-run", "--message-format=json"], label, 900)
+def build(label, kinds=("lib", "bin")):
+    args = ["cargo", "test", "--locked", "--offline", "--all-features"]
+    if "lib" in kinds:
+        args.append("--lib")
+    if "bin" in kinds:
+        args.extend(["--bin", "sashiko"])
+    args.extend(["--no-run", "--message-format=json"])
+    text, _ = command(args, label, 900)
     binaries = {}
     for line in text.splitlines():
         try:
@@ -123,7 +137,7 @@ def build(label):
             binaries["lib"] = item["executable"]
         elif kind == ["bin"] and item["target"].get("name") == "sashiko":
             binaries["bin"] = item["executable"]
-    if set(binaries) != {"lib", "bin"}:
+    if set(binaries) != set(kinds):
         raise RuntimeError("missing or ambiguous test binary")
     return binaries
 
@@ -191,6 +205,10 @@ try:
     patch = subprocess.check_output(["git", "diff", "--", *PATHS], text=True)
     (OUT / "deterministic-test-additions.patch").write_text(patch)
     binaries = build("build-fixtures")
+    original_binaries = dict(binaries)
+    REPORT["initial_binary_sha256"] = {
+        kind: hashlib.sha256(Path(path).read_bytes()).hexdigest()
+        for kind, path in binaries.items()}
     for label, kind, target, seconds in TESTS:
         test(binaries[kind], target, label, seconds)
     command(["cargo", "clippy", "--locked", "--offline", "--all-targets", "--all-features",
@@ -206,7 +224,8 @@ try:
     ]
     for label, path, anchor, replacement, kind, target in mutants:
         for p, text in baseline.items():
-            (ROOT / p).write_text(text)
+            if (ROOT / p).read_text() != text:
+                (ROOT / p).write_text(text)
         text = baseline[path]
         if text.count(anchor) != 1:
             raise RuntimeError(label + ": non-unique mutation anchor")
@@ -216,14 +235,16 @@ try:
             opening = text.index("{", text.index(anchor))
             text = text[:opening + 1] + "\n    if true { return Ok(()); }\n" + text[opening + 1:]
         (ROOT / path).write_text(text)
-        binaries = build("build-mutant-" + label)
+        binaries = build("build-mutant-" + label, kinds=(kind,))
         test(binaries[kind], target, "negative-" + label, 120, negative=True)
-        test(binaries["lib"], TESTS[5][2], "unrelated-under-" + label, 30)
-        REPORT["mutants"].append({"name": label, "status": "KILLED", "target": target})
+        test(binaries.get("lib", original_binaries["lib"]), TESTS[5][2], "unrelated-under-" + label, 30)
+        REPORT["mutants"].append({"name": label, "status": "KILLED", "target": target,
+                                   "binary_sha256": hashlib.sha256(Path(binaries[kind]).read_bytes()).hexdigest()})
         save()
     for path, text in baseline.items():
-        (ROOT / path).write_text(text)
-    binaries = build("build-restored-fixtures")
+        if (ROOT / path).read_text() != text:
+            (ROOT / path).write_text(text)
+    binaries = build("build-restored-fixtures", kinds=("lib",))
     test(binaries["lib"], TESTS[6][2], "restored-privacy", 60)
     restore()
     if any((ROOT / p).read_text() != s for p, s in ORIGINAL.items()):

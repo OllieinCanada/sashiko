@@ -92,6 +92,7 @@ token = "DET6_FAKE_CREDENTIAL_CANARY"
 "#))?;
             let mut settings = Settings::new()?;
             settings.database.url = ":memory:".into();
+            settings.project.domain = "review.example.test".into();
             settings.git.repository_path = directory.path().to_string_lossy().into_owned();
             settings.review.worktree_dir = Some(directory.path().join("worktrees").to_string_lossy().into_owned());
             settings.review.email_policy_path = policy_path.to_string_lossy().into_owned();
@@ -142,6 +143,20 @@ token = "DET6_FAKE_CREDENTIAL_CANARY"
             let expected_integrations = i64::from(patchwork && !ignored);
             assert_eq!(api, expected_integrations, "{label}");
             assert_eq!(email, expected_integrations, "{label}");
+            if expected_integrations == 1 {
+                let mut rows = db.conn.query("SELECT api_url,check_state,target_url,status FROM patchwork_outbox", ()).await?;
+                let row = rows.next().await?.context("patchwork payload")?;
+                assert_eq!(row.get::<String>(0)?, "https://patchwork.example.test/api", "{label}");
+                assert_eq!(row.get::<String>(1)?, "fail", "{label}");
+                assert_eq!(row.get::<String>(2)?, "https://review.example.test/#/patchset/det6-route-target@example.test?part=1", "{label}");
+                assert_eq!(row.get::<String>(3)?, "Pending", "{label}");
+                assert!(rows.next().await?.is_none());
+                let row = db.conn.query("SELECT to_addresses,status FROM email_outbox WHERE patch_id IS NULL", ()).await?
+                    .next().await?.context("patchwork recipient")?;
+                let to: Vec<String> = serde_json::from_str(&row.get::<String>(0)?)?;
+                assert_eq!(to, vec!["checks@example.test".to_string()], "{label}");
+                assert_eq!(row.get::<String>(1)?, "Pending", "{label}");
+            }
             let bodies: String = db.conn.query("SELECT coalesce(group_concat(body,''),'') FROM email_outbox", ()).await?.next().await?.context("bodies")?.get(0)?;
             assert!(!bodies.contains("DET6_FAKE_CREDENTIAL_CANARY"));
             reviewer.release_embargoed_results().await?;

@@ -91,9 +91,9 @@
             review,
             "Reviewed",
             "DET6_HELD_CONTENT_CANARY",
-            Some("result"),
+            Some("DET6_HELD_CONTENT_CANARY"),
             None,
-            Some("inline"),
+            Some("DET6_HELD_CONTENT_CANARY"),
             Some("DET6_PRIVATE_LOG_CANARY DET6_FAKE_CREDENTIAL_CANARY"),
         )
         .await?;

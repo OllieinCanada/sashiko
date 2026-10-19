@@ -40,7 +40,7 @@
         let active = db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
         let (id, _, message) = seed(&active, "det6-abort-admission", 1).await?;
         let (ready, observed) = tokio::sync::oneshot::channel();
-        let writer = active.clone();
+        let writer = active.with_cooldown_context(active.cooldown_context.clone());
         let task = tokio::spawn(async move {
             let tx = writer.begin_immediate_transaction().await?;
             tx.execute("INSERT INTO patches(patchset_id,message_id,part_index,diff,cooldown_content_hash) VALUES (?, ?, 1, 'diff', ?)",
