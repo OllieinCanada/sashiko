@@ -7571,24 +7571,23 @@ impl Database {
         cooldown_context: Option<&crate::cooldown::CooldownContext>,
         content_hash: &str,
     ) -> Result<PatchWriteOutcome> {
-        let (binding, index_collision) =
-            match Self::bind_cooldown_patch_tx(
-                &tx,
-                patchset_id,
-                message_id,
-                cooldown_context,
-                old_patch.is_none().then_some(part_index),
-            )
-            .await
-            {
-                Ok(binding) => binding,
-                Err(error) => {
-                    Self::block_cooldown(&tx, patchset_id, "patch write has unresolved ownership")
-                        .await?;
-                    tx.commit().await?;
-                    return Err(error);
-                }
-            };
+        let (binding, index_collision) = match Self::bind_cooldown_patch_tx(
+            &tx,
+            patchset_id,
+            message_id,
+            cooldown_context,
+            old_patch.is_none().then_some(part_index),
+        )
+        .await
+        {
+            Ok(binding) => binding,
+            Err(error) => {
+                Self::block_cooldown(&tx, patchset_id, "patch write has unresolved ownership")
+                    .await?;
+                tx.commit().await?;
+                return Err(error);
+            }
+        };
         if old_patch.is_none()
             && matches!(binding, cooldown::CooldownBinding::Owned { decided: true })
         {
