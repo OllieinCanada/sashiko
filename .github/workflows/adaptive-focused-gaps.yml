@@ -24,7 +24,7 @@ jobs:
       - name: Capture formatting patch
         run: |
           cargo fmt --all
-          git diff -- src/db.rs src/db/cooldown.rs > formatting.patch
+          git diff -- src > formatting.patch
           cat formatting.patch
       - name: Focused independent-connection and publication regressions
         run: |
@@ -32,6 +32,23 @@ jobs:
           cargo test --locked --all-features --lib test_cooldown_failed_and_partial_reviews_are_not_clean -- --nocapture
           cargo test --locked --all-features --lib test_cooldown_held_queue_head_does_not_starve_eligible_work -- --nocapture
           cargo test --locked --all-features --lib test_cooldown_independent_publication_claims_have_one_winner -- --nocapture
+      - name: Date trust and enabled release authorization
+        run: |
+          TZ=UTC cargo test --locked --all-features --bin sashiko test_cooldown_untrusted_dates_use_local_admission_time -- --nocapture
+          TZ=America/New_York cargo test --locked --all-features --bin sashiko test_cooldown_untrusted_dates_use_local_admission_time -- --nocapture
+          cargo test --locked --all-features --lib test_adaptive_release_patchset_embargo_authorization_and_endpoint -- --nocapture
+      - name: Offline review budget controls
+        run: |
+          python3 -m py_compile .github/adaptive-model-review/run.py .github/adaptive-model-review/selftest.py
+          python3 .github/adaptive-model-review/selftest.py
+      - name: Local CLI compatibility
+        run: |
+          cargo build --locked --no-default-features --bin sashiko
+          target/debug/sashiko review --help
+          set +e
+          target/debug/sashiko --adaptive-cooldown-unknown-option
+          cli_status=$?
+          if [ "$cli_status" -ne 2 ]; then exit 1; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:

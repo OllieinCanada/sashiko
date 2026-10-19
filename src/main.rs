@@ -3786,6 +3786,95 @@ fn should_start_nntp_ingestor(settings: &Settings) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(feature = "server")]
+    #[tokio::test]
+    async fn test_cooldown_untrusted_dates_use_local_admission_time() -> anyhow::Result<()> {
+        use anyhow::Context as _;
+        use sashiko::settings::DatabaseSettings;
+
+        let directory = tempfile::tempdir()?;
+        let policy_path = directory.path().join("dates.toml");
+        std::fs::write(
+            &policy_path,
+            r#"
+["list@example.test"]
+nntp_group = "test.list"
+embargo_hours = 0
+["list@example.test".adaptive_cooldown]
+enabled = true
+window_seconds = 86400
+burst = 1
+step_seconds = 3600
+max_extra_seconds = 3600
+"#,
+        )?;
+        let policy = sashiko::email_policy::EmailPolicyConfig::load(&policy_path)?;
+        for date in [
+            "Thu, 1 Jan 1970 00:00:00 +0000",
+            "Fri, 1 Jan 2100 00:00:00 +0000",
+            "Sun, 10 Mar 2024 01:59:59 -0500",
+            "Sun, 10 Mar 2024 03:00:00 -0400",
+            "Sun, 3 Nov 2024 01:30:00 -0400",
+            "Sun, 3 Nov 2024 01:30:00 -0500",
+            "not-a-date",
+            "Fri, 31 Dec 9999 23:59:59 +1400",
+        ] {
+            let db = Arc::new(Database::new(&DatabaseSettings {
+                url: ":memory:".into(),
+                token: String::new(),
+            }).await?);
+            db.migrate().await?;
+            let before = chrono::Utc::now().timestamp();
+            for token in ["prior", "held"] {
+                let raw = format!(
+                    "Message-ID: <date-{token}@example.test>\r\nFrom: Dev <dev@example.test>\r\nTo: list@example.test\r\nSubject: [PATCH] date-{token}\r\nDate: {date}\r\n\r\nSigned-off-by: Dev <dev@example.test>\r\n---\r\ndiff --git a/f b/f\r\n--- a/f\r\n+++ b/f\r\n@@ -1 +1 @@\r\n-old\r\n+new\r\n"
+                );
+                let (metadata, patch) = sashiko::patch::parse_email(raw.as_bytes())?;
+                assert!(matches!(
+                    process_parsed_article(
+                        &db,
+                        ParsedArticle {
+                            group: "test.list".into(),
+                            article_id: token.into(),
+                            source: MessageSource::Nntp,
+                            metadata: Some(metadata),
+                            patch,
+                            baseline: None,
+                            failed_error: None,
+                            skip_filters: None,
+                            only_filters: None,
+                            mr_url: None,
+                            mr_title: None,
+                            mr_number: None,
+                            receipt: None,
+                        },
+                        None,
+                        &policy,
+                        &[],
+                    ).await,
+                    ProcessStatus::Ingested
+                ), "date fixture was not ingested: {date}");
+            }
+            let after = chrono::Utc::now().timestamp();
+            let mut rows = db.conn.query(
+                "SELECT admitted_at, decided_deadline FROM review_cooldown_intents WHERE state = 'decided' ORDER BY admitted_at, patchset_id",
+                (),
+            ).await?;
+            let first = rows.next().await?.context("missing first date admission")?;
+            let second = rows.next().await?.context("missing second date admission")?;
+            let first_time: i64 = first.get(0)?;
+            let second_time: i64 = second.get(0)?;
+            assert!((before..=after).contains(&first_time), "{date}");
+            assert!((before..=after).contains(&second_time), "{date}");
+            let first_deadline: Option<i64> = first.get(1)?;
+            assert!(first_deadline.is_none_or(|value| value == 0), "{date}");
+            assert_eq!(second.get::<i64>(1)?, second_time + 3600, "{date}");
+            assert!(rows.next().await?.is_none());
+        }
+        Ok(())
+    }
+
     #[cfg(feature = "server")]
     #[tokio::test]
     async fn test_cooldown_config_to_real_release_and_sendmail() -> anyhow::Result<()> {
