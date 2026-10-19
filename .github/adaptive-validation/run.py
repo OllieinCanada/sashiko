@@ -54,13 +54,16 @@ def save():
 
 
 def command(args, name, env=None, timeout=180, expected=0):
+    print("START " + name, flush=True)
     started = time.monotonic()
     with (OUT / (name + ".log")).open("w") as output:
         result = subprocess.run(args, cwd=ROOT, env=env, stdout=output,
                                 stderr=subprocess.STDOUT, timeout=timeout)
     elapsed = time.monotonic() - started
     if result.returncode != expected:
+        print((OUT / (name + ".log")).read_text()[-16000:], flush=True)
         raise RuntimeError(f"{name}: exit {result.returncode}, expected {expected}")
+    print("PASS " + name, flush=True)
     return (OUT / (name + ".log")).read_text(), elapsed
 
 
@@ -189,6 +192,7 @@ except Exception as error:
     REPORT["status"] = "FAIL"
     REPORT["error"] = str(error)
     save()
+    print(json.dumps(REPORT, indent=2), flush=True)
     raise
 finally:
     SOURCE.write_text(ORIGINAL)
