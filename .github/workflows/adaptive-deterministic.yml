@@ -40,7 +40,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
-      - name: Run bounded native coverage and negative controls
+      - name: Run bounded native coverage and semantic controls
         run: python3 .github/adaptive-deterministic/run.py
       - name: Upload reproducible evidence
         if: always()
