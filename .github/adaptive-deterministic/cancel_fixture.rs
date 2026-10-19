@@ -217,13 +217,11 @@ max_extra_seconds = 3600
         assert!(delivery.await.unwrap_err().is_cancelled());
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
             loop {
-                match std::fs::read_to_string(format!("/proc/{pid}/stat")) {
-                    Ok(stat) => {
-                        let state = stat.rsplit(") ").next().unwrap_or("").chars().next().unwrap_or('?');
-                        if state == 'Z' { break Ok::<(), anyhow::Error>(()); }
-                    }
-                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => break Ok(()),
+                match std::fs::metadata(format!("/proc/{pid}")) {
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound =>
+                        break Ok::<(), anyhow::Error>(()),
                     Err(error) => break Err(error.into()),
+                    Ok(_) => {}
                 }
                 tokio::time::sleep(std::time::Duration::from_millis(20)).await;
             }
