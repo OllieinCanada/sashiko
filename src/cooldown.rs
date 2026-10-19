@@ -41,10 +41,22 @@ impl CooldownConfig {
         }
         // Validate supplied numeric values even for an explicitly disabled entry.
         for (name, value, ceiling) in [
-            ("window_seconds", self.window_seconds.or(inherited.window_seconds), MAX_WINDOW_SECONDS),
+            (
+                "window_seconds",
+                self.window_seconds.or(inherited.window_seconds),
+                MAX_WINDOW_SECONDS,
+            ),
             ("burst", self.burst.or(inherited.burst), MAX_HISTORY_ROWS),
-            ("step_seconds", self.step_seconds.or(inherited.step_seconds), MAX_EXTRA_SECONDS),
-            ("max_extra_seconds", self.max_extra_seconds.or(inherited.max_extra_seconds), MAX_EXTRA_SECONDS),
+            (
+                "step_seconds",
+                self.step_seconds.or(inherited.step_seconds),
+                MAX_EXTRA_SECONDS,
+            ),
+            (
+                "max_extra_seconds",
+                self.max_extra_seconds.or(inherited.max_extra_seconds),
+                MAX_EXTRA_SECONDS,
+            ),
         ] {
             if value.is_some_and(|v| v == 0 || v > ceiling) {
                 bail!("adaptive cooldown {name} is outside supported bounds");
@@ -58,11 +70,18 @@ impl CooldownConfig {
         );
         match values {
             (Some(window_seconds), Some(burst), Some(step_seconds), Some(max_extra_seconds)) => {
-                let policy = CooldownPolicy { window_seconds, burst, step_seconds, max_extra_seconds };
+                let policy = CooldownPolicy {
+                    window_seconds,
+                    burst,
+                    step_seconds,
+                    max_extra_seconds,
+                };
                 policy.validate()?;
                 Ok(self.enabled.then_some(policy))
             }
-            _ if self.enabled => bail!("enabled adaptive cooldown requires window, burst, step and cap"),
+            _ if self.enabled => {
+                bail!("enabled adaptive cooldown requires window, burst, step and cap")
+            }
             _ => Ok(None),
         }
     }
@@ -77,9 +96,18 @@ pub struct CooldownContext {
     pub legacy_deadline: Option<i64>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CooldownSelection {
+    Legacy,
+    CrossPost,
+    Enabled(CooldownContext),
+}
+
 pub fn message_key(raw: &str) -> Result<String> {
     let key = raw.trim().trim_start_matches('<').trim_end_matches('>');
-    if key.is_empty() || key.len() > 998 || key.contains(['<', '>', '\r', '\n', '\0'])
+    if key.is_empty()
+        || key.len() > 998
+        || key.contains(['<', '>', '\r', '\n', '\0'])
         || key.bytes().any(|b| b.is_ascii_whitespace())
     {
         bail!("unsupported adaptive cooldown Message-ID");
@@ -91,7 +119,8 @@ impl CooldownPolicy {
     pub fn validate(&self) -> Result<()> {
         if !(1..=MAX_WINDOW_SECONDS).contains(&self.window_seconds)
             || !(1..=MAX_EXTRA_SECONDS).contains(&self.max_extra_seconds)
-            || self.burst == 0 || self.step_seconds == 0
+            || self.burst == 0
+            || self.step_seconds == 0
             || self.step_seconds > self.max_extra_seconds
             || self.history_limit()? > MAX_HISTORY_ROWS
         {
@@ -105,14 +134,21 @@ impl CooldownPolicy {
             bail!("adaptive cooldown burst and step must be positive");
         }
         let steps = self.max_extra_seconds.div_ceil(self.step_seconds);
-        self.burst.checked_sub(1).and_then(|n| n.checked_add(steps))
+        self.burst
+            .checked_sub(1)
+            .and_then(|n| n.checked_add(steps))
             .ok_or_else(|| anyhow::anyhow!("adaptive cooldown history limit overflow"))
     }
 
     pub fn extra_seconds(&self, prior: u32) -> Result<u32> {
         self.validate()?;
-        let excess = prior.min(self.history_limit()?).saturating_add(1).saturating_sub(self.burst);
-        Ok(excess.saturating_mul(self.step_seconds).min(self.max_extra_seconds))
+        let excess = prior
+            .min(self.history_limit()?)
+            .saturating_add(1)
+            .saturating_sub(self.burst);
+        Ok(excess
+            .saturating_mul(self.step_seconds)
+            .min(self.max_extra_seconds))
     }
 
     pub fn deadline(&self, now: i64, legacy: Option<i64>, prior: u32) -> Result<Option<i64>> {
@@ -123,7 +159,8 @@ impl CooldownPolicy {
         if extra == 0 {
             return Ok(legacy);
         }
-        let until = now.checked_add(i64::from(extra))
+        let until = now
+            .checked_add(i64::from(extra))
             .ok_or_else(|| anyhow::anyhow!("adaptive cooldown deadline overflow"))?;
         Ok(Some(legacy.map_or(until, |old| old.max(until))))
     }
@@ -139,13 +176,27 @@ pub fn author_key(raw: &str) -> Result<String> {
     let Some((local, domain)) = bare.split_once('@') else {
         bail!("adaptive cooldown author is not a mailbox");
     };
-    if bare.len() > 254 || !bare.is_ascii() || local.is_empty() || domain.is_empty()
-        || domain.contains('@') || !domain.contains('.') || local.starts_with('.')
-        || local.ends_with('.') || local.contains("..")
-        || !local.bytes().all(|b| b.is_ascii_alphanumeric() || b".!#$%&'*+-/=?^_`{|}~".contains(&b))
-        || !domain.split('.').all(|label| !label.is_empty() && label.len() <= 63
-            && !label.starts_with('-') && !label.ends_with('-')
-            && label.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-'))
+    if bare.len() > 254
+        || !bare.is_ascii()
+        || local.is_empty()
+        || domain.is_empty()
+        || domain.contains('@')
+        || !domain.contains('.')
+        || local.starts_with('.')
+        || local.ends_with('.')
+        || local.contains("..")
+        || !local
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b".!#$%&'*+-/=?^_`{|}~".contains(&b))
+        || !domain.split('.').all(|label| {
+            !label.is_empty()
+                && label.len() <= 63
+                && !label.starts_with('-')
+                && !label.ends_with('-')
+                && label
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b == b'-')
+        })
     {
         bail!("unsupported adaptive cooldown mailbox");
     }
@@ -157,14 +208,26 @@ mod tests {
     use super::*;
 
     fn fixture() -> CooldownPolicy {
-        CooldownPolicy { window_seconds: 86400, burst: 2, step_seconds: 3600, max_extra_seconds: 21600 }
+        CooldownPolicy {
+            window_seconds: 86400,
+            burst: 2,
+            step_seconds: 3600,
+            max_extra_seconds: 21600,
+        }
     }
 
     #[test]
     fn hand_checked_linear_thresholds_and_composition() -> Result<()> {
         let p = fixture();
         assert_eq!(p.history_limit()?, 7);
-        for (prior, expected) in [(0, 0), (1, 0), (2, 3600), (3, 7200), (7, 21600), (u32::MAX, 21600)] {
+        for (prior, expected) in [
+            (0, 0),
+            (1, 0),
+            (2, 3600),
+            (3, 7200),
+            (7, 21600),
+            (u32::MAX, 21600),
+        ] {
             assert_eq!(p.extra_seconds(prior)?, expected);
         }
         assert_eq!(p.deadline(100, None, 0)?, None);
@@ -178,16 +241,50 @@ mod tests {
 
     #[test]
     fn explicit_enablement_templates_and_strict_types() -> Result<()> {
-        let defaults = CooldownConfig { window_seconds: Some(86400), burst: Some(2), step_seconds: Some(3600), max_extra_seconds: Some(21600), ..Default::default() };
+        let defaults = CooldownConfig {
+            window_seconds: Some(86400),
+            burst: Some(2),
+            step_seconds: Some(3600),
+            max_extra_seconds: Some(21600),
+            ..Default::default()
+        };
         assert_eq!(CooldownConfig::default().resolve(Some(&defaults))?, None);
-        let enabled = CooldownConfig { enabled: true, ..Default::default() };
+        let enabled = CooldownConfig {
+            enabled: true,
+            ..Default::default()
+        };
         assert_eq!(enabled.resolve(Some(&defaults))?, Some(fixture()));
         assert!(enabled.resolve(None).is_err());
-        assert!(CooldownConfig { enabled: true, ..defaults.clone() }.resolve(Some(&enabled)).is_err());
-        for text in ["enabled = 1", "burst = -1", "burst = 4294967296", "extra = 3"] {
+        assert!(
+            CooldownConfig {
+                enabled: true,
+                ..defaults.clone()
+            }
+            .resolve(Some(&enabled))
+            .is_err()
+        );
+        for text in [
+            "enabled = 1",
+            "burst = -1",
+            "burst = 4294967296",
+            "extra = 3",
+        ] {
             assert!(toml::from_str::<CooldownConfig>(text).is_err());
         }
-        for bad in [CooldownPolicy { window_seconds: MAX_WINDOW_SECONDS + 1, ..fixture() }, CooldownPolicy { burst: u32::MAX, ..fixture() }, CooldownPolicy { step_seconds: 0, ..fixture() }] {
+        for bad in [
+            CooldownPolicy {
+                window_seconds: MAX_WINDOW_SECONDS + 1,
+                ..fixture()
+            },
+            CooldownPolicy {
+                burst: u32::MAX,
+                ..fixture()
+            },
+            CooldownPolicy {
+                step_seconds: 0,
+                ..fixture()
+            },
+        ] {
             assert!(bad.validate().is_err());
         }
         Ok(())
@@ -196,7 +293,15 @@ mod tests {
     #[test]
     fn identity_normalization_has_no_unknown_bucket() -> Result<()> {
         assert_eq!(author_key("Dev <DEV@Example.TEST>")?, "dev@example.test");
-        for bad in ["", "unknown@localhost", "a@@example.test", "a\nb@example.test", "a@-bad.test", "a b@example.test", ".a@example.test"] {
+        for bad in [
+            "",
+            "unknown@localhost",
+            "a@@example.test",
+            "a\nb@example.test",
+            "a@-bad.test",
+            "a b@example.test",
+            ".a@example.test",
+        ] {
             assert!(author_key(bad).is_err(), "accepted {bad:?}");
         }
         Ok(())

@@ -4,11 +4,14 @@ CREATE TABLE IF NOT EXISTS review_cooldown_intents (
     list TEXT NOT NULL,
     author TEXT NOT NULL,
     policy TEXT NOT NULL,
+    policy_version INTEGER NOT NULL DEFAULT 1 CHECK (policy_version = 1),
     state TEXT NOT NULL CHECK (state IN ('waiting', 'decided', 'blocked')),
     created_at INTEGER NOT NULL CHECK (created_at >= 0),
     admitted_at INTEGER,
     prior_count INTEGER,
     extra_seconds INTEGER,
+    decided_deadline INTEGER,
+    verified_parts INTEGER,
     released_at INTEGER,
     reason TEXT,
     CHECK ((admitted_at IS NULL AND prior_count IS NULL AND extra_seconds IS NULL)
@@ -19,6 +22,10 @@ CREATE TABLE IF NOT EXISTS review_cooldown_messages (
     patchset_id INTEGER NOT NULL REFERENCES review_cooldown_intents(patchset_id) ON DELETE RESTRICT
 );
 CREATE INDEX IF NOT EXISTS idx_cooldown_messages_owner ON review_cooldown_messages(patchset_id);
+CREATE TABLE IF NOT EXISTS review_cooldown_exclusions (
+    patchset_id INTEGER PRIMARY KEY REFERENCES patchsets(id) ON DELETE CASCADE,
+    reason TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS review_cooldown_events (
     patchset_id INTEGER PRIMARY KEY REFERENCES review_cooldown_intents(patchset_id) ON DELETE RESTRICT,
     list TEXT NOT NULL,
@@ -79,3 +86,21 @@ END;
 
 CREATE TABLE IF NOT EXISTS review_cooldown_clock (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), last_admitted_at INTEGER NOT NULL);
 INSERT OR IGNORE INTO review_cooldown_clock VALUES (1, 0);
+
+CREATE TRIGGER IF NOT EXISTS cooldown_new_owner BEFORE INSERT ON patchsets
+WHEN EXISTS (SELECT 1 FROM review_cooldown_messages
+             WHERE message_id = trim(NEW.cover_letter_message_id, '<> '))
+BEGIN SELECT RAISE(ABORT, 'adaptive canonical identity already owned'); END;
+
+-- Close the gap between a canonical metadata check and its later write.
+CREATE TRIGGER IF NOT EXISTS cooldown_metadata_gate BEFORE UPDATE OF author, total_parts ON patchsets
+WHEN EXISTS (SELECT 1 FROM review_cooldown_intents c WHERE c.patchset_id = OLD.id
+  AND c.state = 'decided' AND (NEW.total_parts != OLD.total_parts OR c.author != lower(trim(
+    CASE WHEN instr(NEW.author, '<') > 0 THEN
+      substr(NEW.author, instr(NEW.author, '<') + 1, instr(NEW.author, '>') - instr(NEW.author, '<') - 1)
+    ELSE NEW.author END))))
+BEGIN
+    UPDATE review_cooldown_intents SET state = 'blocked', reason = 'admitted canonical metadata changed' WHERE patchset_id = OLD.id;
+    UPDATE patchsets SET status = 'Cooldown blocked', failed_reason = 'admitted canonical metadata changed' WHERE id = OLD.id;
+    SELECT RAISE(IGNORE);
+END;

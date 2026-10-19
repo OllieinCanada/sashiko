@@ -260,7 +260,9 @@ impl EmailPolicyConfig {
         }
         for (key, policy) in &self.lists {
             if let Some(adaptive) = &policy.adaptive_cooldown {
-                adaptive.resolve(self.defaults.adaptive_cooldown.as_ref()).map_err(|e| e.to_string())?;
+                adaptive
+                    .resolve(self.defaults.adaptive_cooldown.as_ref())
+                    .map_err(|e| e.to_string())?;
             }
             let trimmed = key.trim();
             let Some((local, domain)) = trimmed.split_once('@') else {
@@ -300,13 +302,14 @@ impl EmailPolicyConfig {
     pub fn adaptive_context(
         &self, source: crate::events::MessageSource, group: &str,
         to: &str, cc: &str, author: &str, legacy_deadline: Option<i64>,
-    ) -> anyhow::Result<Option<crate::cooldown::CooldownContext>> {
-        if source != crate::events::MessageSource::Nntp { return Ok(None); }
+    ) -> anyhow::Result<crate::cooldown::CooldownSelection> {
+        if source != crate::events::MessageSource::Nntp { return Ok(crate::cooldown::CooldownSelection::Legacy); }
         if !self.lists.values().any(|p| p.adaptive_cooldown.as_ref().is_some_and(|c| c.enabled)) {
-            return Ok(None);
+            return Ok(crate::cooldown::CooldownSelection::Legacy);
         }
         let raw = format!("To: {to}\r\nCc: {cc}\r\n\r\n");
-        let parsed = mail_parser::MessageParser::default().parse(raw.as_bytes())
+        let parsed = mail_parser::MessageParser::default()
+            .parse(raw.as_bytes())
             .ok_or_else(|| anyhow::anyhow!("invalid adaptive recipient headers"))?;
         let mut addresses = std::collections::HashSet::new();
         for header in [parsed.to(), parsed.cc()].into_iter().flatten() {
@@ -319,14 +322,20 @@ impl EmailPolicyConfig {
         let mut matched = Vec::new();
         for (list, policy) in &self.lists {
             let bare = extract_bare_email(list);
-            let nntp = policy.nntp_group.clone().unwrap_or_else(|| derive_nntp_group(list));
-            if addresses.contains(&bare) || nntp == group { matched.push((bare, policy)); }
+            let nntp = policy
+                .nntp_group
+                .clone()
+                .unwrap_or_else(|| derive_nntp_group(list));
+            if addresses.contains(&bare) || nntp == group {
+                matched.push((bare, policy));
+            }
         }
-        if matched.len() != 1 { return Ok(None); }
+        if matched.len() > 1 { return Ok(crate::cooldown::CooldownSelection::CrossPost); }
+        if matched.is_empty() { return Ok(crate::cooldown::CooldownSelection::Legacy); }
         let (list, policy) = matched.remove(0);
-        let Some(config) = &policy.adaptive_cooldown else { return Ok(None); };
-        let Some(policy) = config.resolve(self.defaults.adaptive_cooldown.as_ref())? else { return Ok(None); };
-        Ok(Some(crate::cooldown::CooldownContext {
+        let Some(config) = &policy.adaptive_cooldown else { return Ok(crate::cooldown::CooldownSelection::Legacy); };
+        let Some(policy) = config.resolve(self.defaults.adaptive_cooldown.as_ref())? else { return Ok(crate::cooldown::CooldownSelection::Legacy); };
+        Ok(crate::cooldown::CooldownSelection::Enabled(crate::cooldown::CooldownContext {
             list, author: crate::cooldown::author_key(author)?, policy, legacy_deadline,
         }))
     }

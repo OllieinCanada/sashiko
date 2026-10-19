@@ -74,6 +74,7 @@ const PATCH_WRITE_MAX_ATTEMPTS: usize = 3;
 struct StoredPatchState {
     diff: Arc<libsql::Value>,
     git_patch_id: Option<String>,
+    part_index: u32,
 }
 
 #[cfg(feature = "server")]
@@ -90,7 +91,7 @@ async fn get_stored_patch_state(
 ) -> Result<Option<StoredPatchState>> {
     let mut rows = conn
         .query(
-            "SELECT diff, git_patch_id FROM patches
+            "SELECT diff, git_patch_id, part_index FROM patches
              WHERE patchset_id = ? AND message_id = ?",
             libsql::params![patchset_id, message_id],
         )
@@ -102,6 +103,7 @@ async fn get_stored_patch_state(
     Ok(Some(StoredPatchState {
         diff: Arc::new(row.get(0)?),
         git_patch_id: get_optional_text(&row, 1)?,
+        part_index: row.get(2)?,
     }))
 }
 
@@ -194,6 +196,7 @@ pub struct Database {
     bug_model: Option<String>,
     bug_claim: Option<BugAnalysisClaim>,
     cooldown_context: Option<crate::cooldown::CooldownContext>,
+    cooldown_cross_post: bool,
 }
 
 /// Guards an open transaction on the transaction `libsql::Connection` so
@@ -1403,6 +1406,7 @@ impl Database {
             bug_tool: tool.into(),
             bug_model: model,
             cooldown_context: self.cooldown_context.clone(),
+            cooldown_cross_post: self.cooldown_cross_post,
             bug_claim: self.bug_claim.clone(),
         }
     }
@@ -1418,6 +1422,7 @@ impl Database {
             bug_tool: self.bug_tool.clone(),
             bug_model: self.bug_model.clone(),
             cooldown_context: self.cooldown_context.clone(),
+            cooldown_cross_post: self.cooldown_cross_post,
             bug_claim: self.bug_claim.clone(),
         }
     }
@@ -1433,6 +1438,7 @@ impl Database {
             bug_tool: self.bug_tool.clone(),
             bug_model: self.bug_model.clone(),
             cooldown_context: self.cooldown_context.clone(),
+            cooldown_cross_post: self.cooldown_cross_post,
             bug_claim: Some(BugAnalysisClaim {
                 bug_id,
                 owner: owner.into(),
@@ -1864,6 +1870,7 @@ impl Database {
             bug_model: None,
             bug_claim: None,
             cooldown_context: None,
+            cooldown_cross_post: false,
         })
     }
 
@@ -2068,7 +2075,8 @@ impl Database {
 
         if current_version < 14 {
             let tx = self.begin_immediate_transaction().await?;
-            tx.execute_batch(include_str!("migrations/014_publication_cooldown.sql")).await?;
+            tx.execute_batch(include_str!("migrations/014_publication_cooldown.sql"))
+                .await?;
             tx.execute("PRAGMA user_version = 14", ()).await?;
             tx.commit().await?;
         }
@@ -5808,12 +5816,18 @@ impl Database {
             let mut stored = tx.query("SELECT author, subject, body, to_recipients, cc_recipients, in_reply_to FROM messages WHERE message_id = ?", libsql::params![message_id]).await?;
             if let Some(row) = stored.next().await? {
                 let old_subject: String = row.get(1)?;
-                let changed = old_subject != "(placeholder)" && (
-                    crate::cooldown::author_key(&row.get::<String>(0)?).ok().filter(|old| Some(old) == crate::cooldown::author_key(author).ok().as_ref()).is_none()
-                    || old_subject != subject || row.get::<libsql::Value>(2)? != compressed_body
-                    || row.get::<Option<String>>(3)?.as_deref().unwrap_or("") != to
-                    || row.get::<Option<String>>(4)?.as_deref().unwrap_or("") != cc
-                    || row.get::<Option<String>>(5)?.as_deref() != in_reply_to);
+                let changed = old_subject != "(placeholder)"
+                    && (crate::cooldown::author_key(&row.get::<String>(0)?)
+                        .ok()
+                        .filter(|old| {
+                            Some(old) == crate::cooldown::author_key(author).ok().as_ref()
+                        })
+                        .is_none()
+                        || old_subject != subject
+                        || row.get::<libsql::Value>(2)? != compressed_body
+                        || row.get::<Option<String>>(3)?.as_deref().unwrap_or("") != to
+                        || row.get::<Option<String>>(4)?.as_deref().unwrap_or("") != cc
+                        || row.get::<Option<String>>(5)?.as_deref() != in_reply_to);
                 if changed {
                     Self::block_cooldown(&tx, owner, "owned source message changed").await?;
                     tx.commit().await?;
@@ -6853,12 +6867,22 @@ impl Database {
                 let tx = self.begin_transaction().await?;
                 let mut has_adaptive = false;
                 for candidate in &matches {
-                    let mut rows = tx.query("SELECT 1 FROM review_cooldown_intents WHERE patchset_id = ?", libsql::params![candidate.id]).await?;
+                    let mut rows = tx
+                        .query(
+                            "SELECT 1 FROM review_cooldown_intents WHERE patchset_id = ?",
+                            libsql::params![candidate.id],
+                        )
+                        .await?;
                     has_adaptive |= rows.next().await?.is_some();
                 }
                 if has_adaptive {
                     for candidate in &matches {
-                        Self::block_cooldown(&tx, candidate.id, "ambiguous canonical merge requires reconciliation").await?;
+                        Self::block_cooldown(
+                            &tx,
+                            candidate.id,
+                            "ambiguous canonical merge requires reconciliation",
+                        )
+                        .await?;
                     }
                     tx.commit().await?;
                     bail!("adaptive canonical merge quarantined before moving rows");
@@ -7235,21 +7259,52 @@ impl Database {
 
         let insert_tx = if self.cooldown_context.is_some() {
             Some(self.begin_immediate_transaction().await?)
-        } else { None };
-        let insert_db = insert_tx.as_ref().map(|tx| self.with_connection((**tx).clone()));
+        } else {
+            None
+        };
+        let insert_db = insert_tx
+            .as_ref()
+            .map(|tx| self.with_connection((**tx).clone()));
         let insert_db = insert_db.as_ref().unwrap_or(self);
         // Also enforce existing ownership after disable/config removal.
-        for key in [Some(message_id), cover_letter_message_id].into_iter().flatten() {
+        for key in [Some(message_id), cover_letter_message_id]
+            .into_iter()
+            .flatten()
+        {
             if let Some(owner) = Self::cooldown_owner(&insert_db.conn, key).await? {
                 if let Some(tx) = insert_tx {
-                    let result = Self::bind_cooldown_message_tx(&tx, owner, message_id, self.cooldown_context.as_ref()).await;
-                    if result.is_err() { Self::block_cooldown(&tx, owner, "contradictory extension of canonical revision").await?; }
+                    let result = Self::bind_cooldown_message_tx(
+                        &tx,
+                        owner,
+                        message_id,
+                        self.cooldown_context.as_ref(),
+                    )
+                    .await;
+                    if result.is_err() {
+                        Self::block_cooldown(
+                            &tx,
+                            owner,
+                            "contradictory extension of canonical revision",
+                        )
+                        .await?;
+                    }
                     tx.commit().await?;
                     result?;
                 } else {
                     self.bind_cooldown_message(owner, message_id).await?;
                 }
                 return Ok(Some(owner));
+            }
+        }
+        if insert_tx.is_some() && let Some(cover) = cover_letter_message_id {
+            let mut rows = insert_db.conn.query("SELECT id, author, total_parts FROM patchsets WHERE cover_letter_message_id = ? LIMIT 1", libsql::params![cover]).await?;
+            if let Some(row) = rows.next().await? {
+                let existing_id: i64 = row.get(0)?;
+                if crate::cooldown::author_key(&row.get::<String>(1)?)? != crate::cooldown::author_key(author)? || row.get::<u32>(2)? != total_parts {
+                    bail!("concurrent legacy canonical owner is incompatible");
+                }
+                if let Some(tx) = insert_tx { tx.commit().await?; }
+                return Ok(Some(existing_id));
             }
         }
         let id = insert_db
@@ -7260,8 +7315,12 @@ impl Database {
             )
             .await?
             .ok_or_else(|| anyhow::anyhow!("Failed to retrieve patchset ID after insert"))?;
-        insert_db.insert_cooldown_intent(id, message_id, cover_letter_message_id).await?;
-        if let Some(tx) = insert_tx { tx.commit().await?; }
+        insert_db
+            .insert_cooldown_intent(id, message_id, cover_letter_message_id)
+            .await?;
+        if let Some(tx) = insert_tx {
+            tx.commit().await?;
+        }
         Ok(Some(id))
     }
 
@@ -7305,6 +7364,7 @@ impl Database {
             // Clone the prepared value before taking the write lock. A large
             // compressed diff should not add memory-copy time to the lock.
             let diff_to_write = compressed_diff.clone();
+            let owned_content_changed = old_patch.as_ref().is_some_and(|old| old.diff.as_ref() != &diff_to_write || old.part_index != part_index);
             let tx = self.begin_immediate_transaction().await?;
             match Self::write_patch_transaction(
                 tx,
@@ -7314,6 +7374,7 @@ impl Database {
                 part_index,
                 diff_to_write,
                 selected_patch_id,
+                owned_content_changed,
             )
             .await?
             {
@@ -7333,21 +7394,25 @@ impl Database {
         part_index: u32,
         diff: libsql::Value,
         git_patch_id: Option<String>,
+        owned_content_changed: bool,
     ) -> Result<PatchWriteOutcome> {
-        Self::bind_cooldown_message_tx(&tx, patchset_id, message_id, None).await?;
-        let mut intent = tx.query("SELECT state FROM review_cooldown_intents WHERE patchset_id = ?", libsql::params![patchset_id]).await?;
+        if let Err(error) = Self::bind_cooldown_message_tx(&tx, patchset_id, message_id, None).await {
+            Self::block_cooldown(&tx, patchset_id, "patch write has unresolved ownership").await?;
+            tx.commit().await?;
+            return Err(error);
+        }
+        let mut intent = tx
+            .query(
+                "SELECT state FROM review_cooldown_intents WHERE patchset_id = ?",
+                libsql::params![patchset_id],
+            )
+            .await?;
         if let Some(row) = intent.next().await? {
             let decided = row.get::<String>(0)? == "decided";
-            let changed = match &old_patch {
-                Some(old) => {
-                    let mut index = tx.query("SELECT part_index FROM patches WHERE patchset_id = ? AND message_id = ?", libsql::params![patchset_id, message_id]).await?;
-                    let old_index: u32 = index.next().await?.context("missing owned part")?.get(0)?;
-                    old.diff.as_ref() != &diff || old_index != part_index
-                }
-                None => decided,
-            };
+            let changed = owned_content_changed || (old_patch.is_none() && decided);
             if changed {
-                Self::block_cooldown(&tx, patchset_id, "owned patch content or index changed").await?;
+                Self::block_cooldown(&tx, patchset_id, "owned patch content or index changed")
+                    .await?;
                 tx.commit().await?;
                 bail!("adaptive patch correction quarantined");
             }
@@ -7629,7 +7694,9 @@ impl Database {
 
     /// Release waives time, not completeness or a quarantine.
     pub async fn release_patchset_embargo(&self, id: i64, now: i64) -> Result<bool> {
-        if now < 0 { bail!("invalid embargo release timestamp"); }
+        if now < 0 {
+            bail!("invalid embargo release timestamp");
+        }
         let tx = self.begin_immediate_transaction().await?;
         let marked = tx.execute("UPDATE review_cooldown_intents SET released_at = COALESCE(released_at, ?) WHERE patchset_id = ? AND state != 'blocked'", libsql::params![now, id]).await?;
         let rows = tx.execute("UPDATE patchsets SET embargo_until = ? WHERE id = ? AND embargo_until IS NOT NULL AND embargo_until > ? AND NOT EXISTS (SELECT 1 FROM review_cooldown_intents c WHERE c.patchset_id = patchsets.id AND c.state = 'blocked')", libsql::params![now, id, now]).await?;
@@ -7705,8 +7772,8 @@ impl Database {
                     };
 
                     let embargo_until: Option<i64> = row.get(19).ok();
-                    let is_embargoed = embargo_until.is_some_and(|until| until > now)
-                        || row.get::<i64>(24)? != 0;
+                    let is_embargoed =
+                        embargo_until.is_some_and(|until| until > now) || row.get::<i64>(24)? != 0;
 
                     let (low, medium, high, critical) = if is_embargoed {
                         (0, 0, 0, 0)
@@ -7720,7 +7787,9 @@ impl Database {
                     };
 
                     let mut status: Option<String> = row.get(2).ok();
-                    if is_embargoed && matches!(status.as_deref(), Some("Reviewed" | "Cooldown blocked")) {
+                    if is_embargoed
+                        && matches!(status.as_deref(), Some("Reviewed" | "Cooldown blocked"))
+                    {
                         status = Some("Embargoed".to_string());
                     }
 
@@ -8108,8 +8177,8 @@ impl Database {
                 .duration_since(std::time::UNIX_EPOCH)?
                 .as_secs() as i64;
 
-            let is_embargoed = embargo_until.is_some_and(|until| until > now)
-                || row.get::<i64>(20)? != 0;
+            let is_embargoed =
+                embargo_until.is_some_and(|until| until > now) || row.get::<i64>(20)? != 0;
 
             // Fetch patches with subject and msg_db_id
             let mut patches = Vec::new();
@@ -8151,7 +8220,12 @@ impl Database {
             }
 
             let mut final_status = status;
-            if is_embargoed && matches!(final_status.as_deref(), Some("Reviewed" | "Cooldown blocked")) {
+            if is_embargoed
+                && matches!(
+                    final_status.as_deref(),
+                    Some("Reviewed" | "Cooldown blocked")
+                )
+            {
                 final_status = Some("Embargoed".to_string());
             }
 
@@ -8308,8 +8382,8 @@ impl Database {
                 .duration_since(std::time::UNIX_EPOCH)?
                 .as_secs() as i64;
 
-            let is_embargoed = embargo_until.is_some_and(|until| until > now)
-                || row.get::<i64>(20)? != 0;
+            let is_embargoed =
+                embargo_until.is_some_and(|until| until > now) || row.get::<i64>(20)? != 0;
 
             let mut patches = Vec::new();
             let mut patch_ids = Vec::new();
@@ -8351,7 +8425,12 @@ impl Database {
             }
 
             let mut final_status = status;
-            if is_embargoed && matches!(final_status.as_deref(), Some("Reviewed" | "Cooldown blocked")) {
+            if is_embargoed
+                && matches!(
+                    final_status.as_deref(),
+                    Some("Reviewed" | "Cooldown blocked")
+                )
+            {
                 final_status = Some("Embargoed".to_string());
             }
 
@@ -9817,7 +9896,8 @@ impl Database {
     ) -> Result<()> {
         let tx = self.begin_immediate_transaction().await?;
         // Prevent duplicate emails for the same patch under the writer lock.
-        let mut rows = tx.query(
+        let mut rows = tx
+            .query(
                 "SELECT 1 FROM email_outbox WHERE patch_id = ?",
                 libsql::params![patch_id],
             )

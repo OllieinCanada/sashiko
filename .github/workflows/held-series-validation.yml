@@ -9,7 +9,7 @@ permissions:
 
 concurrency:
   group: held-series-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   formatting:
@@ -30,7 +30,6 @@ jobs:
           if [ "$result" -ne 0 ]; then
             cargo +1.90.0 fmt --all
             git diff -- src
-            git ls-files --others --exclude-standard src | xargs -r -I '{}' sh -c 'git diff --no-index /dev/null "$1" || true' sh '{}' 
           fi
           exit "$result"
   native:
@@ -111,6 +110,7 @@ jobs:
           fi
           yamllint .
       - name: Clippy all features
+        if: always()
         run: cargo clippy --locked --all-targets --all-features -- -D warnings
       - name: Clippy local profile
         run: cargo clippy --locked --all-targets --no-default-features -- -D warnings
@@ -119,4 +119,5 @@ jobs:
           cargo clippy --locked --all-targets --no-default-features
           --features cache -- -D warnings
       - name: Full tests
+        if: always()
         run: cargo test --locked --all-features
