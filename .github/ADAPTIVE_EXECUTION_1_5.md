@@ -1,5 +1,11 @@
 # Adaptive cooldown — execution of items 1–5
 
+> Historical snapshot. Current acceptance counts, provider status, upstream,
+> bundle identities and final validation are in
+> [the deterministic coverage update](ADAPTIVE_DETERMINISTIC_EVIDENCE.md).
+> Earlier performance samples and negative outcomes below remain preserved.
+
+
 **Not ready for submission.** Implementation and required deterministic checks are prepared. Maintainer policy agreement and authenticated Sashiko self-review remain absent; historical archive replay is blocked. The acceptance matrix records **50 VERIFIED / 12 PARTIAL / 2 BLOCKED**, with the scope of every row retained.
 
 This report uses the user's pasted 64 acceptance scenarios and ten completion gates. It does not claim the original inaccessible attachment was recovered. No upstream PR, deployment, real email or model call was made.

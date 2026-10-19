@@ -1,19 +1,29 @@
 # Adaptive cooldown acceptance evidence
 
-Status: **not ready for submission**. 50 VERIFIED, 12 PARTIAL, 2 BLOCKED of 64 scenarios. A verified row applies only within its recorded scope; it does not waive separate completion gates.
+**Not ready for submission.** 52 VERIFIED, 10 PARTIAL,
+2 BLOCKED of 64 scenarios. Each verified row applies only within its
+recorded scope and does not waive the separate completion gates.
 
-Source: the user's pasted 64-row condensed master checklist. These are requirements to verify, not a claim that the inaccessible original attachment has been reread.
+Source: the user's pasted condensed 64-row checklist; the original inaccessible
+attachment was not reread. Production source: bd59059f1864aea81b11b5de0eb97e5d2ec53667.
+Final native checkpoint: d9cc305c8e000add224b93800d21e3edcefc8f11;run 39333925430.
+Runtime/performance baseline: 7f92f869a960a20f7d395550b4879d897ebdf4ea.
+Observed upstream: f6e2e172e1e669b6767a4c74fe91d062b41fd71c,rechecked 22:25UTC;
+the newer commit changes PRESS.md only.
 
-Production checkpoint: `bd59059f1864aea81b11b5de0eb97e5d2ec53667`.
-Upstream base: `7f92f869a960a20f7d395550b4879d897ebdf4ea`, observed unchanged at 20:39 UTC on 2026-10-19.
-Native suite checkpoint: `dbe259abb32b5f585f020ce7faee96694e8869c4`; only the two fork workflow files listed in the JSON differ from the production checkpoint.
-Source-only bundle HEAD: `fa8a32646362a11ce00b7a90a14df3af828465d3`, tree `178107288293535d3adeaf180ba0328b9da6714a`. These are checked bundled commits, not a published GitHub branch.
+Refreshed bundled source-only HEAD: 6667a81cd25a69feca76e65d94aacb4c83b2ce72;tree:
+d38b668f511e2e0972aa4588174a2c55f3582b30. These are bundled commits,not a published
+remote source branch. Its native checks pass;independent bundle inspection
+covers the previous bundle only.
 
-See [execution report](ADAPTIVE_EXECUTION_1_5.md), [machine-readable matrix](adaptive-acceptance-matrix.json), and [analytical evidence](adaptive-execution-1-5.json).
+See [current deterministic evidence](ADAPTIVE_DETERMINISTIC_EVIDENCE.md),
+[machine-readable matrix](adaptive-acceptance-matrix.json),
+[current analytical evidence](adaptive-deterministic-evidence.json),and
+[historical performance/rollout evidence](ADAPTIVE_EXECUTION_1_5.md).
 
 ## Evidence index
 
-- **[SUITE](https://github.com/OllieinCanada/sashiko/actions/runs/39320690309)** — Production-equivalent dbe259: fmt, Clippy all/minimal/cache, 1032 library +49 main +7 CLI +23 integration =1111 pass;2 ignored.
+- **[SUITE](https://github.com/OllieinCanada/sashiko/actions/runs/39333925430)** — Exact checkpoint d9cc305c: all 8 focused fixtures, 2 compiled semantic mutants plus controls, injected-fixture Clippy, source restoration; make check-pr with fmt, Clippy all/minimal/cache, 1032 library +49 main +7 CLI +23 integration =1111 pass,2 ignored.
 - **[FOCUS](https://github.com/OllieinCanada/sashiko/actions/runs/39320285627)** — Final source exact-duplicate/failed-review/starvation/publication claims; dates8x2TZ;12 legacy settings cases;adaptive ACL;actual minimal/cache --no-ai CLI; unknown flag.
 - **[CONFIG](https://github.com/OllieinCanada/sashiko/actions/runs/39320285705)** — Six DB recovery/pruning/config fixtures on final source; FOCUS supplies twelve actual ingestion compatibility combinations.
 - **[SQLITE](https://github.com/OllieinCanada/sashiko/actions/runs/39320285705)** — Query-only/busy writers, pruning, stale leases, disable/cancel/reopen and source selection.
@@ -25,562 +35,99 @@ See [execution report](ADAPTIVE_EXECUTION_1_5.md), [machine-readable matrix](ada
 - **[PERF](https://github.com/OllieinCanada/sashiko/actions/runs/39320285590/artifacts/12220276794)** — Final matched upstream/base/disabled/enabled18samples; frozen ratio-of-medians<=1.20/1.50 pass; legacy tuples equal. Raw individual fresh pair1.2392 exceeds20%; prior FAIL_BUDGET runs preserved.
 - **[PROBE](https://github.com/OllieinCanada/sashiko/actions/runs/39320285682/artifacts/12219638673)** — Calibrated SQL API counters and writer distributions, separate instrumented-debug run; prior844.91ms and finalbaseline150.31ms outliers preserved.
 - **[MUT](https://github.com/OllieinCanada/sashiko/actions/runs/39320285657/artifacts/12220621203)** — 8 compiled semantic mutants killed, targeted positives/unrelated controls/restored replay; negative contexts inspected separately.
-- **[PREP](https://github.com/OllieinCanada/sashiko/actions/runs/39320285692/artifacts/12218764477)** — Three clean DCO-signed commits; make check-pr before each; make sob after each; clean source-only bundle.
-- **[INSPECT](https://github.com/OllieinCanada/sashiko/actions/runs/39321984128/artifacts/12219849932)** — Verified bundle HEAD/tree/source equivalence, patch SHA256, DCO trailers, all3 makecheck-pr summaries and8 semantic mutation failure contexts; no rebuilding/model calls.
+- **[PREP](https://github.com/OllieinCanada/sashiko/actions/runs/39330032302/artifacts/12224277238)** — Refreshed three-commit source-only bundle on f6e2e1 (PRESS.md-only upstream update); native make check-pr before each commit, DCO after each; clean checkout; model review blocked.
+- **[INSPECT](https://github.com/OllieinCanada/sashiko/actions/runs/39321984128/artifacts/12219849932)** — Verified bundle HEAD/tree/source equivalence, patch SHA256, DCO trailers, all3 makecheck-pr summaries and8 semantic mutation failure contexts; no rebuilding/model calls. Historical inspection covers prior fa8a326 bundle, not refreshed 6667a81 bundle.
 - **[HISTORICAL](https://github.com/OllieinCanada/sashiko/actions/runs/39320939517/artifacts/12219539032)** — Harness compiles; source fixture readonly write-negative passes. Actual archive replay BLOCKED: HTTPS403 and NNTP timeout on prior bounded attempt; replay_performed=false.
 - **[RFC](https://github.com/OllieinCanada/sashiko/blob/codex/held-series-ci-20261019/.github/ADAPTIVE_MAINTAINER_POLICY_RFC.md)** — Ready-to-post policy proposal; posting403; no issue/agreement.
-- **[MODEL](https://github.com/OllieinCanada/sashiko/actions/runs/39316716214)** — MissingLLM_API_KEY confirmed by hosted readiness and user. Budget controls offline-pass; no modelreview/call/spend.
-
-## A. Configuration and compatibility
-
-### A01 — VERIFIED
-
-Default/absent setting preserves all existing behavior.
-
-Evidence: FOCUS 12-case omitted/disabled/inheritance/fixed-delay ingestion matrix; PERF legacy tuples equal; SUITE legacy no-intent/event control.
-
-Scope / remaining: Existing configuration behavior retained in the exercised combinations; no universal all-input proof.
-
-### A02 — PARTIAL
-
-Explicitly disabled differs correctly from omitted.
-
-Evidence: FOCUS explicit false and omitted through ingestion, with numeric templates; CONFIG strict enablement.
-
-Scope / remaining: Behavior is tested; confirm omitted/false inheritance semantics with maintainers.
-
-### A03 — PARTIAL
-
-Zero delays and inherited settings retain their meanings.
-
-Evidence: FOCUS fixed embargo omitted/0/2 across inherited/omitted/disabled settings; independent expected None/+7200.
-
-Scope / remaining: Legacy zero/NULL semantics verified; adaptive zero-limit rejection remains a policy agreement question.
-
-### A04 — VERIFIED
-
-Invalid limits and contradictory settings fail safely.
-
-Evidence: explicit_enablement_templates_and_strict_types; hand_checked_linear_thresholds_and_composition.
-
-Scope / remaining: Bounds, strict types, step/cap contradictions and overflow reject; resource ceilings are not deployment defaults.
-
-### A05 — VERIFIED
-
-Unknown configuration fields and CLI options are rejected.
-
-Evidence: CONFIG unknown/invalid TOML; FOCUS unknown CLI flag rejects with exit2 in both minimal profiles.
-
-Scope / remaining: Relevant parser behavior tested; no automatic acceptance of misspelled options.
-
-### A06 — PARTIAL
-
-Cross-posted lists respect precedence and opt-outs.
-
-Evidence: CONFIG source/recipient matrix; test_cooldown_crosspost_before_admission_is_legacy.
-
-Scope / remaining: Current policy sends any cross-post through shared legacy handling. Maintainer agreement and a full precedence/opt-out matrix are missing.
-
-### A07 — VERIFIED
-
-Configuration reaches the actual production workflow.
-
-Evidence: ROUTE; test_cooldown_config_to_real_release_and_sendmail.
-
-Scope / remaining: Real policy file -> parsed NNTP article -> admission/release worker -> recording sendmail; completed review is a fixture.
-
-### A08 — VERIFIED
-
-Existing local review commands and feature profiles still work.
-
-Evidence: SUITE three Clippy profiles; FOCUS actual --project sashiko review --no-ai --agent under minimal and minimal+cache.
-
-Scope / remaining: Both real no-AI commands return complete one-patch JSON; outbound proxy refuses network. This is CLI compatibility, not model self-review.
-
-
-## B. Identity and submission accounting
-
-### B01 — VERIFIED
-
-One patch series counts once, regardless of patch count.
-
-Evidence: NATIVE maximum 1024-part series; PERF mixed 1/2/4/8-part series; incomplete/out-of-order regression.
-
-Scope / remaining: One event per complete canonical revision; covers and individual parts do not multiply activity.
-
-### B02 — VERIFIED
-
-Duplicate messages and replays cannot count twice.
-
-Evidence: test_cooldown_incomplete_out_of_order_and_duplicate; ROUTE three delivered-message replays; CONCUR.
-
-Scope / remaining: Frozen decisions and event counts remain unchanged after replay.
-
-### B03 — VERIFIED
-
-Simultaneous duplicate submissions create one event.
-
-Evidence: SUITE/FOCUS test_cooldown_same_message_concurrent_replay_preserves_owner; MUT stale-snapshot deletion killed.
-
-Scope / remaining: Independent handles/barrier four trials plus deterministic stale-snapshot case. Identical replay preserves one owner/event; changed payload remains quarantined.
-
-### B04 — VERIFIED
-
-Concurrent revisions cannot lose accounting updates.
-
-Evidence: test_cooldown_distinct_connections_serialize_author_history; CONCUR.
-
-Scope / remaining: 16 independent handles, 128 admissions, eight scopes, exact saturated-count distribution.
-
-### B05 — VERIFIED
-
-One author's activity cannot penalize another.
-
-Evidence: test_cooldown_deadline_boundary_clean_exception_and_isolation; author-scope mutant in MUT.
-
-Scope / remaining: Distinct author has zero prior activity; removing author scope is detected.
-
-### B06 — VERIFIED
-
-Author identity is normalized without merging unknown authors.
-
-Evidence: identity_normalization_has_no_unknown_bucket; CONFIG invalid-author case.
-
-Scope / remaining: ASCII bare mailbox normalization; malformed/unsupported identities error instead of sharing an unknown key. From is unauthenticated.
-
-### B07 — VERIFIED
-
-Late, incomplete, and out-of-order series are handled.
-
-Evidence: test_cooldown_incomplete_out_of_order_and_duplicate; real_versions_and_late_cover_remain_separate; unbound_adopted_cover_cannot_admit.
-
-Scope / remaining: Unresolved provenance cannot promote Pending; frozen revisions cannot be extended silently.
-
-### B08 — VERIFIED
-
-Series-size metadata is validated against manipulation.
-
-Evidence: maximum-series control; owned_content_cannot_change_without_context; same_version_extension_cannot_escape_frozen_owner; large_source_metadata_is_compact_during_admission.
-
-Scope / remaining: Actual unique indices and source metadata are checked; changed denominator/content quarantines the owner.
-
-
-## C. Timing and cooldown logic
-
-### C01 — VERIFIED
-
-First submission and burst thresholds produce expected delays.
-
-Evidence: hand_checked_linear_thresholds_and_composition; test_cooldown_hand_trace_scope_and_window.
-
-Scope / remaining: Independent threshold table checks first, burst, linear step and saturation.
-
-### C02 — VERIFIED
-
-Larger series follow the defined limits without overflow.
-
-Evidence: NATIVE 1024 real parts; core policy bounds/overflow tests.
-
-Scope / remaining: Current v1 policy has no size multiplier. Policy agreement is an independent completion gate.
-
-### C03 — VERIFIED
-
-Time-window boundary cases are correct.
-
-Evidence: test_cooldown_hand_trace_scope_and_window.
-
-Scope / remaining: History uses (t-W,t]; event exactly on excluded lower boundary drops from the count.
-
-### C04 — VERIFIED
-
-Inactivity resets or decays the cooldown correctly.
-
-Evidence: test_cooldown_hand_trace_scope_and_window; seeded_restart_replay_trace.
-
-Scope / remaining: Sliding-window expiration resets the count; no separate exponential decay is implemented.
-
-### C05 — VERIFIED
-
-Forged or incorrect email dates cannot bypass the cooldown.
-
-Evidence: FOCUS test_cooldown_untrusted_dates_use_local_admission_time.
-
-Scope / remaining: Eight parsed Date cases:1970/2100/invalid/9999 and both DST offsets, under UTC and America/New_York. Deadline computed from bounded local UTC admission.
-
-### C06 — PARTIAL
-
-Clock changes, time zones, and timestamp limits are tested.
-
-Evidence: SUITE backward-clock/negative/overflow/window-boundary tests; FOCUS eight untrusted dates in UTC and America/New_York.
-
-Scope / remaining: TZ/DST/header extremes now exercised; no comprehensive real wall-clock forward-jump scheduling matrix.
-
-### C07 — VERIFIED
-
-Reviews release at the deadline, never prematurely.
-
-Evidence: test_cooldown_deadline_boundary_clean_exception_and_isolation; ROUTE natural 30-second expiry.
-
-Scope / remaining: No ordinary release at deadline-1; release at deadline. Existing clean/authorized-override exceptions remain valid eligibility paths.
-
-### C08 — VERIFIED
-
-Continuous new submissions cannot postpone an old review forever.
-
-Evidence: deadline_boundary_clean_exception_and_isolation; frozen replay tests; seeded trace.
-
-Scope / remaining: Later activity does not move an earlier frozen decision; incremental delay is capped.
-
-
-## D. Database, concurrency and recovery
-
-### D01 — VERIFIED
-
-Fresh databases and upgraded databases both work.
-
-Evidence: SUITE fresh migrations, v8/v10 and complete v11 fixture; interim_version14_upgrade_preserves_decision.
-
-Scope / remaining: Schema 15 retains prototype decisions and repairs the held-series index.
-
-### D02 — VERIFIED
-
-Deadlines and duplicate protection survive restarts.
-
-Evidence: NATIVE separate-process restart; FAULT post-COMMIT recovery; restart_preserves_decision_and_release.
-
-Scope / remaining: Reopened workers and processes preserve frozen values and deduplication.
-
-### D03 — VERIFIED
-
-Failed transactions leave no partially committed state.
-
-Evidence: history_failure_rolls_back_and_retries; SQLITE recovery; FAULT ENOSPC/EIO/precommit/torn-write.
-
-Scope / remaining: Failed target admission leaves no patch/event; successful retry records one target event.
-
-### D04 — VERIFIED
-
-Crash recovery preserves committed work.
-
-Evidence: FAULT before/after COMMIT and partial WAL write; NATIVE process exit after commit.
-
-Scope / remaining: SIGKILL/torn-write software model passed integrity checks. Physical electrical power loss is not demonstrated.
-
-### D05 — VERIFIED
-
-Concurrent database connections cannot corrupt decisions.
-
-Evidence: CONCUR; two independent-connection regressions.
-
-Scope / remaining: 128 events and replay/release snapshots remain consistent. Scope is the tested bounded workload.
-
-### D06 — PARTIAL
-
-Slow operations do not block unrelated writers.
-
-Evidence: PROBE paused collaborator; ROUTE gated sendmail; deliberate contention calibration.
-
-Scope / remaining: External pauses permit unrelated writes. Unbounded indivisible canonical-owner quarantine remains a documented exception; broad load/fairness is not established.
-
-### D07 — VERIFIED
-
-Database failures are visible and handled safely.
-
-Evidence: SQLITE read-only/busy controls; FAULT; outbox_and_release_queries_propagate_cursor_step_errors.
-
-Scope / remaining: Failures surface as errors and do not silently publish or fall back to legacy admission.
-
-### D08 — VERIFIED
-
-History cleanup, configuration changes, and rollback preserve pending work.
-
-Evidence: SQLITE event pruning/config reload; OLD untouched15-table backup restore and pending-work resume.
-
-Scope / remaining: Processes stopped; no new work during old-code rehearsal. Old-code scratch state cancels work; untouched backup preserves and restores runnable pending state. Not live rolling downgrade.
-
-
-## E. Publication and existing protections
-
-### E01 — VERIFIED
-
-Held findings cannot be sent before release eligibility.
-
-Evidence: ROUTE; live_claims_and_null_patch_notification; quarantine API regression; SQLITE stale leases.
-
-Scope / remaining: Checks ordinary mail, NULL patch notifications and live claim guards. Remote acceptance already completed cannot be recalled.
-
-### E02 — VERIFIED
-
-Successful clean reviews retain existing immediate-release behavior.
-
-Evidence: test_clean_patchset_is_releasable_before_embargo_expiry; adaptive deadline_boundary_clean_exception_and_isolation.
-
-Scope / remaining: A complete successful no-finding review remains eligible before its time deadline.
-
-### E03 — VERIFIED
-
-Failed or incomplete reviews cannot masquerade as clean.
-
-Evidence: SUITE/FOCUS test_cooldown_failed_and_partial_reviews_are_not_clean; no-AI predicate tests.
-
-Scope / remaining: Enabled adaptive release matrix covers Failed/Pending/Skipped/missing/partial and literal mixed Reviewed+Failed with target2.
-
-### E04 — VERIFIED
-
-Superseded versions are cancelled without blocking newer ones.
-
-Evidence: held supersession prerequisite regressions; held-series partial-index/candidate-capacity checks.
-
-Scope / remaining: Unpublished Reviewed predecessors and unsent outboxes cancel atomically; release race remains protected.
-
-### E05 — VERIFIED
-
-Multiple workers cannot claim the same queue item incorrectly.
-
-Evidence: SUITE/FOCUS test_cooldown_independent_publication_claims_have_one_winner.
-
-Scope / remaining: Two independent handles race release/email/Patchwork claims; exactly one winner for each eligible item. Frozen past legacy deadline fixture is explicit.
-
-### E06 — VERIFIED
-
-Retries, leases, and cooldown deadlines cooperate correctly.
-
-Evidence: SQLITE stale lease quarantine/reopen; ROUTE expiry/restart/replay; release claim lease tests.
-
-Scope / remaining: Expired claims are rechecked against live guards. Exactly-once SMTP acceptance/acknowledgement is outside this evidence.
-
-### E07 — VERIFIED
-
-Authorized early release works; unauthorized release is denied.
-
-Evidence: SUITE/FOCUS test_adaptive_release_patchset_embargo_authorization_and_endpoint.
-
-Scope / remaining: Existing role/visibility/authorization endpoint matrix reused with persisted decided adaptive owner and future fixed embargo. Earned adaptive-extra hold covered separately.
-
-### E08 — PARTIAL
-
-Mailing-list rules, ignored authors, recipients, visibility, and integrations stay correct.
-
-Evidence: CONFIG; FOCUS adaptive release ACL/visibility; recording recipients; refreshed upstream security/routing tests in SUITE.
-
-Scope / remaining: Missing complete adaptive-enabled ignored-author/routing/integration combinations.
-
-
-## F. Adversarial and edge cases
-
-### F01 — VERIFIED
-
-Held reviews cannot block eligible reviews behind them.
-
-Evidence: SUITE/FOCUS test_cooldown_held_queue_head_does_not_starve_eligible_work.
-
-Scope / remaining: Held head followed by eligible work, selector limit1, across review/outbox/release candidates; eligibility tested before limiting.
-
-### F02 — PARTIAL
-
-Forged identities or subjects cannot cause unbounded penalties.
-
-Evidence: Identity validation, fixed increment cap, frozen deadlines, source/metadata quarantine.
-
-Scope / remaining: No comprehensive adversarial/fairness corpus. Forged/shared From addresses can affect another person using the same key; document and obtain policy agreement.
-
-### F03 — VERIFIED
-
-Ambiguous series titles and revision histories do not collide.
-
-Evidence: real_versions_and_late_cover_remain_separate; mixed_canonical_merge_blocks_before_moving_rows; late_cover_recovers_explicit_part_version.
-
-Scope / remaining: Supported versions remain separate; unsupported ownership reconciliation quarantines before mutation.
-
-### F04 — PARTIAL
-
-Large series and activity histories remain resource-bounded.
-
-Evidence: NATIVE 1024 parts; indexed bounded history; PROBE retained-owner comparison; pruning control.
-
-Scope / remaining: Permanent tombstones are not globally storage-bounded; canonical multiowner quarantine is an unbounded indivisible group. No blanket bounded-writer claim.
-
-### F05 — PARTIAL
-
-Malformed input cannot cause injection or uncontrolled allocation.
-
-Evidence: Strict config/mailbox/ID validation, bound checks and parameterized SQL; compact facts with 1 MiB subject.
-
-Scope / remaining: No complete malformed-input fuzz/allocation bound audit across ingestion. Outside-writer preprocessing still allocates in proportion to input.
-
-### F06 — PARTIAL
-
-Cancellation cleans up tasks and prevents indefinite hangs.
-
-Evidence: Cancellation regressions, timeout child-reaping tests, bounded hosted subprocesses, OLD quiescence.
-
-Scope / remaining: Add adaptive-specific in-flight review/transport cancellation coverage; remote acceptance cannot be undone.
-
-### F07 — PARTIAL
-
-Diagnostics do not expose private information or credentials.
-
-Evidence: Quarantine hides direct public review/log endpoints; general redaction tests; diagnostic counters omit SQL payloads.
-
-Scope / remaining: No dedicated held-content/secret-canary audit over all new logs and manifests. Raw model review logging remains untested.
-
-### F08 — BLOCKED
-
-Read-only replay cannot alter real database or repository state.
-
-Evidence: HISTORICAL read-only write-negative and compiled shadow harness; actual archive HTTPS403/NNTPtimeout.
-
-Scope / remaining: No historical email replay performed. Requires an accessible actual public raw message/corpus; readonly source fixture is not real production state.
-
-
-## G. Testing quality and performance
-
-### G01 — VERIFIED
-
-At least one integration test exercises the complete affected workflow.
-
-Evidence: ROUTE and test_cooldown_config_to_real_release_and_sendmail.
-
-Scope / remaining: Policy -> real parsed article -> DB -> completed-review fixture -> release worker -> recording transport. No model call; review-computation boundary is explicit.
-
-### G02 — VERIFIED
-
-Expected results are calculated independently of production code.
-
-Evidence: Hand-checked threshold table; seeded small-state oracle; fixed expected concurrent count distribution.
-
-Scope / remaining: Expected values are not obtained by invoking the production cooldown calculator.
-
-### G03 — VERIFIED
-
-Regression tests fail when their intended protection is removed.
-
-Evidence: MUT8 compiled/killed mutants; INSPECT actual negative assertions/errors and unrelated controls.
-
-Scope / remaining: Author scope,frozen replay,deadline,release marker,NNTPenablement,stale identical replay,source correction,and snapshot quarantine. No infrastructure failure counted as a killed mutant.
-
-### G04 — VERIFIED
-
-Generated tests reproduce restart, replay, and concurrency failures.
-
-Evidence: Three seeded 96-admission traces; source-race regressions; CONCUR; process/crash controls.
-
-Scope / remaining: Coverage is bounded and reproducible, not an exhaustive interleaving proof.
-
-### G05 — VERIFIED
-
-Small, large, and mixed workloads are tested.
-
-Evidence: PERF 1000 series/3750 parts; NATIVE 1024-part series; compact metadata with 1 MiB subject; 10000 archived owners.
-
-Scope / remaining: Generated/synthetic workload sizes are recorded; no historical replay is implied.
-
-### G06 — VERIFIED
-
-Measure enabled versus disabled performance and database costs.
-
-Evidence: PERF18 raw final samples; PROBE calibrated counts; previous two FAIL_BUDGET18-sample runs retained in execution JSON.
-
-Scope / remaining: Final ratio-of-medians:disabled/upstream1.1500/1.1486;enabled/disabled1.1137/1.1531. Fresh individual pair~1.2392 exceeds20%; not a production latency guarantee.
-
-### G07 — VERIFIED
-
-Run the required test suites on the exact final code revision.
-
-Evidence: SUITE on dbe259; PREP three source commits; INSPECT final source-only tree equals bd590 across complete production paths.
-
-Scope / remaining: Only fork workflow changes distinguish native checkpoint from production checkpoint. Re-run checks if production or upstream base changes.
-
-### G08 — VERIFIED
-
-Test harness detects invalid fixtures and misleading passes.
-
-Evidence: Exact one-test assertions, compiler artifact checks, SQL calibration, OS fault-hit markers, SIGKILL exit checks, restored-source controls.
-
-Scope / remaining: Earlier invalid fixtures and a wrongly selected mutation target are documented and corrected; no invalid pass is reused.
-
-
-## H. Evidence, rollout and completion
-
-### H01 — VERIFIED
-
-Record tested commit, command, environment, logs, and outcome.
-
-Evidence: SUITE/PREP/INSPECT/PERF/PROBE/FAULT/CONCUR/OLD and .github/ADAPTIVE_EXECUTION_1_5.md plus .github/adaptive-execution-1-5.json.
-
-Scope / remaining: Exact source/base/tree/commands/environment/outcomes recorded. Artifacts expire after14days; analytical samples and summaries preserved in fork.
-
-### H02 — VERIFIED
-
-Distinguish upstream failures from newly introduced failures.
-
-Evidence: Untouched7f stable-Rust1.99.1 four result_large_err errors isolated;1.90 baseline does not reproduce. PREP first compatibility commit passes1065tests; final1111tests pass.
-
-Scope / remaining: Upstream lint compatibility patch is separate and function-scoped. Invalid Date cursor/config fixture and packaging failures are retained as harness defects, not production regressions.
-
-### H03 — VERIFIED
-
-Refresh against upstream and revalidate the final diff.
-
-Evidence: Upstream7f refreshed; overlapping main/server hunks validated; SUITE/PREP/INSPECT and PERF final source revalidated.
-
-Scope / remaining: Observed upstream still7f at20:39UTC. New upstream changes require fresh comparison; this does not close policy/model/coverage gates.
-
-### H04 — VERIFIED
-
-Do not claim email or token savings without real measurements.
-
-Evidence: Design and reports make no savings claim; all review outputs are fixtures in deterministic tests.
-
-Scope / remaining: Cooldown delays publication; no token/email reduction measurement or claim has been made.
-
-### H05 — VERIFIED
-
-Preserve negative results and document fairness tradeoffs.
-
-Evidence: Previous FAIL_BUDGET runs, raw paired ratios and corrected harness failures retained; design limitations.
-
-Scope / remaining: Includes unauthenticated/shared authors, cold history, retained storage and indivisible quarantine limitations.
-
-### H06 — BLOCKED
-
-Required model-assisted self-review is completed or explicitly marked blocked.
-
-Evidence: MODEL hosted missing-key check; user explicitly confirms no provider key.
-
-Scope / remaining: No authenticated Sashiko model review. Free-tier Gemini key is an option; paid fallback is not enabled. --no-ai and offline proxy tests do not satisfy review.
-
-### H07 — PARTIAL
-
-Rehearse dry-run, rollback, and pending-work preservation.
-
-Evidence: ROUTE local recording transport; OLD unsafe negative, stopped quiescence, exact backup restore, pending resume.
-
-Scope / remaining: Pending-state preservation is now demonstrated in stopped DB rehearsal. Full production-daemon rollback, operational dry-run and in-flight cancellation matrix remain unverified.
-
-### H08 — VERIFIED
-
-No unauthorized emails, pushes, deployment changes, secret leaks, or paid calls.
-
-Evidence: Authorized fork-only checkpoints; temporary recording transports; no upstream PR/deployment/model calls.
-
-Scope / remaining: No external mail or paid AI call was made by this work. Source publication remains separately gated.
+- **[MODEL](https://github.com/OllieinCanada/sashiko/blob/codex/held-series-ci-20261019/.github/ADAPTIVE_KEY_CHECK.md)** — LLM_API_KEY present; authenticated Gemini model listing accepted, intended model available. Two tiny generation probes returned HTTP 503, no usage returned. Actual Sashiko review NOT_RUN; calls paused.
+- **[CLOCK](https://github.com/OllieinCanada/sashiko/actions/runs/39328125251)** — Actual wall-clock shim with unchanged monotonic time: six process instants under UTC and America/New_York; actual ingestion/release/recording transport; observer confirms production eligibility now/count; source restored; all-feature Clippy passed.
+- **[ROUTING](https://github.com/OllieinCanada/sashiko/actions/runs/39333925430/artifacts/12226376491)** — 19 actual-ingestion cases, each replayed twice;16 earned-3600-second-hold notification policies: ignored/self/mute/empty, recipients, absent SMTP,dry-run,positive cases,Patchwork counts/payloads/recipients. All PASS, no external delivery.
+- **[CANCEL](https://github.com/OllieinCanada/sashiko/actions/runs/39332466758/artifacts/12225540647)** — Persisted adaptive owner;actual stdio RPC loop and cancellation watcher with pending in-process mock provider. Child PID disappears,provider future drops,permit restores,no outbox,frozen decision stable. Two compiled mutants killed,unrelated/restored controls and fixture Clippy PASS. Overall workflow failed a separate invalid clock fixture.
+- **[BOUNDED](https://github.com/OllieinCanada/sashiko/actions/runs/39333925430/artifacts/12226376491)** — Final PASS:7 explicit selector clock instants;64 SQL-like ID payloads replayed with exact schema/count equality;41 malformed authors and6 IDs;2 held/quarantined privacy states/public6 paths/authorized3 paths and3 handler-trace canaries;admission abort/rollback/retry;transport abort/lease/reopen/one accepted recording.
+- **[NEWMUT](https://github.com/OllieinCanada/sashiko/actions/runs/39333925430/artifacts/12226376491)** — Ignored-author ingestion and private-review embargo guard mutants compile and fail the intended assertions;unrelated controls and restored privacy PASS. CANCEL supplies two more compiled cancellation mutants. Twelve semantic mutants total including the earlier eight.
+
+## Acceptance scenarios
+
+| ID | Requirement | Status | Executed evidence | Remaining limitation or scope |
+| --- | --- | --- | --- | --- |
+| A01 | Default/absent setting preserves all existing behavior. | VERIFIED | FOCUS 12-case omitted/disabled/inheritance/fixed-delay ingestion matrix; PERF legacy tuples equal; SUITE legacy no-intent/event control. | Existing configuration behavior retained in the exercised combinations; no universal all-input proof. |
+| A02 | Explicitly disabled differs correctly from omitted. | PARTIAL | FOCUS explicit false and omitted through ingestion, with numeric templates; CONFIG strict enablement. | Behavior is tested; confirm omitted/false inheritance semantics with maintainers. |
+| A03 | Zero delays and inherited settings retain their meanings. | PARTIAL | FOCUS fixed embargo omitted/0/2 across inherited/omitted/disabled settings; independent expected None/+7200. | Legacy zero/NULL semantics verified; adaptive zero-limit rejection remains a policy agreement question. |
+| A04 | Invalid limits and contradictory settings fail safely. | VERIFIED | explicit_enablement_templates_and_strict_types; hand_checked_linear_thresholds_and_composition. | Bounds, strict types, step/cap contradictions and overflow reject; resource ceilings are not deployment defaults. |
+| A05 | Unknown configuration fields and CLI options are rejected. | VERIFIED | CONFIG unknown/invalid TOML; FOCUS unknown CLI flag rejects with exit2 in both minimal profiles. | Relevant parser behavior tested; no automatic acceptance of misspelled options. |
+| A06 | Cross-posted lists respect precedence and opt-outs. | PARTIAL | CONFIG source/recipient matrix;ROUTING 19-case actual ingestion matrix with two replays each;cross-post fallback regression. | Crosspost/opt-out/source/ignored-author matrix executed; shared legacy fallback still requires maintainer agreement. |
+| A07 | Configuration reaches the actual production workflow. | VERIFIED | ROUTE; test_cooldown_config_to_real_release_and_sendmail. | Real policy file -> parsed NNTP article -> admission/release worker -> recording sendmail; completed review is a fixture. |
+| A08 | Existing local review commands and feature profiles still work. | VERIFIED | SUITE three Clippy profiles; FOCUS actual --project sashiko review --no-ai --agent under minimal and minimal+cache. | Both real no-AI commands return complete one-patch JSON; outbound proxy refuses network. This is CLI compatibility, not model self-review. |
+| B01 | One patch series counts once, regardless of patch count. | VERIFIED | NATIVE maximum 1024-part series; PERF mixed 1/2/4/8-part series; incomplete/out-of-order regression. | One event per complete canonical revision; covers and individual parts do not multiply activity. |
+| B02 | Duplicate messages and replays cannot count twice. | VERIFIED | test_cooldown_incomplete_out_of_order_and_duplicate; ROUTE three delivered-message replays; CONCUR. | Frozen decisions and event counts remain unchanged after replay. |
+| B03 | Simultaneous duplicate submissions create one event. | VERIFIED | SUITE/FOCUS test_cooldown_same_message_concurrent_replay_preserves_owner; MUT stale-snapshot deletion killed. | Independent handles/barrier four trials plus deterministic stale-snapshot case. Identical replay preserves one owner/event; changed payload remains quarantined. |
+| B04 | Concurrent revisions cannot lose accounting updates. | VERIFIED | test_cooldown_distinct_connections_serialize_author_history; CONCUR. | 16 independent handles, 128 admissions, eight scopes, exact saturated-count distribution. |
+| B05 | One author's activity cannot penalize another. | VERIFIED | test_cooldown_deadline_boundary_clean_exception_and_isolation; author-scope mutant in MUT. | Distinct author has zero prior activity; removing author scope is detected. |
+| B06 | Author identity is normalized without merging unknown authors. | VERIFIED | identity_normalization_has_no_unknown_bucket; CONFIG invalid-author case. | ASCII bare mailbox normalization; malformed/unsupported identities error instead of sharing an unknown key. From is unauthenticated. |
+| B07 | Late, incomplete, and out-of-order series are handled. | VERIFIED | test_cooldown_incomplete_out_of_order_and_duplicate; real_versions_and_late_cover_remain_separate; unbound_adopted_cover_cannot_admit. | Unresolved provenance cannot promote Pending; frozen revisions cannot be extended silently. |
+| B08 | Series-size metadata is validated against manipulation. | VERIFIED | maximum-series control; owned_content_cannot_change_without_context; same_version_extension_cannot_escape_frozen_owner; large_source_metadata_is_compact_during_admission. | Actual unique indices and source metadata are checked; changed denominator/content quarantines the owner. |
+| C01 | First submission and burst thresholds produce expected delays. | VERIFIED | hand_checked_linear_thresholds_and_composition; test_cooldown_hand_trace_scope_and_window. | Independent threshold table checks first, burst, linear step and saturation. |
+| C02 | Larger series follow the defined limits without overflow. | VERIFIED | NATIVE 1024 real parts; core policy bounds/overflow tests. | Current v1 policy has no size multiplier. Policy agreement is an independent completion gate. |
+| C03 | Time-window boundary cases are correct. | VERIFIED | test_cooldown_hand_trace_scope_and_window. | History uses (t-W,t]; event exactly on excluded lower boundary drops from the count. |
+| C04 | Inactivity resets or decays the cooldown correctly. | VERIFIED | test_cooldown_hand_trace_scope_and_window; seeded_restart_replay_trace. | Sliding-window expiration resets the count; no separate exponential decay is implemented. |
+| C05 | Forged or incorrect email dates cannot bypass the cooldown. | VERIFIED | FOCUS test_cooldown_untrusted_dates_use_local_admission_time. | Eight parsed Date cases:1970/2100/invalid/9999 and both DST offsets, under UTC and America/New_York. Deadline computed from bounded local UTC admission. |
+| C06 | Clock changes, time zones, and timestamp limits are tested. | VERIFIED | CLOCK six actual process wall-clock states in each of two time zones;BOUNDED seven selector instants;existing negative/overflow/window/header tests. | Owned process LD_PRELOAD realtime APIs, monotonic time real; no host clock change or universal kernel-clock proof. |
+| C07 | Reviews release at the deadline, never prematurely. | VERIFIED | test_cooldown_deadline_boundary_clean_exception_and_isolation; ROUTE natural 30-second expiry. | No ordinary release at deadline-1; release at deadline. Existing clean/authorized-override exceptions remain valid eligibility paths. |
+| C08 | Continuous new submissions cannot postpone an old review forever. | VERIFIED | deadline_boundary_clean_exception_and_isolation; frozen replay tests; seeded trace. | Later activity does not move an earlier frozen decision; incremental delay is capped. |
+| D01 | Fresh databases and upgraded databases both work. | VERIFIED | SUITE fresh migrations, v8/v10 and complete v11 fixture; interim_version14_upgrade_preserves_decision. | Schema 15 retains prototype decisions and repairs the held-series index. |
+| D02 | Deadlines and duplicate protection survive restarts. | VERIFIED | NATIVE separate-process restart; FAULT post-COMMIT recovery; restart_preserves_decision_and_release. | Reopened workers and processes preserve frozen values and deduplication. |
+| D03 | Failed transactions leave no partially committed state. | VERIFIED | history_failure_rolls_back_and_retries; SQLITE recovery; FAULT ENOSPC/EIO/precommit/torn-write. | Failed target admission leaves no patch/event; successful retry records one target event. |
+| D04 | Crash recovery preserves committed work. | VERIFIED | FAULT before/after COMMIT and partial WAL write; NATIVE process exit after commit. | SIGKILL/torn-write software model passed integrity checks. Physical electrical power loss is not demonstrated. |
+| D05 | Concurrent database connections cannot corrupt decisions. | VERIFIED | CONCUR; two independent-connection regressions. | 128 events and replay/release snapshots remain consistent. Scope is the tested bounded workload. |
+| D06 | Slow operations do not block unrelated writers. | PARTIAL | PROBE paused collaborator; ROUTE gated sendmail; deliberate contention calibration. | External pauses permit unrelated writes. Unbounded indivisible canonical-owner quarantine remains a documented exception; broad load/fairness is not established. |
+| D07 | Database failures are visible and handled safely. | VERIFIED | SQLITE read-only/busy controls; FAULT; outbox_and_release_queries_propagate_cursor_step_errors. | Failures surface as errors and do not silently publish or fall back to legacy admission. |
+| D08 | History cleanup, configuration changes, and rollback preserve pending work. | VERIFIED | SQLITE event pruning/config reload; OLD untouched15-table backup restore and pending-work resume. | Processes stopped; no new work during old-code rehearsal. Old-code scratch state cancels work; untouched backup preserves and restores runnable pending state. Not live rolling downgrade. |
+| E01 | Held findings cannot be sent before release eligibility. | VERIFIED | ROUTE; live_claims_and_null_patch_notification; quarantine API regression; SQLITE stale leases. | Checks ordinary mail, NULL patch notifications and live claim guards. Remote acceptance already completed cannot be recalled. |
+| E02 | Successful clean reviews retain existing immediate-release behavior. | VERIFIED | test_clean_patchset_is_releasable_before_embargo_expiry; adaptive deadline_boundary_clean_exception_and_isolation. | A complete successful no-finding review remains eligible before its time deadline. |
+| E03 | Failed or incomplete reviews cannot masquerade as clean. | VERIFIED | SUITE/FOCUS test_cooldown_failed_and_partial_reviews_are_not_clean; no-AI predicate tests. | Enabled adaptive release matrix covers Failed/Pending/Skipped/missing/partial and literal mixed Reviewed+Failed with target2. |
+| E04 | Superseded versions are cancelled without blocking newer ones. | VERIFIED | held supersession prerequisite regressions; held-series partial-index/candidate-capacity checks. | Unpublished Reviewed predecessors and unsent outboxes cancel atomically; release race remains protected. |
+| E05 | Multiple workers cannot claim the same queue item incorrectly. | VERIFIED | SUITE/FOCUS test_cooldown_independent_publication_claims_have_one_winner. | Two independent handles race release/email/Patchwork claims; exactly one winner for each eligible item. Frozen past legacy deadline fixture is explicit. |
+| E06 | Retries, leases, and cooldown deadlines cooperate correctly. | VERIFIED | SQLITE stale lease quarantine/reopen; ROUTE expiry/restart/replay; release claim lease tests. | Expired claims are rechecked against live guards. Exactly-once SMTP acceptance/acknowledgement is outside this evidence. |
+| E07 | Authorized early release works; unauthorized release is denied. | VERIFIED | SUITE/FOCUS test_adaptive_release_patchset_embargo_authorization_and_endpoint. | Existing role/visibility/authorization endpoint matrix reused with persisted decided adaptive owner and future fixed embargo. Earned adaptive-extra hold covered separately. |
+| E08 | Mailing-list rules, ignored authors, recipients, visibility, and integrations stay correct. | VERIFIED | ROUTING19 ingestion cases x2 replay and16 notification-policy cases under earned adaptive holds;prior FOCUS ACL/visibility and SUITE integration protections. | Fixed review outputs and actual production notification queueing. No external mail or Patchwork API call;bounded policy matrix,not every possible configuration. |
+| F01 | Held reviews cannot block eligible reviews behind them. | VERIFIED | SUITE/FOCUS test_cooldown_held_queue_head_does_not_starve_eligible_work. | Held head followed by eligible work, selector limit1, across review/outbox/release candidates; eligibility tested before limiting. |
+| F02 | Forged identities or subjects cannot cause unbounded penalties. | PARTIAL | Identity validation, fixed increment cap, frozen deadlines, source/metadata quarantine. | No comprehensive adversarial/fairness corpus. Forged/shared From addresses can affect another person using the same key; document and obtain policy agreement. |
+| F03 | Ambiguous series titles and revision histories do not collide. | VERIFIED | real_versions_and_late_cover_remain_separate; mixed_canonical_merge_blocks_before_moving_rows; late_cover_recovers_explicit_part_version. | Supported versions remain separate; unsupported ownership reconciliation quarantines before mutation. |
+| F04 | Large series and activity histories remain resource-bounded. | PARTIAL | NATIVE 1024 parts; indexed bounded history; PROBE retained-owner comparison; pruning control. | Permanent tombstones are not globally storage-bounded; canonical multiowner quarantine is an unbounded indivisible group. No blanket bounded-writer claim. |
+| F05 | Malformed input cannot cause injection or uncontrolled allocation. | PARTIAL | Strict parser/bounds/parameterized SQL and compact facts with1 MiB subject;BOUNDED64 SQL-like ID/replay cases with unchanged schema and exact counts,41 invalid authors,6 invalid IDs,and2 valid controls. | No complete malformed-input fuzz/allocation bound audit across ingestion. Outside-writer preprocessing still allocates in proportion to input. |
+| F06 | Cancellation cleans up tasks and prevents indefinite hangs. | PARTIAL | CANCEL actual active-review RPC positive,two semantic mutants,unrelated/restored controls;BOUNDED admission rollback/retry and transport abort/lease/reopen. All pass. | Scoped admission/review/transport cleanup demonstrated. Transport termination check permits dead/zombie, so immediate reaping is not proven there despite its historical marker; active-review child must disappear. Every detached-task path and remote SMTP acknowledgement remain outside scope. |
+| F07 | Diagnostics do not expose private information or credentials. | PARTIAL | BOUNDED held/quarantined public review/log/details/summary and authorized positive views;three fake canaries absent from handler traces. Prior general redaction and diagnostic counter tests. | Dedicated bounded handler/trace canary audit now passes. No exhaustive all-diagnostic/provider-log credential audit; actual model logging remains untested. |
+| F08 | Read-only replay cannot alter real database or repository state. | BLOCKED | HISTORICAL read-only write-negative and compiled shadow harness; actual archive HTTPS403/NNTPtimeout. | No historical email replay performed. Requires an accessible actual public raw message/corpus; readonly source fixture is not real production state. |
+| G01 | At least one integration test exercises the complete affected workflow. | VERIFIED | ROUTE and test_cooldown_config_to_real_release_and_sendmail. | Policy -> real parsed article -> DB -> completed-review fixture -> release worker -> recording transport. No model call; review-computation boundary is explicit. |
+| G02 | Expected results are calculated independently of production code. | VERIFIED | Hand-checked threshold table; seeded small-state oracle; fixed expected concurrent count distribution. | Expected values are not obtained by invoking the production cooldown calculator. |
+| G03 | Regression tests fail when their intended protection is removed. | VERIFIED | MUT eight previous compiled/killed mutants;NEWMUT and CANCEL four additional compiled semantic mutants with positive/unrelated/restored controls. | Twelve guard-removal checks. Infrastructure or compilation failures are never counted as a killed mutant. |
+| G04 | Generated tests reproduce restart, replay, and concurrency failures. | VERIFIED | Three seeded 96-admission traces; source-race regressions; CONCUR; process/crash controls. | Coverage is bounded and reproducible, not an exhaustive interleaving proof. |
+| G05 | Small, large, and mixed workloads are tested. | VERIFIED | PERF 1000 series/3750 parts; NATIVE 1024-part series; compact metadata with 1 MiB subject; 10000 archived owners. | Generated/synthetic workload sizes are recorded; no historical replay is implied. |
+| G06 | Measure enabled versus disabled performance and database costs. | VERIFIED | PERF18 raw final samples; PROBE calibrated counts; previous two FAIL_BUDGET18-sample runs retained in execution JSON. | Final ratio-of-medians:disabled/upstream1.1500/1.1486;enabled/disabled1.1137/1.1531. Fresh individual pair~1.2392 exceeds20%; not a production latency guarantee. |
+| G07 | Run the required test suites on the exact final code revision. | VERIFIED | SUITE exact d9cc305c checkpoint after fixture source restoration:1111 pass/2 ignored,fmt,three Clippy profiles. PREP checks three native source-only commits on f6 documentation-only refresh. | Production runtime is unchanged bd59059;hashes/source guards recorded. Fork-only fixture/workflow changes do not alter the runtime. Any future production-source change requires fresh validation. |
+| G08 | Test harness detects invalid fixtures and misleading passes. | VERIFIED | Exact selectors,compiler artifact controls,independent fixture failure collection,SQL/fault calibration,restored-source checks. Invalid retention/release-state/cursor fixtures are retained as negative results and corrected. | Earlier invalid fixtures and a wrongly selected mutation target are documented and corrected; no invalid pass is reused. |
+| H01 | Record tested commit, command, environment, logs, and outcome. | VERIFIED | SUITE plus .github/ADAPTIVE_DETERMINISTIC_EVIDENCE.md and adaptive-deterministic-evidence.json;prior analytical/performance evidence preserved. | Exact source/base/tree/commands/environment/outcomes recorded. Artifacts expire after 14 days; analytical samples and summaries preserved in fork. |
+| H02 | Distinguish upstream failures from newly introduced failures. | VERIFIED | Untouched7f stable-Rust 1.99.1 four result_large_err errors isolated;1.90 baseline does not reproduce. PREP first compatibility commit passes1065tests; final1111tests pass. | Upstream lint compatibility patch is separate and function-scoped. Invalid Date cursor/config fixture and packaging failures are retained as harness defects, not production regressions. New clock-retention,release-state and stale-WAL-cursor failures were harness defects;no production change was needed. |
+| H03 | Refresh against upstream and revalidate the final diff. | VERIFIED | Upstream f6e2e1 compared to7f92f8: PRESS.md only; merged f6d1a756; refreshed PREP checks pass before each of three native commits. Production runtime remains bd59059. | Upstream still f6e2e1 at22:25UTC. Performance is measured against7f runtime;PRESS.md-only refresh does not imply new performance measurement. Independent refreshed-bundle inspection is not repeated. |
+| H04 | Do not claim email or token savings without real measurements. | VERIFIED | Design and reports make no savings claim; all review outputs are fixtures in deterministic tests. | Cooldown delays publication; no token/email reduction measurement or claim has been made. |
+| H05 | Preserve negative results and document fairness tradeoffs. | VERIFIED | Previous FAIL_BUDGET runs, raw paired ratios and corrected harness failures retained; design limitations. | Includes unauthenticated/shared authors, cold history, retained storage and indivisible quarantine limitations. |
+| H06 | Required model-assisted self-review is completed or explicitly marked blocked. | BLOCKED | MODEL authenticated model listing accepted;both tiny generation probes HTTP503;required model self-review NOT_RUN. | Provider authentication works; generation availability blocked the probes. No substitute mock/no-AI result counted as self-review. Calls currently paused. |
+| H07 | Rehearse dry-run, rollback, and pending-work preservation. | PARTIAL | ROUTE local recording transport; OLD unsafe negative, stopped quiescence, exact backup restore, pending resume. New no-SMTP/dry-run queueing and adaptive admission/review/transport cancellation fixtures pass. | Pending-state preservation is now demonstrated in stopped DB rehearsal. Full production-daemon rollback, operational dry-run and in-flight cancellation matrix remain unverified. |
+| H08 | No unauthorized emails, pushes, deployment changes, secret leaks, or paid calls. | VERIFIED | Authorized fork checkpoints and two bounded provider smoke attempts; local recording transports; no upstream PR or deployment. | Two authorized tiny probes returned HTTP503 without usage metadata; no charge or savings claim. No provider call in deterministic coverage round; source publication separately gated. |
 
 ## Additional completion gates
 
-- **VERIFIED: Verify the feature is still missing in current upstream.** Adaptive config/accounting absent in inspected7f upstream; fixed embargo exists. Observed upstream unchanged20:39UTC.
-- **PARTIAL: Recover historical tests and identify coverage gaps.** Existing regressions mapped and extended;64rows reconciled. Public archive replay blocked despite compiled readonly shadow harness.
-- **OPEN: Get maintainer agreement on the intended cooldown policy.** Policy RFC prepared. Posting403; no issue or agreement. Zero values/crosspost/fairness/storage/atomic ownership exception require decisions.
-- **PARTIAL: Implement the smallest defensible change.** Three source-only commits, guarded point-query optimizations and regressions. Scope/minimality and indivisible ownership exception still require maintainers/model review.
-- **PARTIAL: Run all applicable regression and integration tests.** Required suite1111passes/2ignored; focused/fault/concurrency/restore/mutation and maximum-series/history-fault/process-restart checks pass.12PARTIAL and2BLOCKED rows remain.
-- **VERIFIED: Validate performance and document tradeoffs.** Final matched median budgets pass unchanged;~15% disabled overhead and11-15% incremental enabled overhead measured. Prior failed budgets, individual outliers, querycounts and storage/writer exceptions preserved.
-- **BLOCKED: Complete applicable Sashiko self-review requirements.** No provider key; no authenticated model review/spend. Required local model stage not complete; upstream bot stage waits separately approved PR.
-- **PARTIAL: Confirm no regressions against upstream.** Refreshed final native suites green, legacy tuples match, upstream lint differences isolated. Remaining feature-specific matrix gaps mean no blanket no-regressions claim.
-- **VERIFIED: Produce reproducible evidence with exact commit hashes.** Exact hashes/commands/environment and raw analytical samples preserved. Three-commit checked source bundle and patch hashes independently verified; downloadable raw logs expire14days.
-- **PARTIAL: Prepare a clean PR for separate approval before publishing.** Clean three-commit source bundle and .github/ADAPTIVE_PR_DRAFT.md prepared. Policy/model/coverage blockers remain. No upstream PR opened.
+| Gate | Status | Assessment |
+| --- | --- | --- |
+| Verify the feature is still missing in current upstream. | VERIFIED | Adaptive configuration/accounting absent in inspected7f upstream;f6 changes PRESS.md only. Default upstream head rechecked f6 at22:25UTC. |
+| Recover historical tests and identify coverage gaps. | PARTIAL | Existing regressions mapped and extended;64rows reconciled. Public archive replay blocked despite compiled readonly shadow harness. |
+| Get maintainer agreement on the intended cooldown policy. | OPEN | Policy RFC prepared. Posting403; no issue or agreement. Zero values/crosspost/fairness/storage/atomic ownership exception require decisions. |
+| Implement the smallest defensible change. | PARTIAL | Three source-only commits, guarded point-query optimizations and regressions. Scope/minimality and indivisible ownership exception still require maintainers/model review. |
+| Run all applicable regression and integration tests. | PARTIAL | Required suite1111 pass/2 ignored,three Clippy profiles;8 new focused fixtures and4 new compiled guard mutants pass;clock run passes both time zones.52 VERIFIED/ 10 PARTIAL/ 2 BLOCKED scenarios remain scoped. |
+| Validate performance and document tradeoffs. | VERIFIED | Final matched median budgets pass unchanged;~15% disabled overhead and11-15% incremental enabled overhead measured. Prior failed budgets, individual outliers, querycounts and storage/writer exceptions preserved. |
+| Complete applicable Sashiko self-review requirements. | BLOCKED | Provider authentication accepted;generation probes HTTP503;required Sashiko review NOT_RUN and calls paused. Upstream bot review waits for separately approved PR. |
+| Confirm no regressions against upstream. | PARTIAL | Exact final restored-source native suite passes;legacy tuples match previous measurements;upstream lint compatibility is isolated. Remaining policy,privacy/resource/operational scope prevents a blanket no-regressions claim. |
+| Produce reproducible evidence with exact commit hashes. | VERIFIED | Exact commits,commands,environment,hashes and outcomes preserved. Refreshed3-commit source-only bundle passes native checks and has patch hashes;independent inspection covers the previous bundle only. Raw artifacts expire after 14 days. |
+| Prepare a clean PR for separate approval before publishing. | PARTIAL | Clean three-commit source bundle and .github/ADAPTIVE_PR_DRAFT.md prepared. Policy/model/coverage blockers remain. No upstream PR opened. |
 
-## Definition of complete
-
-The applicable tests pass, limitations are documented, existing behavior is preserved when disabled, and the implementation is ready for maintainer review—not merely that the checklist has been ticked.
-
-There is no authenticated model review, no maintainer policy agreement, and no actual historical archive replay. No upstream PR was published. Earlier negative performance results and corrected fixture failures remain part of the evidence.
+Definition of complete: The applicable tests pass, limitations are documented, existing behavior is preserved when disabled, and the implementation is ready for maintainer review—not merely that the checklist has been ticked.

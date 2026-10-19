@@ -3,23 +3,25 @@
   "checklist_source": "User-pasted condensed master checklist, 2026-10-19. Requirements, not pre-passed tests.",
   "audited_production_commit": "bd59059f1864aea81b11b5de0eb97e5d2ec53667",
   "tested_upstream_base": "7f92f869a960a20f7d395550b4879d897ebdf4ea",
-  "observed_upstream_head": "7f92f869a960a20f7d395550b4879d897ebdf4ea",
-  "observed_upstream_commits_since_base": 0,
+  "observed_upstream_head": "f6e2e172e1e669b6767a4c74fe91d062b41fd71c",
+  "observed_upstream_commits_since_base": 1,
   "pr685": {
     "state": "open",
     "merged": false
   },
   "source_only_bundle": {
-    "head": "fa8a32646362a11ce00b7a90a14df3af828465d3",
-    "tree": "178107288293535d3adeaf180ba0328b9da6714a",
+    "head": "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
+    "tree": "d38b668f511e2e0972aa4588174a2c55f3582b30",
     "commits": 3,
-    "run": 39320285692,
-    "artifact": 12218764477,
-    "remote_branch_published": false
+    "base": "f6e2e172e1e669b6767a4c74fe91d062b41fd71c",
+    "run": 39330032302,
+    "artifact": 12224277238,
+    "remote_branch_published": false,
+    "independent_bundle_inspection": "not repeated for refreshed documentation-only upstream bundle"
   },
   "counts": {
-    "VERIFIED": 50,
-    "PARTIAL": 12,
+    "VERIFIED": 52,
+    "PARTIAL": 10,
     "BLOCKED": 2
   },
   "status_definitions": {
@@ -30,8 +32,8 @@
   },
   "evidence": {
     "SUITE": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320690309",
-      "scope": "Production-equivalent dbe259: fmt, Clippy all/minimal/cache, 1032 library +49 main +7 CLI +23 integration =1111 pass;2 ignored."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39333925430",
+      "scope": "Exact checkpoint d9cc305c: all 8 focused fixtures, 2 compiled semantic mutants plus controls, injected-fixture Clippy, source restoration; make check-pr with fmt, Clippy all/minimal/cache, 1032 library +49 main +7 CLI +23 integration =1111 pass,2 ignored."
     },
     "FOCUS": {
       "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285627",
@@ -78,12 +80,12 @@
       "scope": "8 compiled semantic mutants killed, targeted positives/unrelated controls/restored replay; negative contexts inspected separately."
     },
     "PREP": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320285692/artifacts/12218764477",
-      "scope": "Three clean DCO-signed commits; make check-pr before each; make sob after each; clean source-only bundle."
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39330032302/artifacts/12224277238",
+      "scope": "Refreshed three-commit source-only bundle on f6e2e1 (PRESS.md-only upstream update); native make check-pr before each commit, DCO after each; clean checkout; model review blocked."
     },
     "INSPECT": {
       "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39321984128/artifacts/12219849932",
-      "scope": "Verified bundle HEAD/tree/source equivalence, patch SHA256, DCO trailers, all3 makecheck-pr summaries and8 semantic mutation failure contexts; no rebuilding/model calls."
+      "scope": "Verified bundle HEAD/tree/source equivalence, patch SHA256, DCO trailers, all3 makecheck-pr summaries and8 semantic mutation failure contexts; no rebuilding/model calls. Historical inspection covers prior fa8a326 bundle, not refreshed 6667a81 bundle."
     },
     "HISTORICAL": {
       "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39320939517/artifacts/12219539032",
@@ -94,8 +96,28 @@
       "scope": "Ready-to-post policy proposal; posting403; no issue/agreement."
     },
     "MODEL": {
-      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39316716214",
-      "scope": "MissingLLM_API_KEY confirmed by hosted readiness and user. Budget controls offline-pass; no modelreview/call/spend."
+      "scope": "LLM_API_KEY present; authenticated Gemini model listing accepted, intended model available. Two tiny generation probes returned HTTP 503, no usage returned. Actual Sashiko review NOT_RUN; calls paused.",
+      "url": "https://github.com/OllieinCanada/sashiko/blob/codex/held-series-ci-20261019/.github/ADAPTIVE_KEY_CHECK.md"
+    },
+    "CLOCK": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39328125251",
+      "scope": "Actual wall-clock shim with unchanged monotonic time: six process instants under UTC and America/New_York; actual ingestion/release/recording transport; observer confirms production eligibility now/count; source restored; all-feature Clippy passed."
+    },
+    "ROUTING": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39333925430/artifacts/12226376491",
+      "scope": "19 actual-ingestion cases, each replayed twice;16 earned-3600-second-hold notification policies: ignored/self/mute/empty, recipients, absent SMTP,dry-run,positive cases,Patchwork counts/payloads/recipients. All PASS, no external delivery."
+    },
+    "CANCEL": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39332466758/artifacts/12225540647",
+      "scope": "Persisted adaptive owner;actual stdio RPC loop and cancellation watcher with pending in-process mock provider. Child PID disappears,provider future drops,permit restores,no outbox,frozen decision stable. Two compiled mutants killed,unrelated/restored controls and fixture Clippy PASS. Overall workflow failed a separate invalid clock fixture."
+    },
+    "BOUNDED": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39333925430/artifacts/12226376491",
+      "scope": "Final PASS:7 explicit selector clock instants;64 SQL-like ID payloads replayed with exact schema/count equality;41 malformed authors and6 IDs;2 held/quarantined privacy states/public6 paths/authorized3 paths and3 handler-trace canaries;admission abort/rollback/retry;transport abort/lease/reopen/one accepted recording."
+    },
+    "NEWMUT": {
+      "url": "https://github.com/OllieinCanada/sashiko/actions/runs/39333925430/artifacts/12226376491",
+      "scope": "Ignored-author ingestion and private-review embargo guard mutants compile and fail the intended assertions;unrelated controls and restored privacy PASS. CANCEL supplies two more compiled cancellation mutants. Twelve semantic mutants total including the earlier eight."
     }
   },
   "scenarios": [
@@ -138,8 +160,8 @@
       "id": "A06",
       "requirement": "Cross-posted lists respect precedence and opt-outs.",
       "status": "PARTIAL",
-      "evidence": "CONFIG source/recipient matrix; test_cooldown_crosspost_before_admission_is_legacy.",
-      "remaining_or_scope": "Current policy sends any cross-post through shared legacy handling. Maintainer agreement and a full precedence/opt-out matrix are missing."
+      "evidence": "CONFIG source/recipient matrix;ROUTING 19-case actual ingestion matrix with two replays each;cross-post fallback regression.",
+      "remaining_or_scope": "Crosspost/opt-out/source/ignored-author matrix executed; shared legacy fallback still requires maintainer agreement."
     },
     {
       "id": "A07",
@@ -249,9 +271,9 @@
     {
       "id": "C06",
       "requirement": "Clock changes, time zones, and timestamp limits are tested.",
-      "status": "PARTIAL",
-      "evidence": "SUITE backward-clock/negative/overflow/window-boundary tests; FOCUS eight untrusted dates in UTC and America/New_York.",
-      "remaining_or_scope": "TZ/DST/header extremes now exercised; no comprehensive real wall-clock forward-jump scheduling matrix."
+      "status": "VERIFIED",
+      "evidence": "CLOCK six actual process wall-clock states in each of two time zones;BOUNDED seven selector instants;existing negative/overflow/window/header tests.",
+      "remaining_or_scope": "Owned process LD_PRELOAD realtime APIs, monotonic time real; no host clock change or universal kernel-clock proof."
     },
     {
       "id": "C07",
@@ -375,9 +397,9 @@
     {
       "id": "E08",
       "requirement": "Mailing-list rules, ignored authors, recipients, visibility, and integrations stay correct.",
-      "status": "PARTIAL",
-      "evidence": "CONFIG; FOCUS adaptive release ACL/visibility; recording recipients; refreshed upstream security/routing tests in SUITE.",
-      "remaining_or_scope": "Missing complete adaptive-enabled ignored-author/routing/integration combinations."
+      "status": "VERIFIED",
+      "evidence": "ROUTING19 ingestion cases x2 replay and16 notification-policy cases under earned adaptive holds;prior FOCUS ACL/visibility and SUITE integration protections.",
+      "remaining_or_scope": "Fixed review outputs and actual production notification queueing. No external mail or Patchwork API call;bounded policy matrix,not every possible configuration."
     },
     {
       "id": "F01",
@@ -411,22 +433,22 @@
       "id": "F05",
       "requirement": "Malformed input cannot cause injection or uncontrolled allocation.",
       "status": "PARTIAL",
-      "evidence": "Strict config/mailbox/ID validation, bound checks and parameterized SQL; compact facts with 1 MiB subject.",
+      "evidence": "Strict parser/bounds/parameterized SQL and compact facts with1 MiB subject;BOUNDED64 SQL-like ID/replay cases with unchanged schema and exact counts,41 invalid authors,6 invalid IDs,and2 valid controls.",
       "remaining_or_scope": "No complete malformed-input fuzz/allocation bound audit across ingestion. Outside-writer preprocessing still allocates in proportion to input."
     },
     {
       "id": "F06",
       "requirement": "Cancellation cleans up tasks and prevents indefinite hangs.",
       "status": "PARTIAL",
-      "evidence": "Cancellation regressions, timeout child-reaping tests, bounded hosted subprocesses, OLD quiescence.",
-      "remaining_or_scope": "Add adaptive-specific in-flight review/transport cancellation coverage; remote acceptance cannot be undone."
+      "evidence": "CANCEL actual active-review RPC positive,two semantic mutants,unrelated/restored controls;BOUNDED admission rollback/retry and transport abort/lease/reopen. All pass.",
+      "remaining_or_scope": "Scoped admission/review/transport cleanup demonstrated. Transport termination check permits dead/zombie, so immediate reaping is not proven there despite its historical marker; active-review child must disappear. Every detached-task path and remote SMTP acknowledgement remain outside scope."
     },
     {
       "id": "F07",
       "requirement": "Diagnostics do not expose private information or credentials.",
       "status": "PARTIAL",
-      "evidence": "Quarantine hides direct public review/log endpoints; general redaction tests; diagnostic counters omit SQL payloads.",
-      "remaining_or_scope": "No dedicated held-content/secret-canary audit over all new logs and manifests. Raw model review logging remains untested."
+      "evidence": "BOUNDED held/quarantined public review/log/details/summary and authorized positive views;three fake canaries absent from handler traces. Prior general redaction and diagnostic counter tests.",
+      "remaining_or_scope": "Dedicated bounded handler/trace canary audit now passes. No exhaustive all-diagnostic/provider-log credential audit; actual model logging remains untested."
     },
     {
       "id": "F08",
@@ -453,8 +475,8 @@
       "id": "G03",
       "requirement": "Regression tests fail when their intended protection is removed.",
       "status": "VERIFIED",
-      "evidence": "MUT8 compiled/killed mutants; INSPECT actual negative assertions/errors and unrelated controls.",
-      "remaining_or_scope": "Author scope,frozen replay,deadline,release marker,NNTPenablement,stale identical replay,source correction,and snapshot quarantine. No infrastructure failure counted as a killed mutant."
+      "evidence": "MUT eight previous compiled/killed mutants;NEWMUT and CANCEL four additional compiled semantic mutants with positive/unrelated/restored controls.",
+      "remaining_or_scope": "Twelve guard-removal checks. Infrastructure or compilation failures are never counted as a killed mutant."
     },
     {
       "id": "G04",
@@ -481,21 +503,21 @@
       "id": "G07",
       "requirement": "Run the required test suites on the exact final code revision.",
       "status": "VERIFIED",
-      "evidence": "SUITE on dbe259; PREP three source commits; INSPECT final source-only tree equals bd590 across complete production paths.",
-      "remaining_or_scope": "Only fork workflow changes distinguish native checkpoint from production checkpoint. Re-run checks if production or upstream base changes."
+      "evidence": "SUITE exact d9cc305c checkpoint after fixture source restoration:1111 pass/2 ignored,fmt,three Clippy profiles. PREP checks three native source-only commits on f6 documentation-only refresh.",
+      "remaining_or_scope": "Production runtime is unchanged bd59059;hashes/source guards recorded. Fork-only fixture/workflow changes do not alter the runtime. Any future production-source change requires fresh validation."
     },
     {
       "id": "G08",
       "requirement": "Test harness detects invalid fixtures and misleading passes.",
       "status": "VERIFIED",
-      "evidence": "Exact one-test assertions, compiler artifact checks, SQL calibration, OS fault-hit markers, SIGKILL exit checks, restored-source controls.",
+      "evidence": "Exact selectors,compiler artifact controls,independent fixture failure collection,SQL/fault calibration,restored-source checks. Invalid retention/release-state/cursor fixtures are retained as negative results and corrected.",
       "remaining_or_scope": "Earlier invalid fixtures and a wrongly selected mutation target are documented and corrected; no invalid pass is reused."
     },
     {
       "id": "H01",
       "requirement": "Record tested commit, command, environment, logs, and outcome.",
       "status": "VERIFIED",
-      "evidence": "SUITE/PREP/INSPECT/PERF/PROBE/FAULT/CONCUR/OLD and .github/ADAPTIVE_EXECUTION_1_5.md plus .github/adaptive-execution-1-5.json.",
+      "evidence": "SUITE plus .github/ADAPTIVE_DETERMINISTIC_EVIDENCE.md and adaptive-deterministic-evidence.json;prior analytical/performance evidence preserved.",
       "remaining_or_scope": "Exact source/base/tree/commands/environment/outcomes recorded. Artifacts expire after14days; analytical samples and summaries preserved in fork."
     },
     {
@@ -503,14 +525,14 @@
       "requirement": "Distinguish upstream failures from newly introduced failures.",
       "status": "VERIFIED",
       "evidence": "Untouched7f stable-Rust1.99.1 four result_large_err errors isolated;1.90 baseline does not reproduce. PREP first compatibility commit passes1065tests; final1111tests pass.",
-      "remaining_or_scope": "Upstream lint compatibility patch is separate and function-scoped. Invalid Date cursor/config fixture and packaging failures are retained as harness defects, not production regressions."
+      "remaining_or_scope": "Upstream lint compatibility patch is separate and function-scoped. Invalid Date cursor/config fixture and packaging failures are retained as harness defects, not production regressions. New clock-retention,release-state and stale-WAL-cursor failures were harness defects;no production change was needed."
     },
     {
       "id": "H03",
       "requirement": "Refresh against upstream and revalidate the final diff.",
       "status": "VERIFIED",
-      "evidence": "Upstream7f refreshed; overlapping main/server hunks validated; SUITE/PREP/INSPECT and PERF final source revalidated.",
-      "remaining_or_scope": "Observed upstream still7f at20:39UTC. New upstream changes require fresh comparison; this does not close policy/model/coverage gates."
+      "evidence": "Upstream f6e2e1 compared to7f92f8: PRESS.md only; merged f6d1a756; refreshed PREP checks pass before each of three native commits. Production runtime remains bd59059.",
+      "remaining_or_scope": "Upstream still f6e2e1 at22:25UTC. Performance is measured against7f runtime;PRESS.md-only refresh does not imply new performance measurement. Independent refreshed-bundle inspection is not repeated."
     },
     {
       "id": "H04",
@@ -530,29 +552,29 @@
       "id": "H06",
       "requirement": "Required model-assisted self-review is completed or explicitly marked blocked.",
       "status": "BLOCKED",
-      "evidence": "MODEL hosted missing-key check; user explicitly confirms no provider key.",
-      "remaining_or_scope": "No authenticated Sashiko model review. Free-tier Gemini key is an option; paid fallback is not enabled. --no-ai and offline proxy tests do not satisfy review."
+      "evidence": "MODEL authenticated model listing accepted;both tiny generation probes HTTP503;required model self-review NOT_RUN.",
+      "remaining_or_scope": "Provider authentication works; generation availability blocked the probes. No substitute mock/no-AI result counted as self-review. Calls currently paused."
     },
     {
       "id": "H07",
       "requirement": "Rehearse dry-run, rollback, and pending-work preservation.",
       "status": "PARTIAL",
-      "evidence": "ROUTE local recording transport; OLD unsafe negative, stopped quiescence, exact backup restore, pending resume.",
+      "evidence": "ROUTE local recording transport; OLD unsafe negative, stopped quiescence, exact backup restore, pending resume. New no-SMTP/dry-run queueing and adaptive admission/review/transport cancellation fixtures pass.",
       "remaining_or_scope": "Pending-state preservation is now demonstrated in stopped DB rehearsal. Full production-daemon rollback, operational dry-run and in-flight cancellation matrix remain unverified."
     },
     {
       "id": "H08",
       "requirement": "No unauthorized emails, pushes, deployment changes, secret leaks, or paid calls.",
       "status": "VERIFIED",
-      "evidence": "Authorized fork-only checkpoints; temporary recording transports; no upstream PR/deployment/model calls.",
-      "remaining_or_scope": "No external mail or paid AI call was made by this work. Source publication remains separately gated."
+      "evidence": "Authorized fork checkpoints and two bounded provider smoke attempts; local recording transports; no upstream PR or deployment.",
+      "remaining_or_scope": "Two authorized tiny probes returned HTTP503 without usage metadata; no charge or savings claim. No provider call in deterministic coverage round; source publication separately gated."
     }
   ],
   "completion_gates": [
     {
       "requirement": "Verify the feature is still missing in current upstream.",
       "status": "VERIFIED",
-      "assessment": "Adaptive config/accounting absent in inspected7f upstream; fixed embargo exists. Observed upstream unchanged20:39UTC."
+      "assessment": "Adaptive configuration/accounting absent in inspected7f upstream;f6 changes PRESS.md only. Default upstream head rechecked f6 at22:25UTC."
     },
     {
       "requirement": "Recover historical tests and identify coverage gaps.",
@@ -572,7 +594,7 @@
     {
       "requirement": "Run all applicable regression and integration tests.",
       "status": "PARTIAL",
-      "assessment": "Required suite1111passes/2ignored; focused/fault/concurrency/restore/mutation and maximum-series/history-fault/process-restart checks pass.12PARTIAL and2BLOCKED rows remain."
+      "assessment": "Required suite1111 pass/2 ignored,three Clippy profiles;8 new focused fixtures and4 new compiled guard mutants pass;clock run passes both time zones.52 VERIFIED/10 PARTIAL/2 BLOCKED scenarios remain scoped."
     },
     {
       "requirement": "Validate performance and document tradeoffs.",
@@ -582,17 +604,17 @@
     {
       "requirement": "Complete applicable Sashiko self-review requirements.",
       "status": "BLOCKED",
-      "assessment": "No provider key; no authenticated model review/spend. Required local model stage not complete; upstream bot stage waits separately approved PR."
+      "assessment": "Provider authentication accepted;generation probes HTTP503;required Sashiko review NOT_RUN and calls paused. Upstream bot review waits for separately approved PR."
     },
     {
       "requirement": "Confirm no regressions against upstream.",
       "status": "PARTIAL",
-      "assessment": "Refreshed final native suites green, legacy tuples match, upstream lint differences isolated. Remaining feature-specific matrix gaps mean no blanket no-regressions claim."
+      "assessment": "Exact final restored-source native suite passes;legacy tuples match previous measurements;upstream lint compatibility is isolated. Remaining policy,privacy/resource/operational scope prevents a blanket no-regressions claim."
     },
     {
       "requirement": "Produce reproducible evidence with exact commit hashes.",
       "status": "VERIFIED",
-      "assessment": "Exact hashes/commands/environment and raw analytical samples preserved. Three-commit checked source bundle and patch hashes independently verified; downloadable raw logs expire14days."
+      "assessment": "Exact commits,commands,environment,hashes and outcomes preserved. Refreshed3-commit source-only bundle passes native checks and has patch hashes;independent inspection covers the previous bundle only. Raw artifacts expire after14days."
     },
     {
       "requirement": "Prepare a clean PR for separate approval before publishing.",
@@ -605,13 +627,20 @@
   "historical_shadow_replay_performed": false,
   "model_review_performed": false,
   "definition_of_complete": "The applicable tests pass, limitations are documented, existing behavior is preserved when disabled, and the implementation is ready for maintainer review—not merely that the checklist has been ticked.",
-  "observed_upstream_at_utc": "2026-10-19T20:39:00Z",
+  "observed_upstream_at_utc": "2026-10-19T22:25:15Z",
   "native_suite_checkpoint": {
-    "sha": "dbe259abb32b5f585f020ce7faee96694e8869c4",
+    "sha": "d9cc305c8e000add224b93800d21e3edcefc8f11",
     "production_equivalent": true,
-    "differing_files": [
-      ".github/workflows/adaptive-stop-superseded.yml",
-      ".github/workflows/adaptive-validation.yml"
-    ]
-  }
+    "production_paths_compared": [
+      "src",
+      "docs",
+      "designs",
+      "MAINTAINERS_GUIDE.md",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "source_guard": "Both isolated runners reject differences from bd59059 on production paths and restore injected sources; full make check-pr follows restoration."
+  },
+  "new_focused_checkpoint": "d9cc305c8e000add224b93800d21e3edcefc8f11",
+  "new_focused_run": 39333925430
 }

@@ -1,0 +1,448 @@
+{
+  "schema_version": 1,
+  "production_checkpoint": "bd59059f1864aea81b11b5de0eb97e5d2ec53667",
+  "upstream_runtime_base": "7f92f869a960a20f7d395550b4879d897ebdf4ea",
+  "refreshed_upstream": "f6e2e172e1e669b6767a4c74fe91d062b41fd71c",
+  "clock": {
+    "status": "PASS",
+    "production_base": "bd59059f1864aea81b11b5de0eb97e5d2ec53667",
+    "checkpoint": "ce22d185f20acb98284eaf026849a589c6b3962b",
+    "source_sha256": "953d9d47014fc6d43d68db0dee93838b271e863f88b0623888a309b7bc7e86b7",
+    "checks": [
+      {
+        "timezone": "UTC",
+        "status": "PASS",
+        "wall_clock_states": 6,
+        "natural_deadline_release": 1,
+        "post_release_replay_jumps": 2
+      },
+      {
+        "timezone": "America/New_York",
+        "status": "PASS",
+        "wall_clock_states": 6,
+        "natural_deadline_release": 1,
+        "post_release_replay_jumps": 2
+      }
+    ],
+    "limitations": [
+      "LD_PRELOAD changes wall-clock APIs only in the owned test process and its recording MTA; no host-clock change.",
+      "Monotonic time remains real; child process groups have bounded external timeouts.",
+      "Review output is a fixture and delivery is local recording only.",
+      "This does not establish arbitrary host/kernel clock behavior or remove fixed-deadline policy tradeoffs."
+    ],
+    "reviewer_source_sha256": "dd5b9a6906ed05775907834191c39b75bdf9e430c0fdd619ab7314c0bf0baccb",
+    "fixture_sha256": "9c4d2d4cc2d76c024c313c3567893cc56d41de430041b34abca0e1649336272b",
+    "shim_sha256": "f2a1c1e752b204a38fef7bcab4ec3dc0345773223966324e6bac5ba54909fd11",
+    "release_query_observer": "records actual now and selected count after production query",
+    "binary_sha256": "a08aaa6ab799ffcef09f52aa164151c7cec915ce0f2f90c571629f401b5cfca2",
+    "source_restored": true
+  },
+  "refreshed_bundle": {
+    "status": "PREPARED_WITH_REVIEW_BLOCKED",
+    "base": "f6e2e172e1e669b6767a4c74fe91d062b41fd71c",
+    "candidate_checkpoint": "010274b4d10a4db39cb7de2bcef0108a92bdc82b",
+    "prerequisite_snapshot": "a377db68dbd2c2fabfefe3136aea8b4499e4a648",
+    "identity": {
+      "name": "Ollie Slapinski",
+      "email": "oliverslapinski@hotmail.com"
+    },
+    "model_review": "NOT_RUN: provider calls paused after authenticated smoke generation returned HTTP 503",
+    "commits": [
+      {
+        "phase": "response-lint",
+        "sha": "2f60c6aa845d81aaf11af6f116414a46014bb2da",
+        "author": "Ollie Slapinski <oliverslapinski@hotmail.com>",
+        "changed_files": [
+          "src/server.rs"
+        ]
+      },
+      {
+        "phase": "prerequisite",
+        "sha": "b4bd7b56e491cfae6fd8875c8a7b93d6955cabca",
+        "author": "Ollie Slapinski <oliverslapinski@hotmail.com>",
+        "changed_files": [
+          "src/db.rs",
+          "src/migrations/014_held_series_index.sql",
+          "src/prerequisites.rs"
+        ]
+      },
+      {
+        "phase": "adaptive",
+        "sha": "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
+        "author": "Ollie Slapinski <oliverslapinski@hotmail.com>",
+        "changed_files": [
+          "MAINTAINERS_GUIDE.md",
+          "designs/ADAPTIVE_PUBLICATION_COOLDOWN.md",
+          "docs/configuration.md",
+          "src/cooldown.rs",
+          "src/db.rs",
+          "src/db/cooldown.rs",
+          "src/email_policy.rs",
+          "src/lib.rs",
+          "src/main.rs",
+          "src/migrations/015_publication_cooldown.sql",
+          "src/prerequisites.rs",
+          "src/server.rs"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "name": "make check-pr before response-lint",
+        "status": "PASS"
+      },
+      {
+        "name": "make check-pr before prerequisite",
+        "status": "PASS"
+      },
+      {
+        "name": "make check-pr before adaptive",
+        "status": "PASS"
+      }
+    ],
+    "scope": "source-only preparation artifacts; no upstream PR or push",
+    "unchecked_source_patch_sha256": "14652105528a633814020222d25aff65effe756e9b20980f3c1cd3ba04053ed9",
+    "unchecked_source_patch_scope": [
+      "MAINTAINERS_GUIDE.md",
+      "designs/ADAPTIVE_PUBLICATION_COOLDOWN.md",
+      "docs/configuration.md",
+      "src/cooldown.rs",
+      "src/db.rs",
+      "src/db/cooldown.rs",
+      "src/email_policy.rs",
+      "src/lib.rs",
+      "src/main.rs",
+      "src/migrations/014_held_series_index.sql",
+      "src/migrations/015_publication_cooldown.sql",
+      "src/prerequisites.rs",
+      "src/server.rs"
+    ],
+    "unchecked_source_patch_warning": "Review artifact only; not a checked contribution or completed model review",
+    "head": "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
+    "tree": "d38b668f511e2e0972aa4588174a2c55f3582b30",
+    "patches": {
+      "0001-server-allow-concrete-extractor-rejection-response-s.patch": "8fcd73ae828189badd815813e5f0554ae1b4bf57226a476f79cc8130dabfd959",
+      "0003-mail-add-opt-in-per-author-publication-cooldowns.patch": "1a47b118f01d8c007d04582da3c305eb68105ef43adaa2ebf475c624c1d77cc7",
+      "0002-db-retire-superseded-series-reviews-awaiting-publica.patch": "3f155172449cbd52dc42f8ac42c27e8ec734008736798cc93cbee67ae472a89b"
+    }
+  },
+  "provider": {
+    "authentication": "accepted model listing; configured secret present",
+    "generation": "two tiny probes HTTP503; usage unavailable",
+    "sashiko_review": "NOT_RUN",
+    "calls_in_deterministic_round": 0
+  },
+  "negative_results": [
+    {
+      "run": 39326569637,
+      "outcome": "FAIL",
+      "cause": "Prior key-check YAML trailing whitespace; preflight stopped before native tests."
+    },
+    {
+      "run": 39326820665,
+      "outcome": "CANCELLED",
+      "cause": "Workflow attempted native checks before toolchain/cache setup; order corrected."
+    },
+    {
+      "run": 39327071620,
+      "outcome": "FAIL",
+      "cause": "Fixture injection used file's last brace instead of test-module closing brace. Baseline1111pass/2ignored; scanner corrected."
+    },
+    {
+      "run": 39327807811,
+      "outcome": "FAIL",
+      "cause": "Runtime proxy accidentally applied to Cargo dependency download. Build/runtime environments separated; fetch retry/time limits and offline compilation added."
+    },
+    {
+      "run": 39329322029,
+      "outcome": "FAIL",
+      "cause": "Fixture attempted Database.clone, which is unsupported. Use existing with_cooldown_context handle constructor."
+    },
+    {
+      "run": 39329895024,
+      "outcome": "FAIL",
+      "cause": "Stored message bytes and patch bytes differed in synthetic helper; production source-content guard rejected correctly. Baseline1111pass/2ignored;19-case ingestion/replay matrix passed before fixture error."
+    },
+    {
+      "run": 39331512754,
+      "outcome": "CANCELLED",
+      "cause": "User interruption: baseline native compilation/link active;3Clippy profiles passed;focused stage skipped."
+    },
+    {
+      "run": 39331512892,
+      "outcome": "CANCELLED",
+      "cause": "User interruption: duplicate baseline compilation/link active;3Clippy profiles passed;active-review focused stage skipped."
+    },
+    {
+      "run": 39332466758,
+      "outcome": "FAIL",
+      "cause": "Clock fixture incorrectly assumed active-window event deletion. Production retains global-maximum window; fix asserts3retained,0prior for late admission,0rejected events."
+    },
+    {
+      "run": 39333144037,
+      "outcome": "CANCELLED_AFTER_FOCUSED_FAILURE",
+      "cause": "Clock fixture conflated authorization with completed publication: actual expired embargo1011 vs expectedNULL. Explicit completed-release call added; normal cancel accepted but runner continued, scoped force-cancel completed. Artifacts preserved."
+    },
+    {
+      "run": 39333601760,
+      "outcome": "FAIL",
+      "cause": "Admission-cancellation fixture held independent SQLite read cursor across retry, so same connection retained old WAL snapshot; explicitly close cursor, verify uncommitted event and rollback state, then require both handles see committed event. Seven other independent fixtures passed; broad suite correctly skipped."
+    }
+  ],
+  "current_run": 39333925430,
+  "current_checkpoint": "d9cc305c8e000add224b93800d21e3edcefc8f11",
+  "current_status": "PASS",
+  "real_email_sent": false,
+  "upstream_pr_opened": false,
+  "active_review_cancellation": {
+    "status": "PASS",
+    "checkpoint": "ee43b24b8c3b246eb9c81d343cdfa4d607729d29",
+    "production_base": "bd59059f1864aea81b11b5de0eb97e5d2ec53667",
+    "source_sha256": "dd5b9a6906ed05775907834191c39b75bdf9e430c0fdd619ab7314c0bf0baccb",
+    "checks": [
+      {
+        "name": "active-review-cancellation",
+        "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+        "status": "PASS"
+      },
+      {
+        "name": "negative-cancel-watch",
+        "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+        "status": "KILLED"
+      },
+      {
+        "name": "unrelated-cancel-watch",
+        "target": "cooldown::tests::identity_normalization_has_no_unknown_bucket",
+        "status": "PASS"
+      },
+      {
+        "name": "negative-task-abort",
+        "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+        "status": "KILLED"
+      },
+      {
+        "name": "unrelated-task-abort",
+        "target": "cooldown::tests::identity_normalization_has_no_unknown_bucket",
+        "status": "PASS"
+      },
+      {
+        "name": "restored-cancellation",
+        "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+        "status": "PASS"
+      }
+    ],
+    "mutants": [
+      {
+        "name": "cancel-watch",
+        "status": "KILLED",
+        "binary_sha256": "b6a14fd170e48ac34fe06f19b2d4fa67f82a2c97790f391349f3f08fb54934f4"
+      },
+      {
+        "name": "task-abort",
+        "status": "KILLED",
+        "binary_sha256": "ff67d31e76ac3951725a5a4058281e297ec7ffc55d107c585e704b896d616be4"
+      }
+    ],
+    "limitations": [
+      "Persisted adaptive owner; actual stdio RPC loop, cancellation watcher and model-permit wrapper.",
+      "Provider is an in-process pending future; child is a local static Python script. No real model/API call.",
+      "This isolates review-tool resource cleanup; full worktree preparation and remote SMTP acknowledgement are not exercised."
+    ],
+    "fixture_sha256": "10fa5ac54c438ac66c4ffdbd6d3dc519f0201282f2f039fa157c186984a06967",
+    "source_restored": true
+  },
+  "recorded_at_utc": "2026-10-19T22:25:15Z",
+  "final_checkpoint": "d9cc305c8e000add224b93800d21e3edcefc8f11",
+  "final_run": 39333925430,
+  "final_job": 118338567770,
+  "artifact": 12226376491,
+  "focused": {
+    "status": "PASS",
+    "checkpoint": "d9cc305c8e000add224b93800d21e3edcefc8f11",
+    "production_base": "bd59059f1864aea81b11b5de0eb97e5d2ec53667",
+    "source_sha256": {
+      "src/main.rs": "953d9d47014fc6d43d68db0dee93838b271e863f88b0623888a309b7bc7e86b7",
+      "src/reviewer.rs": "dd5b9a6906ed05775907834191c39b75bdf9e430c0fdd619ab7314c0bf0baccb",
+      "src/db/cooldown.rs": "e06cc36cc4d9a4f63e69dff3ab98876fc40cbb64e51c096097da21ba29aa3882",
+      "src/cooldown.rs": "d4ab167d27628783ae25d5d47af2e4ae88e4cf45a8c8d4503cecd733004b024e",
+      "src/server.rs": "1c1116e7057fb611267f2b73a7c693cac4e9d86d34d9165b656a6756a0c51a05"
+    },
+    "fixture_sha256": {
+      "main_fixture.rs": "2ad96c5658c1ce36701b2da17ee78ef6ee0e6bba27e5258d718f1e56fbd1f99e",
+      "cancel_fixture.rs": "a22ebef0da186c1824b00ce4117a3cb0fa5dcda05e2b5088bd76e00ca694096d",
+      "reviewer_fixture.rs": "ccdafabef2cd25ad47c4f7f231b36ac045d850b8547acb0808913c8a82a3b1c1",
+      "db_fixture.rs": "cf0a442e67de178094ade9e47c9a39fdb63ea2ef745c0e676284efbeff1d1bf8",
+      "pure_fixture.rs": "4cd0894af7521e69c4131dd5653fc753a7a615c1560ba5cd8e079cdc2e1aa4ec",
+      "server_fixture.rs": "182def9492d0ca36651fc93ba6ce6c0471554b707acb2b4a289c411d5aa8050e"
+    },
+    "checks": [
+      {
+        "name": "ingestion-crosspost-ignore",
+        "test": "tests::test_det6_ingestion_crosspost_and_ignore_matrix",
+        "seconds": 0.46520341199999393,
+        "status": "PASS",
+        "case_markers": [
+          "ingestion=19 replay_each=2"
+        ]
+      },
+      {
+        "name": "enabled-routing",
+        "test": "reviewer::tests::test_det6_enabled_routing_and_integration_matrix",
+        "seconds": 0.5150347079999733,
+        "status": "PASS",
+        "case_markers": [
+          "notification_policy=16 earned_hold_each=3600"
+        ]
+      },
+      {
+        "name": "clock-jumps",
+        "test": "db::cooldown::tests::test_det6_forward_clock_release_is_irreversible",
+        "seconds": 0.06434889299998758,
+        "status": "PASS",
+        "case_markers": [
+          "selector_clock_instants=7 forward_admission=1 backward_rejection=1"
+        ]
+      },
+      {
+        "name": "cancel-admission",
+        "test": "db::cooldown::tests::test_det6_cancel_uncommitted_admission_releases_writer",
+        "seconds": 0.1144335710000064,
+        "status": "PASS",
+        "case_markers": []
+      },
+      {
+        "name": "bound-sql",
+        "test": "db::cooldown::tests::test_det6_bound_sql_payloads_preserve_schema_and_dedup",
+        "seconds": 0.515050207999991,
+        "status": "PASS",
+        "case_markers": []
+      },
+      {
+        "name": "malformed-canaries",
+        "test": "cooldown::tests::test_det6_malformed_identity_and_id_errors_do_not_echo_inputs",
+        "seconds": 0.00796134299997675,
+        "status": "PASS",
+        "case_markers": []
+      },
+      {
+        "name": "private-routes-traces",
+        "test": "server::tests::test_det6_held_and_quarantined_canaries_stay_private",
+        "seconds": 0.11436531100002867,
+        "status": "PASS",
+        "case_markers": [
+          "visibility_states=2 public_paths=6 authorized_paths=3 trace_canaries=3"
+        ]
+      },
+      {
+        "name": "abort-transport-recover",
+        "test": "tests::test_det6_abort_adaptive_transport_then_recover",
+        "seconds": 0.2648762449999822,
+        "status": "PASS",
+        "case_markers": [
+          "transport_abort=1 child_reaped=1 fresh_lease_preserved=1 expired_lease_recovered=1 accepted=1"
+        ]
+      },
+      {
+        "name": "negative-ignore-ingestion",
+        "test": "tests::test_det6_ingestion_crosspost_and_ignore_matrix",
+        "seconds": 0.41483734500002356,
+        "status": "KILLED",
+        "case_markers": []
+      },
+      {
+        "name": "unrelated-under-ignore-ingestion",
+        "test": "cooldown::tests::test_det6_malformed_identity_and_id_errors_do_not_echo_inputs",
+        "seconds": 0.007822861000022385,
+        "status": "PASS",
+        "case_markers": []
+      },
+      {
+        "name": "negative-review-privacy",
+        "test": "server::tests::test_det6_held_and_quarantined_canaries_stay_private",
+        "seconds": 0.06415637300005983,
+        "status": "KILLED",
+        "case_markers": []
+      },
+      {
+        "name": "unrelated-under-review-privacy",
+        "test": "cooldown::tests::test_det6_malformed_identity_and_id_errors_do_not_echo_inputs",
+        "seconds": 0.007816292000029534,
+        "status": "PASS",
+        "case_markers": []
+      },
+      {
+        "name": "restored-privacy",
+        "test": "server::tests::test_det6_held_and_quarantined_canaries_stay_private",
+        "seconds": 0.11423509899998407,
+        "status": "PASS",
+        "case_markers": [
+          "visibility_states=2 public_paths=6 authorized_paths=3 trace_canaries=3"
+        ]
+      }
+    ],
+    "mutants": [
+      {
+        "name": "ignore-ingestion",
+        "status": "KILLED",
+        "target": "tests::test_det6_ingestion_crosspost_and_ignore_matrix",
+        "binary_sha256": "ad263f46b10b536c0c3dcd81719d9beef3bfbcec32461c3e7cc41007e2ded81b"
+      },
+      {
+        "name": "review-privacy",
+        "status": "KILLED",
+        "target": "server::tests::test_det6_held_and_quarantined_canaries_stay_private",
+        "binary_sha256": "1518706aed1a41880e7f8c31a635faa6d501eb6e0670dc33796d700981d5a2b9"
+      }
+    ],
+    "limitations": [
+      "Temporary databases, fixed fixture review outputs, local recording sendmail; no model calls or external delivery.",
+      "Clock tests drive explicit scheduling/admission time parameters, not the host wall clock.",
+      "Resource tests cover bounded corpus and configured ceilings, not a universal allocation bound.",
+      "Privacy test covers public review/details/summary routes and captured handler tracing; actual model-provider logs are not exercised.",
+      "Cancellation covers uncommitted admission and pre-acceptance sendmail, not every detached review-task or SMTP acknowledgement window.",
+      "Policy agreement, permanent storage and indivisible ownership-group limitations remain open."
+    ],
+    "initial_binary_sha256": {
+      "bin": "0a6c6eb125883e7e69cf447253332a543253331ff7127b2f216530928f89f87d",
+      "lib": "060e1e4641dc82bd8cab59d5bc3644de9141a618dd15986fbb9d08c86d8b06f1"
+    },
+    "source_restored": true
+  },
+  "full_check": {
+    "command": "make check-pr RANGE=HEAD~1..HEAD",
+    "status": "PASS",
+    "rust": "1.99.1 (58cf8f9c3 2026-10-13)",
+    "environment": "ubuntu-24.04",
+    "clippy_profiles": [
+      "--all-targets --all-features",
+      "--all-targets --no-default-features",
+      "--all-targets --no-default-features --features cache"
+    ],
+    "fmt": "PASS",
+    "tests": {
+      "library": 1032,
+      "main": 49,
+      "cli": 7,
+      "integration": 23,
+      "total_passed": 1111,
+      "ignored": 2
+    }
+  },
+  "active_review_cancellation_artifact": 12225540647,
+  "new_compiled_semantic_mutants": 4,
+  "previous_compiled_semantic_mutants": 8,
+  "acceptance_counts": {
+    "VERIFIED": 52,
+    "PARTIAL": 10,
+    "BLOCKED": 2
+  },
+  "ready_for_submission": false,
+  "commands": [
+    "python3 .github/adaptive-deterministic/run.py",
+    "python3 .github/adaptive-review-cancel/run.py",
+    "python3 .github/adaptive-clock/run.py",
+    "make check-pr RANGE=HEAD~1..HEAD"
+  ],
+  "transport_scope_correction": "Transport fixture accepts dead/zombie as termination; its child_reaped marker is not immediate-reaping proof. Active-review fixture requires PID disappearance.",
+  "status": "PASS_WITH_COMPLETION_GAPS"
+}

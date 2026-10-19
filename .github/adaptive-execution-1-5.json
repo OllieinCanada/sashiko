@@ -1693,5 +1693,7 @@
       "status": "PASS",
       "scope": "HEAD~1..HEAD sign-off and YAML; artifact source-equivalence/mutation inspection; historical checkpoint DCO not repaired"
     }
-  }
+  },
+  "superseded_by": "adaptive-deterministic-evidence.json",
+  "historical_snapshot_note": "Preserved raw analytical/performance negatives and outcomes. Current upstream,bundle,provider status,acceptance counts and final suite are in adaptive-deterministic-evidence.json and adaptive-acceptance-matrix.json."
 }
