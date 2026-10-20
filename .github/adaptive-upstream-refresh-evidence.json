@@ -1,0 +1,1021 @@
+{
+  "status": "REBASED_NATIVE_PASS_PERFORMANCE_BLOCKED",
+  "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+  "native": {
+    "status": "REBASED_REQUIRED_CHECKS_PASS_EXTENDED_PENDING",
+    "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+    "original_source": "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
+    "original_bounded_patch": "b24d9e05094ccfcf7609a46bb254608a3177dea1",
+    "checks": [
+      {
+        "name": "clone-source",
+        "exit": 0,
+        "seconds": 0.0411695459999919
+      },
+      {
+        "name": "fetch-clean-bundle",
+        "exit": 0,
+        "seconds": 0.07312332899999774
+      },
+      {
+        "name": "verify-old-source",
+        "exit": 0,
+        "seconds": 0.015455973000001677
+      },
+      {
+        "name": "fetch-native-bundle",
+        "exit": 0,
+        "seconds": 0.1227681820000015
+      },
+      {
+        "name": "verify-native-source",
+        "exit": 0,
+        "seconds": 0.012649218999996492
+      },
+      {
+        "name": "fetch-upstream",
+        "exit": 0,
+        "seconds": 0.5238104139999962
+      },
+      {
+        "name": "checkout-clean-source",
+        "exit": 0,
+        "seconds": 0.07270441800000071
+      },
+      {
+        "name": "configure-user.name",
+        "exit": 0,
+        "seconds": 0.012941492999999582
+      },
+      {
+        "name": "configure-user.email",
+        "exit": 0,
+        "seconds": 0.015818991999992704
+      },
+      {
+        "name": "rebase-source",
+        "exit": 0,
+        "seconds": 0.32309311199999513
+      },
+      {
+        "name": "apply-bounded-source",
+        "exit": 0,
+        "seconds": 0.07275139799999408
+      },
+      {
+        "name": "fetch-dependencies",
+        "exit": 0,
+        "seconds": 6.3880627110000034
+      },
+      {
+        "name": "required-check-pr",
+        "exit": 0,
+        "seconds": 374.784183589
+      },
+      {
+        "name": "diff-check",
+        "exit": 0,
+        "seconds": 0.012559404000000995
+      },
+      {
+        "name": "commit-bounded-source",
+        "exit": 0,
+        "seconds": 0.040096366000000216
+      },
+      {
+        "name": "verify-final-signoffs",
+        "exit": 0,
+        "seconds": 0.04052268799995318
+      },
+      {
+        "name": "export-bundle",
+        "exit": 0,
+        "seconds": 0.0725118610000095
+      }
+    ],
+    "provider_calls": 0,
+    "upstream_pr_opened": false,
+    "suite_summaries": [
+      "test result: ok. 1043 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 8.22s",
+      "test result: ok. 50 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s",
+      "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+      "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s"
+    ],
+    "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+    "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+    "commits": [
+      "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4 db: bound adaptive conflict quarantine transactions",
+      "f7688ce9ed8cdfaf2d8ae6d19c810af412a8f878 mail: add opt-in per-author publication cooldowns",
+      "4a1e3083dcacda94e5b5bd5cf23e10929c635f73 db: retire superseded series reviews awaiting publication",
+      "a84ad5868987524662f9e4cc32b1e1c3e2d90296 server: allow concrete extractor rejection response size"
+    ],
+    "changed_paths": [
+      "MAINTAINERS_GUIDE.md",
+      "designs/ADAPTIVE_PUBLICATION_COOLDOWN.md",
+      "docs/configuration.md",
+      "src/cooldown.rs",
+      "src/db.rs",
+      "src/db/conflict.rs",
+      "src/db/cooldown.rs",
+      "src/email_policy.rs",
+      "src/lib.rs",
+      "src/main.rs",
+      "src/migrations/014_held_series_index.sql",
+      "src/migrations/015_publication_cooldown.sql",
+      "src/migrations/016_cooldown_conflicts.sql",
+      "src/prerequisites.rs",
+      "src/server.rs"
+    ]
+  },
+  "native_run": 39359678639,
+  "native_artifact": 12237721302,
+  "deterministic": {
+    "status": "PASS",
+    "cases": 8,
+    "compiled_mutants_killed": 2,
+    "run": 39359678639
+  },
+  "performance": {
+    "status": "FAIL_BUDGET",
+    "run": 39359678639,
+    "budgets": {
+      "disabled_over_upstream": 1.2,
+      "enabled_over_disabled": 1.5
+    },
+    "comparisons": [
+      {
+        "retained": 0,
+        "disabled_over_upstream": 1.2450766801569302,
+        "enabled_over_disabled": 1.2207647121352523,
+        "legacy_state_equal": true
+      },
+      {
+        "retained": 10000,
+        "disabled_over_upstream": 1.35295309389588,
+        "enabled_over_disabled": 0.9559658378424324,
+        "legacy_state_equal": true
+      }
+    ]
+  },
+  "extended_run": 39360690253,
+  "extended": {
+    "clock": {
+      "status": "PASS",
+      "phase": "clock",
+      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "checks": [
+        {
+          "name": "audit-yaml",
+          "exit": 0,
+          "seconds": 0.46507010800002035
+        },
+        {
+          "name": "clone",
+          "exit": 0,
+          "seconds": 0.031968790999997054
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.3646239550000132
+        },
+        {
+          "name": "fetch-bundle",
+          "exit": 0,
+          "seconds": 0.06402936899996803
+        },
+        {
+          "name": "checkout",
+          "exit": 0,
+          "seconds": 0.06408110000000988
+        },
+        {
+          "name": "set-origin",
+          "exit": 0,
+          "seconds": 0.0036637740000173835
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 2.3685581679999927
+        },
+        {
+          "name": "clock",
+          "exit": 0,
+          "seconds": 290.12871634100003
+        }
+      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "runner_sha256": "eff381943194130a8addff77e04768cf1c3a9470f5e727484534b6543484122c",
+      "detail": {
+        "status": "PASS",
+        "production_base": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "source_sha256": "66bfd8a2085787e6285493c2a85c797f6403126cd34c86adaf4940bd0c31ed99",
+        "checks": [
+          {
+            "timezone": "UTC",
+            "status": "PASS",
+            "wall_clock_states": 6,
+            "natural_deadline_release": 1,
+            "post_release_replay_jumps": 2
+          },
+          {
+            "timezone": "America/New_York",
+            "status": "PASS",
+            "wall_clock_states": 6,
+            "natural_deadline_release": 1,
+            "post_release_replay_jumps": 2
+          }
+        ],
+        "limitations": [
+          "LD_PRELOAD changes wall-clock APIs only in the owned test process and its recording MTA; no host-clock change.",
+          "Monotonic time remains real; child process groups have bounded external timeouts.",
+          "Review output is a fixture and delivery is local recording only.",
+          "This does not establish arbitrary host/kernel clock behavior or remove fixed-deadline policy tradeoffs."
+        ],
+        "reviewer_source_sha256": "f93900b66c0ee0a1e02a15284f7a7eec01624e8b3b7de4c310e082405b00e91e",
+        "fixture_sha256": "9c4d2d4cc2d76c024c313c3567893cc56d41de430041b34abca0e1649336272b",
+        "shim_sha256": "f2a1c1e752b204a38fef7bcab4ec3dc0345773223966324e6bac5ba54909fd11",
+        "release_query_observer": "records actual now and selected count after production query",
+        "binary_sha256": "4b33a66ba36c7f2e3cb49684013aa4ef71256bada08c7311bafb532a3a2c2d60",
+        "source_restored": true
+      },
+      "production_source_restored": true
+    },
+    "upstream": {
+      "status": "PASS",
+      "phase": "upstream",
+      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "checks": [
+        {
+          "name": "audit-yaml",
+          "exit": 0,
+          "seconds": 0.31443910199999436
+        },
+        {
+          "name": "clone",
+          "exit": 0,
+          "seconds": 0.21425187399999857
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.5648746120000041
+        },
+        {
+          "name": "fetch-bundle",
+          "exit": 0,
+          "seconds": 0.0640101400000006
+        },
+        {
+          "name": "checkout",
+          "exit": 0,
+          "seconds": 0.06388956300000359
+        },
+        {
+          "name": "set-origin",
+          "exit": 0,
+          "seconds": 0.0015361039999959303
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 1.6164871020000007
+        },
+        {
+          "name": "checkout-baseline",
+          "exit": 0,
+          "seconds": 0.21426605400000653
+        },
+        {
+          "name": "baseline-fmt",
+          "exit": 0,
+          "seconds": 1.5164209759999991
+        },
+        {
+          "name": "baseline-clippy",
+          "exit": 101,
+          "seconds": 112.48362946699999
+        },
+        {
+          "name": "baseline-tests",
+          "exit": 0,
+          "seconds": 167.377307325
+        },
+        {
+          "name": "restore-candidate",
+          "exit": 0,
+          "seconds": 0.015648837000014737
+        }
+      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "baseline_checked_commit": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "baseline_clippy": "KNOWN_UPSTREAM_LARGE_ERROR_FAILURE",
+      "baseline_clippy_errors": [
+        "error: the `Err`-variant returned from this function is very large",
+        "error: the `Err`-variant returned from this function is very large",
+        "error: the `Err`-variant returned from this function is very large",
+        "error: the `Err`-variant returned from this function is very large",
+        "error: could not compile `sashiko` (lib) due to 4 previous errors",
+        "error: could not compile `sashiko` (lib test) due to 4 previous errors"
+      ],
+      "baseline_suite_summaries": [
+        "test result: ok. 996 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 5.39s",
+        "test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s",
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s"
+      ],
+      "production_source_restored": true
+    },
+    "rollback": {
+      "status": "PASS",
+      "phase": "rollback",
+      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "checks": [
+        {
+          "name": "audit-yaml",
+          "exit": 0,
+          "seconds": 0.4647685600000031
+        },
+        {
+          "name": "clone",
+          "exit": 0,
+          "seconds": 0.03216866600000401
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.3147346490000018
+        },
+        {
+          "name": "fetch-bundle",
+          "exit": 0,
+          "seconds": 0.06411784600000203
+        },
+        {
+          "name": "checkout",
+          "exit": 0,
+          "seconds": 0.06399364299999633
+        },
+        {
+          "name": "set-origin",
+          "exit": 0,
+          "seconds": 0.0036859450000008565
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 5.776360367000002
+        },
+        {
+          "name": "rollback",
+          "exit": 0,
+          "seconds": 333.349753308
+        }
+      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "runner_sha256": "64ce1645d0750c286dadfd4c1d80d7d1938a72bce0124f9994048498d89a174a",
+      "detail": {
+        "status": "PASS",
+        "base": "7f92f869a960a20f7d395550b4879d897ebdf4ea",
+        "checks": [
+          {
+            "phase": "prepare",
+            "status": "PASS"
+          },
+          {
+            "phase": "candidate-before-stop",
+            "status": "PASS",
+            "actual_daemon": true,
+            "http_health": 200,
+            "review_concurrency": 0,
+            "dry_run": true
+          },
+          {
+            "phase": "unsafe-copy",
+            "status": "PASS"
+          },
+          {
+            "phase": "quiesce",
+            "status": "PASS"
+          },
+          {
+            "phase": "old-after-quiesce",
+            "status": "PASS",
+            "actual_daemon": true,
+            "http_health": 200,
+            "review_concurrency": 0,
+            "dry_run": true
+          },
+          {
+            "phase": "safe-old-access",
+            "status": "PASS"
+          },
+          {
+            "phase": "verify",
+            "status": "PASS"
+          },
+          {
+            "phase": "candidate-after-restore",
+            "status": "PASS",
+            "actual_daemon": true,
+            "http_health": 200,
+            "review_concurrency": 0,
+            "dry_run": true
+          },
+          {
+            "phase": "resume",
+            "status": "PASS"
+          }
+        ],
+        "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "limitations": [
+          "Runs actual old/new daemon binaries on loopback plus native database fixtures; not a deployment.",
+          "Review concurrency zero is a test-only pause; all transports are dry-run and runtime network proxies refuse egress.",
+          "Unsafe claims are demonstrated only on a copied native fixture; daemon delivery workers run in dry-run with guarded pending work and no external service access.",
+          "Restoration assumes all ingestion, review and delivery processes are stopped and no new work was accepted during old-version access.",
+          "Stopped-system backup/restore includes old/new daemon cold starts; no live rolling upgrade or real remote acknowledgement is exercised."
+        ],
+        "candidate_binary_sha256": "95f0565d635ed74f2ad0d7a5b539b724472ee93cd575882b3cfa2150786a4dd1",
+        "candidate_daemon_sha256": "547141775df0917bcfed2729cf20cc6089e8efcf5c7b09f501118260efeebf44",
+        "old_binary_sha256": "1d8638d11f556c79afba0be8512c760667983d107f8cdc7831093cef2de7c7ef",
+        "old_daemon_sha256": "26d5713b385c22b41aab6ef35c4d8d6274d9fa950826cdb0a83fa3f6aba39df6",
+        "preserved_pending_state_sha256": "45b72893561029cfb0bdfc574580fc556962aabb25b47a583b89cfc5520c51b2",
+        "pending_work_restore": "PASS: complete recorded pending state restored before candidate resume"
+      },
+      "production_source_restored": true
+    },
+    "cancel": {
+      "status": "PASS",
+      "phase": "cancel",
+      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "checks": [
+        {
+          "name": "audit-yaml",
+          "exit": 0,
+          "seconds": 0.3144440080000024
+        },
+        {
+          "name": "clone",
+          "exit": 0,
+          "seconds": 0.03193680399999721
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.26436393099999833
+        },
+        {
+          "name": "fetch-bundle",
+          "exit": 0,
+          "seconds": 0.2644949170000004
+        },
+        {
+          "name": "checkout",
+          "exit": 0,
+          "seconds": 0.06404315200000354
+        },
+        {
+          "name": "set-origin",
+          "exit": 0,
+          "seconds": 0.0035961680000013985
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 2.268530632000001
+        },
+        {
+          "name": "cancel",
+          "exit": 0,
+          "seconds": 391.712042712
+        }
+      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "runner_sha256": "969ca3a2af221a0725d1f58dfb2f2cc39033886d2245f95c824e922954649691",
+      "detail": {
+        "status": "PASS",
+        "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "production_base": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "source_sha256": "f93900b66c0ee0a1e02a15284f7a7eec01624e8b3b7de4c310e082405b00e91e",
+        "checks": [
+          {
+            "name": "active-review-cancellation",
+            "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+            "status": "PASS"
+          },
+          {
+            "name": "negative-cancel-watch",
+            "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+            "status": "KILLED"
+          },
+          {
+            "name": "unrelated-cancel-watch",
+            "target": "cooldown::tests::identity_normalization_has_no_unknown_bucket",
+            "status": "PASS"
+          },
+          {
+            "name": "negative-task-abort",
+            "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+            "status": "KILLED"
+          },
+          {
+            "name": "unrelated-task-abort",
+            "target": "cooldown::tests::identity_normalization_has_no_unknown_bucket",
+            "status": "PASS"
+          },
+          {
+            "name": "restored-cancellation",
+            "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+            "status": "PASS"
+          }
+        ],
+        "mutants": [
+          {
+            "name": "cancel-watch",
+            "status": "KILLED",
+            "binary_sha256": "b40a214feae552fa78d2620f7802478f78c9ae44ff41a663bcbe7411e9fda2f5"
+          },
+          {
+            "name": "task-abort",
+            "status": "KILLED",
+            "binary_sha256": "5c31b58ab8a5fa0ca25360aef59405e380a8a086981f26de8cf987adfddc0d1d"
+          }
+        ],
+        "limitations": [
+          "Persisted adaptive owner; actual stdio RPC loop, cancellation watcher and model-permit wrapper.",
+          "Provider is an in-process pending future; child is a local static Python script. No real model/API call.",
+          "This isolates review-tool resource cleanup; full worktree preparation and remote SMTP acknowledgement are not exercised."
+        ],
+        "fixture_sha256": "10fa5ac54c438ac66c4ffdbd6d3dc519f0201282f2f039fa157c186984a06967",
+        "source_restored": true
+      },
+      "production_source_restored": true
+    },
+    "conflict": {
+      "status": "PASS",
+      "phase": "conflict",
+      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "checks": [
+        {
+          "name": "audit-yaml",
+          "exit": 0,
+          "seconds": 0.5155117449999977
+        },
+        {
+          "name": "clone",
+          "exit": 0,
+          "seconds": 0.3149589699999993
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.31489515399999846
+        },
+        {
+          "name": "fetch-bundle",
+          "exit": 0,
+          "seconds": 0.06447368900000328
+        },
+        {
+          "name": "checkout",
+          "exit": 0,
+          "seconds": 0.06415779999999671
+        },
+        {
+          "name": "set-origin",
+          "exit": 0,
+          "seconds": 0.0038406130000012695
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 2.4206057230000013
+        },
+        {
+          "name": "positive",
+          "exit": 0,
+          "seconds": 228.98709392599997
+        },
+        {
+          "name": "mutant-preparing",
+          "exit": 101,
+          "seconds": 51.52458643799997
+        },
+        {
+          "name": "mutant-active",
+          "exit": 101,
+          "seconds": 49.15788236999998
+        },
+        {
+          "name": "restored",
+          "exit": 0,
+          "seconds": 47.04640009399998
+        }
+      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "mutants": [
+        {
+          "name": "preparing",
+          "status": "KILLED",
+          "oracle": "preparing conflict became visible"
+        },
+        {
+          "name": "active",
+          "status": "KILLED",
+          "oracle": "group owner escaped quarantine"
+        }
+      ],
+      "production_source_restored": true
+    },
+    "crash": {
+      "status": "PASS",
+      "phase": "crash",
+      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "checks": [
+        {
+          "name": "audit-yaml",
+          "exit": 0,
+          "seconds": 0.31458154200004174
+        },
+        {
+          "name": "clone",
+          "exit": 0,
+          "seconds": 0.032005113000025176
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.6153497560000005
+        },
+        {
+          "name": "fetch-bundle",
+          "exit": 0,
+          "seconds": 0.06407159299999421
+        },
+        {
+          "name": "checkout",
+          "exit": 0,
+          "seconds": 0.06406095099998765
+        },
+        {
+          "name": "set-origin",
+          "exit": 0,
+          "seconds": 0.003616744000055405
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 4.6742554350000205
+        },
+        {
+          "name": "format-crash-fixture",
+          "exit": 0,
+          "seconds": 4.874949982999965
+        },
+        {
+          "name": "build-crash-fixture",
+          "exit": 0,
+          "seconds": 196.846085781
+        },
+        {
+          "name": "clippy-crash-fixture",
+          "exit": 0,
+          "seconds": 116.86166281199996
+        }
+      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "binary_sha256": "2905edb02493a34df4f835567a719e06dee4252a2a55174d37ce3b9a088364e6",
+      "fixture_sha256": "92aadab06b016e5c2ce7b2e9684521c7460903930eaf46dc675c2eea5743b17a",
+      "crash_phases": [
+        {
+          "phase": "preparing",
+          "status": "PASS",
+          "killed_after_commit": true
+        },
+        {
+          "phase": "active",
+          "status": "PASS",
+          "killed_after_commit": true
+        },
+        {
+          "phase": "handoff",
+          "status": "PASS",
+          "killed_after_commit": true
+        }
+      ],
+      "production_source_restored": true
+    },
+    "faults": {
+      "status": "PASS",
+      "phase": "faults",
+      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "checks": [
+        {
+          "name": "audit-yaml",
+          "exit": 0,
+          "seconds": 0.2642099199999848
+        },
+        {
+          "name": "clone",
+          "exit": 0,
+          "seconds": 0.015830891999996766
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.4644305359999805
+        },
+        {
+          "name": "fetch-bundle",
+          "exit": 0,
+          "seconds": 0.06376673399998367
+        },
+        {
+          "name": "checkout",
+          "exit": 0,
+          "seconds": 0.06385161200000766
+        },
+        {
+          "name": "set-origin",
+          "exit": 0,
+          "seconds": 0.0035032750000141277
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 3.2204488440000034
+        },
+        {
+          "name": "faults",
+          "exit": 0,
+          "seconds": 161.175992909
+        }
+      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "runner_sha256": "159972828441057e0a0b7ac1b49536b82ca061f420040f8e8002eb22facf8b63",
+      "detail": {
+        "status": "PASS",
+        "checks": [
+          {
+            "mode": "enospc",
+            "status": "PASS"
+          },
+          {
+            "mode": "eio",
+            "status": "PASS"
+          },
+          {
+            "mode": "torn-write",
+            "status": "PASS"
+          },
+          {
+            "mode": "precommit",
+            "status": "PASS"
+          },
+          {
+            "mode": "postcommit",
+            "status": "PASS"
+          }
+        ],
+        "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "limitations": [
+          "LD_PRELOAD injects ENOSPC/EIO and a partial WAL write; this is not actual device exhaustion or physical power loss.",
+          "SIGKILL tests process crash before and after successful COMMIT.",
+          "No remote SMTP acceptance crash or historical archive replay is exercised."
+        ],
+        "binary_sha256": "1da30caa5397e6b52da33d53b8fba78e4d83b8d5c74d7192ffb6fea4e433bca3"
+      },
+      "production_source_restored": true
+    },
+    "historical": {
+      "status": "PASS",
+      "phase": "historical",
+      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "checks": [
+        {
+          "name": "audit-yaml",
+          "exit": 0,
+          "seconds": 0.36491948799994134
+        },
+        {
+          "name": "clone",
+          "exit": 0,
+          "seconds": 0.032077562999916154
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.4148639640000056
+        },
+        {
+          "name": "fetch-bundle",
+          "exit": 0,
+          "seconds": 0.06418434199997591
+        },
+        {
+          "name": "checkout",
+          "exit": 0,
+          "seconds": 0.06412267000007432
+        },
+        {
+          "name": "set-origin",
+          "exit": 0,
+          "seconds": 0.003933361000008517
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 1.6170933019999438
+        },
+        {
+          "name": "historical",
+          "exit": 0,
+          "seconds": 167.32513905300004
+        }
+      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "runner_sha256": "93a3e3c776509af2783f0b0623e0cc602a37fcdf8024e4ea054ced80922d2b01",
+      "detail": {
+        "status": "PASS",
+        "archive_url": "https://raw.githubusercontent.com/git/git/ba4324c4e1e32a28381ea1f4835b78e4c9d45575/t/t5100/sample.mbox",
+        "provenance": "https://github.com/git/git/commit/b0921331030d52febf52839753eee1b2b9ca1f24",
+        "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "checks": [
+          {
+            "name": "prepare",
+            "status": "PASS"
+          },
+          {
+            "name": "read-only write negative control",
+            "status": "PASS"
+          },
+          {
+            "name": "replay-0",
+            "status": "PASS"
+          },
+          {
+            "name": "replay-1",
+            "status": "PASS"
+          },
+          {
+            "name": "replay-2",
+            "status": "PASS"
+          },
+          {
+            "name": "read-only write negative control",
+            "status": "PASS"
+          },
+          {
+            "name": "source DB unchanged",
+            "status": "PASS"
+          },
+          {
+            "name": "tracked repository unchanged",
+            "status": "PASS"
+          },
+          {
+            "name": "frozen admission unchanged across three restarted replays",
+            "status": "PASS"
+          }
+        ],
+        "limitations": [
+          "One real 2005 Gmane mailing-list message preserved in Git test corpus; not a modern activity dataset.",
+          "Git maintains the archived fixture and has adjusted encoding syntax; this is not an untouched direct archive download.",
+          "Protected database is an isolated seeded source snapshot, not a supplied production database.",
+          "No review model, publication worker, actual email or external integration runs."
+        ],
+        "transport": "pinned Git corpus copy of 2005 Gmane mailing-list message",
+        "corpus_git_blob": "4a54ee517198cf218d330bdc4cd93cd279abcf0e",
+        "corpus_sha256": "c1b7fc338ed7f0f3dbf6de5108f80355f3966f41cc88b6b169c25ae9185db1bc",
+        "historical_date": "Mon, 15 Aug 2005 20:18:25 +0200",
+        "archive_sha256": "a191fcedd79cb128e8e01287ce811e47cd1220e37fea775b62cee67f3ae3570c",
+        "binary_sha256": "cf4fefd0da96f062d540e0c1298fcbc11863e80eecb235581beededa23b4e97f",
+        "protected_source_sha256_before_and_after": "3848d4015c31b0c11fbe86052f45a71dcf82b79be73dd5011a8cc5f2d922ff19",
+        "replay_performed": true
+      },
+      "production_source_restored": true
+    },
+    "concurrency": {
+      "status": "PASS",
+      "phase": "concurrency",
+      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "checks": [
+        {
+          "name": "audit-yaml",
+          "exit": 0,
+          "seconds": 0.46497277099999934
+        },
+        {
+          "name": "clone",
+          "exit": 0,
+          "seconds": 0.03203243800000166
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.3146864919999999
+        },
+        {
+          "name": "fetch-bundle",
+          "exit": 0,
+          "seconds": 0.11451649400000008
+        },
+        {
+          "name": "checkout",
+          "exit": 0,
+          "seconds": 0.06421886100000052
+        },
+        {
+          "name": "set-origin",
+          "exit": 0,
+          "seconds": 0.0038700329999983296
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 2.6702844289999987
+        },
+        {
+          "name": "concurrency",
+          "exit": 0,
+          "seconds": 214.42565444
+        }
+      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "runner_sha256": "eb2050b2d9cac0743a62e90adbd2f0cc11cc38b1cbe82d4642d22453c90274a3",
+      "detail": {
+        "status": "PASS",
+        "candidate_commit": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "fixture_sha256": "62cade09f8f8edd4d4c6211245262eb917959fd54794b7280e5dcd80697ec60c",
+        "checks": [
+          {
+            "name": "test_cooldown_sixteen_writers_replay_release",
+            "status": "PASS"
+          }
+        ],
+        "limitations": [
+          "Sixteen independent Database handles on file-backed SQLite; 128 admissions over eight scopes.",
+          "128 context-free replays and 64 explicit releases run during concurrent admission.",
+          "No production latency or fairness guarantee; source selection remains a DB-API fixture."
+        ],
+        "binary_sha256": "a607a12accc12ce8c5383ed694c2ee55ab076b230f3da1e255a2d1906638899f"
+      },
+      "production_source_restored": true
+    }
+  },
+  "optimization": {
+    "status": "NATIVE_VALIDATION_RUNNING",
+    "checkpoint": "5839f5285c9940af3f2cd4e74b97f51119fffdf1",
+    "run": 39367721490,
+    "extended_run": 39367817904,
+    "scope": "Combine active and durable quarantine checks into existing source binding, patch binding and completion snapshots.",
+    "source_changed": true,
+    "budget_unchanged": true
+  },
+  "negative_results": [
+    {
+      "run": 39359678639,
+      "phase": "performance",
+      "reason": "Original changed-source trace exceeded disabled-mode budget; preserved, not retried unchanged."
+    },
+    {
+      "run": 39359678639,
+      "phase": "rollback",
+      "reason": "Shared build output referenced prompt files in a deleted baseline temporary checkout. No rollback behavior exercised in this failed step. Independent schema-16 rollback later passed."
+    }
+  ],
+  "ready_for_upstream_pr": false,
+  "model_review_completed": false,
+  "maintainer_agreement": false,
+  "provider_calls": 0,
+  "upstream_pr_opened": false
+}
