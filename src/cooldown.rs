@@ -153,11 +153,12 @@ pub fn source_fingerprint(
 }
 
 pub fn content_fingerprint(bytes: &[u8]) -> String {
-    use std::fmt::Write as _;
+    const HEX: &[u8; 16] = b"0123456789abcdef";
     let digest = <sha2::Sha256 as sha2::Digest>::digest(bytes);
     let mut hex = String::with_capacity(digest.len() * 2);
     for byte in digest {
-        let _ = write!(hex, "{byte:02x}");
+        hex.push(char::from(HEX[usize::from(byte >> 4)]));
+        hex.push(char::from(HEX[usize::from(byte & 0x0f)]));
     }
     hex
 }
@@ -371,5 +372,29 @@ mod tests {
             assert!(author_key(bad).is_err(), "accepted {bad:?}");
         }
         Ok(())
+    }
+
+    #[test]
+    fn fingerprints_match_standard_sha256_vectors() {
+        for (input, expected) in [
+            (
+                b"".as_slice(),
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            ),
+            (
+                b"abc".as_slice(),
+                "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            ),
+            (
+                b"The quick brown fox jumps over the lazy dog".as_slice(),
+                "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592",
+            ),
+        ] {
+            assert_eq!(
+                content_fingerprint(input),
+                expected,
+                "fingerprint differs from the standard SHA-256 encoding"
+            );
+        }
     }
 }
