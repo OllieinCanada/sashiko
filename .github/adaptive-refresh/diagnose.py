@@ -60,11 +60,13 @@ def instrument(text, filename):
         return names[-1] if names else "module"
     edits = []
     labels = {}
-    pattern = r"\b(?:self\s*\.\s*)?(?:conn|tx_conn|tx|stmt)\s*\.\s*(query|execute|execute_batch|transaction_with_behavior|commit|rollback)\s*\("
+    pattern = r"\b(?:[A-Za-z_]\w*\s*\.\s*)*(?:conn|tx_conn|tx|stmt)\s*\.\s*(query|execute|execute_batch|transaction_with_behavior|commit|rollback)\s*\("
     matches = [(m, m.group(1)) for m in re.finditer(pattern, code)]
-    for match in re.finditer(r"\b\w+\s*\.\s*(next)\s*\(\s*\)(?=\s*\.\s*await)", code):
+    for match in re.finditer(r"\b(?:[A-Za-z_]\w*\s*\.\s*)*[A-Za-z_]\w*\s*\.\s*(next)\s*\(\s*\)(?=\s*\.\s*await)", code):
         matches.append((match, "next"))
     for match, kind in matches:
+        if code[:match.start()].rstrip().endswith("."):
+            continue
         opening = code.index("(", match.start())
         depth = 1
         end = opening + 1
