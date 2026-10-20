@@ -26,6 +26,7 @@ def remote(action, payload):
 
 
 def reset():
+    module.remote = remote
     module.REPORT["calls"] = []
     module.REPORT.pop("last_error", None)
     module.RESERVED = Decimal(0)
