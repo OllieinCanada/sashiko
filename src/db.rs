@@ -17,6 +17,10 @@
 mod cooldown;
 
 #[cfg(feature = "server")]
+#[path = "db/conflict.rs"]
+mod conflict;
+
+#[cfg(feature = "server")]
 use crate::ReviewStatus;
 #[cfg(feature = "server")]
 use crate::settings::DatabaseSettings;
@@ -2142,7 +2146,15 @@ impl Database {
             tx.execute("PRAGMA user_version = 15", ()).await?;
             tx.commit().await?;
         }
-        info!("Database schema is up to date at version 15.");
+        if current_version < 16 {
+            let tx = self.begin_immediate_transaction().await?;
+            tx.execute_batch(include_str!("migrations/016_cooldown_conflicts.sql"))
+                .await?;
+            tx.execute("PRAGMA user_version = 16", ()).await?;
+            tx.commit().await?;
+        }
+        self.recover_cooldown_conflicts().await?;
+        info!("Database schema is up to date at version 16.");
 
         Ok(())
     }
@@ -6941,22 +6953,24 @@ impl Database {
 
             if let Some(closed) = matches.iter().find(|candidate| candidate.closed_late_cover) {
                 if matches.len() > 1 {
-                    let tx = self.begin_immediate_transaction().await?;
+                    let tx = self.begin_canonical_read_transaction().await?;
                     let mut adaptive = false;
                     for candidate in &matches {
                         let mut guards = tx.query("SELECT 1 FROM review_cooldown_guards WHERE patchset_id = ? UNION ALL SELECT 1 FROM review_cooldown_exclusions WHERE patchset_id = ? AND released_at IS NOT NULL", libsql::params![candidate.id,candidate.id]).await?;
-                        adaptive |= guards.next().await?.is_some();
+                        if guards.next().await?.is_some() {
+                            adaptive = true;
+                            break;
+                        }
                     }
                     if adaptive {
-                        for candidate in &matches {
-                            Self::block_cooldown(
-                                &tx,
-                                candidate.id,
-                                "ambiguous canonical late cover",
-                            )
-                            .await?;
-                        }
-                        tx.commit().await?;
+                        tx.rollback().await?;
+                        let owners: Vec<i64> =
+                            matches.iter().map(|candidate| candidate.id).collect();
+                        self.quarantine_cooldown_conflict(
+                            &owners,
+                            "ambiguous canonical late cover",
+                        )
+                        .await?;
                         bail!("adaptive late cover quarantined before moving rows");
                     }
                     tx.commit().await?;
@@ -6979,7 +6993,7 @@ impl Database {
 
             // If we have multiple matches, merge others into target_id
             if matches.len() > 1 {
-                let tx = self.begin_transaction().await?;
+                let tx = self.begin_canonical_read_transaction().await?;
                 let mut has_adaptive = false;
                 for candidate in &matches {
                     let mut rows = tx
@@ -6988,18 +7002,19 @@ impl Database {
                             libsql::params![candidate.id,candidate.id],
                         )
                         .await?;
-                    has_adaptive |= rows.next().await?.is_some();
+                    if rows.next().await?.is_some() {
+                        has_adaptive = true;
+                        break;
+                    }
                 }
                 if has_adaptive {
-                    for candidate in &matches {
-                        Self::block_cooldown(
-                            &tx,
-                            candidate.id,
-                            "ambiguous canonical merge requires reconciliation",
-                        )
-                        .await?;
-                    }
-                    tx.commit().await?;
+                    tx.rollback().await?;
+                    let owners: Vec<i64> = matches.iter().map(|candidate| candidate.id).collect();
+                    self.quarantine_cooldown_conflict(
+                        &owners,
+                        "ambiguous canonical merge requires reconciliation",
+                    )
+                    .await?;
                     bail!("adaptive canonical merge quarantined before moving rows");
                 }
                 for merge_from in matches.iter().skip(1) {
@@ -7910,6 +7925,7 @@ impl Database {
 
     pub async fn clear_patchset_embargo(&self, id: i64) -> Result<()> {
         let tx = self.begin_immediate_transaction().await?;
+        Self::ensure_cooldown_unblocked(&tx, id).await?;
         tx.execute("UPDATE review_cooldown_intents SET released_at = COALESCE(released_at, ?) WHERE patchset_id = ?", libsql::params![Self::cooldown_now()?, id]).await?;
         tx.execute("UPDATE review_cooldown_exclusions SET released_at = COALESCE(released_at, ?) WHERE patchset_id = ?", libsql::params![Self::cooldown_now()?, id]).await?;
         tx.execute("UPDATE patchsets SET embargo_until = NULL, embargo_release_started_at = NULL WHERE id = ?", libsql::params![id]).await?;
@@ -7922,6 +7938,10 @@ impl Database {
             bail!("invalid embargo release timestamp");
         }
         let tx = self.begin_immediate_transaction().await?;
+        if Self::cooldown_quarantined(&tx, id).await? {
+            tx.commit().await?;
+            return Ok(false);
+        }
         let marked = tx.execute("UPDATE review_cooldown_intents SET released_at = COALESCE(released_at, ?) WHERE patchset_id = ? AND state != 'blocked' AND released_at IS NULL", libsql::params![now, id]).await?;
         let excluded = tx.execute("UPDATE review_cooldown_exclusions SET released_at = ? WHERE patchset_id = ? AND released_at IS NULL", libsql::params![now, id]).await?;
         let rows = tx.execute("UPDATE patchsets SET embargo_until = ? WHERE id = ? AND embargo_until IS NOT NULL AND embargo_until > ? AND NOT EXISTS (SELECT 1 FROM review_cooldown_guards c WHERE c.patchset_id = patchsets.id AND c.state = 'blocked')", libsql::params![now, id, now]).await?;
@@ -9134,6 +9154,7 @@ impl Database {
     }
 
     pub async fn get_pending_patchsets(&self, limit: usize) -> Result<Vec<PatchsetRow>> {
+        self.recover_cooldown_conflicts().await?;
         let mut rows = self.conn.query(
             "SELECT id, subject, status, thread_id, author, date, cover_letter_message_id, total_parts, received_parts, baseline_id, failed_reason, target_review_count, skip_filters, only_filters, embargo_until, slug, mr_url, mr_title, mr_number
              FROM patchsets WHERE status = 'Pending' AND NOT EXISTS (SELECT 1 FROM review_cooldown_guards c WHERE c.patchset_id = patchsets.id AND c.state IN ('waiting','blocked')) ORDER BY date ASC LIMIT ?",
