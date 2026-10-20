@@ -1,0 +1,89 @@
+name: Preserve checked adaptive source branch
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths:
+      - '.github/adaptive-refresh/publish.py'
+      - '.github/workflows/adaptive-refresh-publish.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  wait-for-validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Require complete native validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.request
+          base = ("https://api.github.com/repos/OllieinCanada/"
+                  "sashiko/actions/runs/")
+          deadline = time.monotonic() + 900
+          pending = {39370876283, 39370876169}
+          while pending:
+              for identifier in list(pending):
+                  request = urllib.request.Request(
+                      base + str(identifier), headers={
+                          "Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                          "Accept": "application/vnd.github+json"})
+                  with urllib.request.urlopen(request, timeout=20) as response:
+                      run = json.load(response)
+                  if run["status"] == "completed":
+                      if run["conclusion"] != "success":
+                          raise RuntimeError("validation did not pass")
+                      pending.remove(identifier)
+              if pending:
+                  if time.monotonic() >= deadline:
+                      raise RuntimeError("bounded validation wait exceeded")
+                  print("Waiting for remaining exact-source checks", flush=True)
+                  time.sleep(15)
+          print("All required source checks passed")
+          PY
+  preserve:
+    needs: wait-for-validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check checkpoint metadata
+        run: |
+          python3 -m venv /tmp/adaptive-publish-lint
+          /tmp/adaptive-publish-lint/bin/pip install yamllint==1.37.1
+          export PATH="/tmp/adaptive-publish-lint/bin:$PATH"
+          make check-pr RANGE=HEAD~1..HEAD
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39370749173
+          name: adaptive-message-cost-c6e85fccb1e25e19237de8e8fe252dab8fb66bc7
+          path: input-refresh
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39370876169
+          name: adaptive-maximum-e0e415ff6f2e398dc027155eb2bbb2b2ca25763d
+          path: input-maximum
+      - name: Preserve exact native commits on a new fork branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/adaptive-refresh/publish.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adaptive-source-branch-${{ github.sha }}
+          path: published-source.json
+          retention-days: 14
+          if-no-files-found: warn
