@@ -897,5 +897,32 @@
       "provider_calls": 0,
       "upstream_pr_opened": false
     }
+  },
+  "evidence_scope": "Historical bd59059 completion report; the new schema-16 candidate is tracked separately in bounded_conflict_candidate.",
+  "bounded_conflict_candidate": {
+    "status": "REQUIRED_NATIVE_CHECKS_PASS_EXTENDED_GATES_PENDING",
+    "native_checked_head": "b24d9e05094ccfcf7609a46bb254608a3177dea1",
+    "native_checked_tree": "618c4b54b7eaabfae517bc5f3b302b10612bd86c",
+    "native_checkpoint": "a34b3e366ed06fff98ca9784fcd7a343cc73942e",
+    "native_run": 39353773252,
+    "native_artifact": 12233813964,
+    "source_files": [
+      "src/db.rs",
+      "src/db/cooldown.rs",
+      "src/prerequisites.rs",
+      "src/db/conflict.rs",
+      "src/migrations/016_cooldown_conflicts.sql"
+    ],
+    "batch": 64,
+    "full_suite_passed": 1115,
+    "full_suite_ignored": 2,
+    "focused_tests": 4,
+    "compiled_mutants_killed": 2,
+    "writer_bound_scope": "Per-transaction owner work; canonical scan and shared-handle read mutex remain unbounded.",
+    "model_review_completed": false,
+    "maintainer_agreement": false,
+    "performance_refresh_required": true,
+    "rollback_refresh_required": true,
+    "ready_for_upstream_pr": false
   }
 }

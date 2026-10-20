@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "status": "PASS_FOR_BOUNDED_WRITER_SCOPE",
+  "environment": {
+    "runner": "Ubuntu 24.04",
+    "rust": "1.99.1",
+    "cargo_build_jobs": 2,
+    "sql_model_sqlite": "3.45.1"
+  },
+  "native": {
+    "status": "PASS",
+    "checkpoint": "a34b3e366ed06fff98ca9784fcd7a343cc73942e",
+    "production_base": "bd59059f1864aea81b11b5de0eb97e5d2ec53667",
+    "checks": [
+      {
+        "name": "fetch-locked",
+        "status": "PASS",
+        "seconds": 2.319981485999996
+      },
+      {
+        "name": "format-native",
+        "status": "PASS",
+        "seconds": 0.8159568820000018
+      },
+      {
+        "name": "native-positive",
+        "status": "PASS",
+        "seconds": 33.907803143
+      },
+      {
+        "name": "mutant-expose-preparing",
+        "status": "PASS",
+        "seconds": 33.80652795100001
+      },
+      {
+        "name": "mutant-drop-active-guard",
+        "status": "PASS",
+        "seconds": 33.554645609000005
+      },
+      {
+        "name": "native-restored",
+        "status": "PASS",
+        "seconds": 33.411127709
+      },
+      {
+        "name": "required-check-pr",
+        "status": "PASS",
+        "seconds": 171.28901135799998
+      },
+      {
+        "name": "diff-check",
+        "status": "PASS",
+        "seconds": 0.016032643000016833
+      },
+      {
+        "name": "configure-author",
+        "status": "PASS",
+        "seconds": 0.003763584000012088
+      },
+      {
+        "name": "configure-email",
+        "status": "PASS",
+        "seconds": 0.003696343000001434
+      },
+      {
+        "name": "stage-source",
+        "status": "PASS",
+        "seconds": 0.015898029999959817
+      },
+      {
+        "name": "native-commit",
+        "status": "PASS",
+        "seconds": 0.01609458600000835
+      },
+      {
+        "name": "native-signoff",
+        "status": "PASS",
+        "seconds": 0.016096653999966293
+      },
+      {
+        "name": "create-native-bundle",
+        "status": "PASS",
+        "seconds": 0.01596444500000871
+      }
+    ],
+    "mutants": [
+      {
+        "name": "expose-preparing",
+        "status": "KILLED",
+        "intended_assertion": "preparing conflict became visible"
+      },
+      {
+        "name": "drop-active-guard",
+        "status": "KILLED",
+        "intended_assertion": "group owner escaped quarantine"
+      }
+    ],
+    "provider_calls": 0,
+    "upstream_pr_opened": false,
+    "formatted_sha256": {
+      "src/db.rs": "01a6bbeda8e73470f218906abbc8f8c9ce2677c517904b2a969014b27b7e2878",
+      "src/db/cooldown.rs": "da8918ff51f72f6989477698f1989ffc6db5c64b48c6d013c21e7a0cfb1f5742",
+      "src/prerequisites.rs": "edc40eef10bd6dd547f4d3c6ae0eaeafcc2efdfd2785930c19ebbbbed1a5e9be",
+      "src/db/conflict.rs": "c0361d1b240423c39e1437ede91fce7f713441d9c2c9171a743c1e03bbe6a27e",
+      "src/migrations/016_cooldown_conflicts.sql": "e55f378dbb0be976bc34024314a8d2910e0449d0c04a34534a06c4a4de0a26d5"
+    },
+    "suite_summaries": [
+      "test result: ok. 1036 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 8.22s",
+      "test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s",
+      "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+      "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s"
+    ],
+    "native_head": "b24d9e05094ccfcf7609a46bb254608a3177dea1",
+    "native_tree": "618c4b54b7eaabfae517bc5f3b302b10612bd86c"
+  },
+  "sql_vm_model": {
+    "status": "PASS",
+    "scope": "Python SQLite VM work for the exact candidate migration",
+    "candidate_sha256": "0b590486e07b5983f2fd8070f6189c004f80fa0577ace1f6991753edae25a93c",
+    "migration_sha256": "e55f378dbb0be976bc34024314a8d2910e0449d0c04a34534a06c4a4de0a26d5",
+    "batch": 64,
+    "work": {
+      "128": {
+        "stage_64": 3977,
+        "activate": 112,
+        "handoff_64": 11767
+      },
+      "4096": {
+        "stage_64": 3977,
+        "activate": 112,
+        "handoff_64": 11767
+      },
+      "32768": {
+        "stage_64": 3977,
+        "activate": 112,
+        "handoff_64": 11767
+      }
+    },
+    "provider_calls": 0,
+    "limitations": [
+      "VM instructions are not disk I/O, elapsed writer time or native libsql instruction counts.",
+      "Total staging work, total storage and canonical scanning remain proportional to group size."
+    ]
+  },
+  "source_copy_tree": {
+    "reconstructed_native_tree": "618c4b54b7eaabfae517bc5f3b302b10612bd86c",
+    "matches_checked_native_tree": true
+  },
+  "artifacts": {
+    "native": "https://github.com/OllieinCanada/sashiko/actions/runs/39353773252/artifacts/12233813964",
+    "sql_model": "https://github.com/OllieinCanada/sashiko/actions/runs/39353861254/artifacts/12234795737"
+  },
+  "negative_runs": [
+    39352557122,
+    39352675388,
+    39352801673,
+    39353015323
+  ],
+  "current_candidate": {
+    "status": "REQUIRED_NATIVE_CHECKS_PASS_EXTENDED_GATES_PENDING",
+    "native_checked_head": "b24d9e05094ccfcf7609a46bb254608a3177dea1",
+    "native_checked_tree": "618c4b54b7eaabfae517bc5f3b302b10612bd86c",
+    "native_checkpoint": "a34b3e366ed06fff98ca9784fcd7a343cc73942e",
+    "native_run": 39353773252,
+    "native_artifact": 12233813964,
+    "source_files": [
+      "src/db.rs",
+      "src/db/cooldown.rs",
+      "src/prerequisites.rs",
+      "src/db/conflict.rs",
+      "src/migrations/016_cooldown_conflicts.sql"
+    ],
+    "batch": 64,
+    "full_suite_passed": 1115,
+    "full_suite_ignored": 2,
+    "focused_tests": 4,
+    "compiled_mutants_killed": 2,
+    "writer_bound_scope": "Per-transaction owner work; canonical scan and shared-handle read mutex remain unbounded.",
+    "model_review_completed": false,
+    "maintainer_agreement": false,
+    "performance_refresh_required": true,
+    "rollback_refresh_required": true,
+    "ready_for_upstream_pr": false
+  },
+  "ready_for_upstream_pr": false
+}

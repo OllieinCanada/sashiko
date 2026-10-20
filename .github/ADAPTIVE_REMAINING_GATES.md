@@ -1,3 +1,9 @@
+> **Historical baseline evidence.** The results and 55/8/1 counts below describe
+> source bd59059f1864aea81b11b5de0eb97e5d2ec53667. The fork now has a
+> [bounded-conflict follow-up](ADAPTIVE_CONFLICT_BOUNDING.md) with schema 16.
+> These historical counts do not certify the new candidate; extended validation
+> and completion gates remain open.
+
 # Remaining acceptance decisions
 
 The ten scenarios below were reviewed individually. Documentation records

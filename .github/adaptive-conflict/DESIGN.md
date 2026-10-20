@@ -61,9 +61,11 @@ after indexed existence checks. Never cascade-delete an unbounded group.
   clean only expired preparations, in bounded batches. Group IDs never reuse.
   Concurrent preparation must use distinct group identities and exact members;
   one preparer cannot remove another's group.
-- SQLite serializes activation and claims. A claim committed before activation
-  has the existing stale-worker protections; activation cannot retract a
-  delivery already accepted by an external system.
+- SQLite serializes activation and new claims. A queue item claimed before
+  activation can still finish delivery afterwards: existing workers do not
+  make external delivery atomic with SQLite quarantine. New queue claims and
+  insertion triggers honor the active group. Do not claim withdrawal of an
+  already claimed or accepted external delivery.
 - Cancellation before activation has the same externally visible quarantine
   outcome as rolling back the original transaction. Cancellation after
   activation leaves the complete group durably protected.

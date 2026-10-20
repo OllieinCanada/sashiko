@@ -1,0 +1,86 @@
+name: Verify saved bounded conflict source
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths: ['.github/workflows/adaptive-conflict-final.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  focused-gaps:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: adaptive-conflict-native-a34b3e366ed06fff98ca9784fcd7a343cc73942e
+          run-id: 39353773252
+          github-token: ${{ github.token }}
+          path: checked-native
+      - name: Verify exact saved source against checked native commit
+        run: |
+          git bundle verify checked-native/candidate.bundle
+          git fetch checked-native/candidate.bundle HEAD
+          python3 - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          result = json.loads(Path("checked-native/manifest.json").read_text())
+          assert result["status"] == "PASS"
+          expected = result["native_head"]
+          actual = subprocess.check_output(
+              ["git", "rev-parse", "FETCH_HEAD"], text=True).strip()
+          assert actual == expected
+          diff = subprocess.check_output(
+              ["git", "diff", "--name-only", expected, "HEAD", "--",
+               ".", ":(exclude).github"], text=True)
+          assert not diff.strip(), diff
+          print("PASS entire production tree equals checked native commit")
+          PY
+      - name: Validate sign-offs and audit metadata
+        run: |
+          if pgrep -x sashiko; then
+            exit 1
+          fi
+          python3 -m venv /tmp/adaptive-conflict-final-lint
+          /tmp/adaptive-conflict-final-lint/bin/pip install yamllint==1.37.1
+          export PATH="/tmp/adaptive-conflict-final-lint/bin:$PATH"
+          make sob RANGE=HEAD~1..HEAD
+          yamllint .
+          python3 - <<'PY'
+          import ast, json, subprocess
+          from pathlib import Path
+          native = json.loads(Path("checked-native/manifest.json").read_text())
+          assert native["status"] == "PASS"
+          assert any(row["name"] == "required-check-pr" and
+                     row["status"] == "PASS" for row in native["checks"])
+          for path in Path(".github").rglob("*.py"):
+              ast.parse(path.read_text(), filename=str(path))
+          result = {
+              "status": "PASS",
+              "saved_source_commit": subprocess.check_output(
+                  ["git", "rev-parse", "HEAD"], text=True).strip(),
+              "native_checked_commit": native["native_head"],
+              "production_tree_equivalent_to_checked_bundle": True,
+              "required_suite_reused_via_exact_source_equality": True,
+              "suite_summaries": native["suite_summaries"],
+              "provider_calls": 0,
+              "upstream_pr_opened": False}
+          Path("adaptive-conflict-final.json").write_text(
+              json.dumps(result, indent=2))
+          print(json.dumps(result, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adaptive-conflict-saved-${{ github.sha }}
+          path: adaptive-conflict-final.json
+          retention-days: 14
+          if-no-files-found: warn

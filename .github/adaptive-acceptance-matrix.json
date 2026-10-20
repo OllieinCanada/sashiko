@@ -342,7 +342,8 @@
       "requirement": "Slow operations do not block unrelated writers.",
       "status": "PARTIAL",
       "evidence": "PROBE paused collaborator; ROUTE gated sendmail; deliberate contention calibration.",
-      "remaining_or_scope": "External pauses permit unrelated writes. Unbounded indivisible canonical-owner quarantine remains a documented exception; broad load/fairness is not established."
+      "remaining_or_scope": "External pauses permit unrelated writes. Unbounded indivisible canonical-owner quarantine remains a documented exception; broad load/fairness is not established.",
+      "current_candidate_note": "The bounded-conflict follow-up replaces the unbounded adaptive quarantine writer transaction with exact staged membership, atomic activation, and 64-owner handoff batches. D06 remains partial: canonical scanning and this handle's read-transaction mutex remain unbounded, and broad load/fairness is not established."
     },
     {
       "id": "D07",
@@ -651,5 +652,32 @@
   "new_focused_run": 39333925430,
   "model_review_attempted": true,
   "model_review_completed": false,
-  "model_review_performed_scope": "Actual source-built agent attempts were executed;both incomplete. This is not a completed required self-review."
+  "model_review_performed_scope": "Actual source-built agent attempts were executed;both incomplete. This is not a completed required self-review.",
+  "evidence_scope": "The 55/8/1 scenario dispositions describe the frozen bd59059 baseline. See bounded_conflict_candidate for the new schema-16 follow-up; these counts are not full certification of the new candidate.",
+  "bounded_conflict_candidate": {
+    "status": "REQUIRED_NATIVE_CHECKS_PASS_EXTENDED_GATES_PENDING",
+    "native_checked_head": "b24d9e05094ccfcf7609a46bb254608a3177dea1",
+    "native_checked_tree": "618c4b54b7eaabfae517bc5f3b302b10612bd86c",
+    "native_checkpoint": "a34b3e366ed06fff98ca9784fcd7a343cc73942e",
+    "native_run": 39353773252,
+    "native_artifact": 12233813964,
+    "source_files": [
+      "src/db.rs",
+      "src/db/cooldown.rs",
+      "src/prerequisites.rs",
+      "src/db/conflict.rs",
+      "src/migrations/016_cooldown_conflicts.sql"
+    ],
+    "batch": 64,
+    "full_suite_passed": 1115,
+    "full_suite_ignored": 2,
+    "focused_tests": 4,
+    "compiled_mutants_killed": 2,
+    "writer_bound_scope": "Per-transaction owner work; canonical scan and shared-handle read mutex remain unbounded.",
+    "model_review_completed": false,
+    "maintainer_agreement": false,
+    "performance_refresh_required": true,
+    "rollback_refresh_required": true,
+    "ready_for_upstream_pr": false
+  }
 }
