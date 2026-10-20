@@ -1,9 +1,10 @@
 # Opt-in adaptive publication grace period
 
-This is a local prototype, not ready for upstream submission. Fresh review has
-identified an unresolved unbounded canonical-merge quarantine operation. Batching
-that operation would weaken crash recovery unless ownership and durable operation
-tracking are redesigned first. No bounded-writer claim is made for that path.
+This is an opt-in candidate with rollout and policy agreement still pending.
+Canonical conflicts use exact staged membership and atomic guard activation.
+Writer transactions process at most 64 owners per batch; canonical scanning,
+shared-handle transaction-mutex occupancy and total storage remain unbounded.
+Required self-review and the evidence matrix remain separate completion gates.
 
 This experimental policy delays publication, not review computation. It changes
 no deployed list configuration. The existing fixed embargo, clean-review
@@ -71,6 +72,36 @@ are also quarantined. There is no automatic reconciliation command; inspect the
 inputs and cancel the affected work. Independent explicit revisions and authors
 must not be captured merely because they reply to the same old cover.
 
+## Atomic conflict quarantine and recovery
+
+Migration 016 adds conflict roots and exact owner membership. A root starts
+preparing, with an immutable expected member count and reason. Stage every
+matching owner in batches of at most 64. Do not truncate the match set or
+substitute an author, thread or numeric ID range for exact membership.
+
+A single indexed root update activates the complete staged set after checking
+its count and live lease. The publication guard view and direct admission,
+binding, owner-lookup and early-release checks honor active membership. A
+preparing group has no publication effect. New queue claims serialize with
+activation; a delivery claimed before activation can still finish afterwards.
+
+Transfer active members to existing durable owner blocks in batches of at most
+64. Insert the durable block before deleting membership in the same transaction.
+A trigger rejects deletion without a durable block. Delete an empty root only
+after an indexed existence check; there is no unbounded cascading deletion.
+
+Canonical detection uses a deferred read transaction rather than reserving the
+SQLite writer lane. It still holds the handle's transaction mutex and retains
+the complete owner vector. Independent database connections may write during
+detection; a stale legacy write upgrade fails rather than applying stale results.
+These properties do not guarantee bounded same-handle latency or global memory.
+
+Preparations carry renewable one-hour leases. Startup and pending-work polling
+drain active groups and clean expired preparations in bounded transactions.
+Do not steal a live preparation. Recovery is not continuous while workers are
+paused. Overlapping groups retain independent protection, and frozen events and
+message ownership tombstones survive handoff and restart.
+
 ## Publication, bounds and rollback
 
 Waiting and quarantined work cannot enter review claims, publication release,
@@ -83,8 +114,9 @@ exception; missing, failed or partial output is not a clean review.
 There is one live deadline. The frozen decision is diagnostic evidence, not a
 second scheduler. Queue uniqueness does not promise exactly-once SMTP delivery:
 remote acceptance followed by a crash before local acknowledgement can retry.
-Supersession or quarantine cannot recall a delivery already accepted remotely;
-existing claims retain their residual cancellation window.
+Supersession or quarantine cannot recall a delivery already accepted remotely.
+A worker that claimed delivery before activation may also finish afterwards;
+activation does not retract previously claimed payloads.
 
 Resource ceilings are 31 days of history, seven days of adaptive increment,
 1,024 actual parts and 4,096 history rows to saturation. They are not deployment
@@ -98,8 +130,12 @@ Disable stops new enrollment; existing decisions and unresolved guards remain.
 Do not drop tables or roll back the binary while adaptive work is waiting or held.
 Stop ingestion, inspect and explicitly finish, release eligible time holds or
 cancel affected work, then verify all outboxes before rollback. Preserve schema
-and tombstones in backups. Production migration or rollout is not authorized by
-a passing test suite.
+and tombstones in backups, including conflict roots and membership. Old binaries
+do not understand active group guards. A stopped rollback requires cancellation
+of affected work before old-version access, and an untouched complete backup for
+restoring pending candidate work. Do not accept new work under the old binary
+and then overwrite it with that backup. Production migration or rollout is not
+authorized by a passing test suite.
 
 Validation must cover the complete mail-to-recording-transport route, fresh and
 upgraded databases, reopened workers, independent writers, source races, version
