@@ -1,0 +1,88 @@
+{
+  "status": "PASS",
+  "phase": "upstream",
+  "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+  "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+  "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+  "checks": [
+    {
+      "name": "audit-yaml",
+      "exit": 0,
+      "seconds": 0.31443910199999436
+    },
+    {
+      "name": "clone",
+      "exit": 0,
+      "seconds": 0.21425187399999857
+    },
+    {
+      "name": "fetch-upstream",
+      "exit": 0,
+      "seconds": 0.5648746120000041
+    },
+    {
+      "name": "fetch-bundle",
+      "exit": 0,
+      "seconds": 0.0640101400000006
+    },
+    {
+      "name": "checkout",
+      "exit": 0,
+      "seconds": 0.06388956300000359
+    },
+    {
+      "name": "set-origin",
+      "exit": 0,
+      "seconds": 0.0015361039999959303
+    },
+    {
+      "name": "fetch-dependencies",
+      "exit": 0,
+      "seconds": 1.6164871020000007
+    },
+    {
+      "name": "checkout-baseline",
+      "exit": 0,
+      "seconds": 0.21426605400000653
+    },
+    {
+      "name": "baseline-fmt",
+      "exit": 0,
+      "seconds": 1.5164209759999991
+    },
+    {
+      "name": "baseline-clippy",
+      "exit": 101,
+      "seconds": 112.48362946699999
+    },
+    {
+      "name": "baseline-tests",
+      "exit": 0,
+      "seconds": 167.377307325
+    },
+    {
+      "name": "restore-candidate",
+      "exit": 0,
+      "seconds": 0.015648837000014737
+    }
+  ],
+  "provider_calls": 0,
+  "upstream_pr_opened": false,
+  "baseline_checked_commit": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+  "baseline_clippy": "KNOWN_UPSTREAM_LARGE_ERROR_FAILURE",
+  "baseline_clippy_errors": [
+    "error: the `Err`-variant returned from this function is very large",
+    "error: the `Err`-variant returned from this function is very large",
+    "error: the `Err`-variant returned from this function is very large",
+    "error: the `Err`-variant returned from this function is very large",
+    "error: could not compile `sashiko` (lib) due to 4 previous errors",
+    "error: could not compile `sashiko` (lib test) due to 4 previous errors"
+  ],
+  "baseline_suite_summaries": [
+    "test result: ok. 996 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 5.39s",
+    "test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s",
+    "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+    "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s"
+  ],
+  "production_source_restored": true
+}

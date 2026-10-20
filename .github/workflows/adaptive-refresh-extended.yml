@@ -29,7 +29,7 @@ jobs:
           import time
           import urllib.request
           url = ("https://api.github.com/repos/OllieinCanada/"
-                 "sashiko/actions/runs/39359678639")
+                 "sashiko/actions/runs/39367721490")
           deadline = time.monotonic() + 1200
           while True:
               request = urllib.request.Request(url, headers={
@@ -39,10 +39,12 @@ jobs:
               with urllib.request.urlopen(request, timeout=20) as response:
                   run = json.load(response)
               if run["head_sha"] != (
-                      "d0c94f96a95b186a5a50f1d9127c43b5a4392b32"):
+                      "5839f5285c9940af3f2cd4e74b97f51119fffdf1"):
                   raise RuntimeError("unexpected preparation checkpoint")
               if run["status"] == "completed":
                   print("Preparation completed: " + str(run["conclusion"]))
+                  if run["conclusion"] != "success":
+                      raise RuntimeError("native optimization did not pass")
                   break
               if time.monotonic() >= deadline:
                   raise RuntimeError("bounded preparation wait exceeded")
@@ -82,8 +84,8 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 39359678639
-          name: adaptive-refresh-d0c94f96a95b186a5a50f1d9127c43b5a4392b32
+          run-id: 39367721490
+          name: adaptive-optimized-5839f5285c9940af3f2cd4e74b97f51119fffdf1
           path: input-refresh
       - run: >-
           rustup toolchain install stable --profile minimal
