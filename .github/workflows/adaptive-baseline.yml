@@ -1,14 +1,6 @@
 name: Adaptive matched upstream performance
 
 'on':
-  push:
-    branches: [codex/held-series-ci-20261019]
-    paths:
-      - '.github/adaptive-baseline-validation/**'
-      - 'src/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - '.github/workflows/adaptive-baseline.yml'
   workflow_dispatch:
 
 permissions:

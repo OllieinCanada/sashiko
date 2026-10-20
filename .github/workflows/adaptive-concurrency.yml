@@ -1,14 +1,6 @@
 name: Adaptive concurrent admission replay
 
 'on':
-  push:
-    branches: [codex/held-series-ci-20261019]
-    paths:
-      - '.github/adaptive-concurrency/**'
-      - '.github/workflows/adaptive-concurrency.yml'
-      - 'src/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
   workflow_dispatch:
 
 permissions:

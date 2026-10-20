@@ -1,8 +1,6 @@
 name: Adaptive formatting patch capture
 'on':
-  push:
-    branches: [codex/held-series-ci-20261019]
-    paths: ['src/**', '.github/workflows/adaptive-format-capture.yml']
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:

@@ -1,14 +1,6 @@
 name: Adaptive SQLite recovery and pruning controls
 
 'on':
-  push:
-    branches: [codex/held-series-ci-20261019]
-    paths:
-      - '.github/adaptive-extra-validation/**'
-      - '.github/workflows/adaptive-extra-validation.yml'
-      - 'src/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
   workflow_dispatch:
 
 permissions:

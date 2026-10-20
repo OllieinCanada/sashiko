@@ -1,8 +1,5 @@
 name: Adaptive focused gap validation
 'on':
-  push:
-    branches: [codex/held-series-ci-20261019]
-    paths: ['src/**', '.github/workflows/adaptive-focused-gaps.yml']
   workflow_dispatch:
 permissions:
   contents: read

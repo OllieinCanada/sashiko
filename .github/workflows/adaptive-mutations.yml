@@ -1,14 +1,6 @@
 name: Adaptive focused mutation controls
 
 'on':
-  push:
-    branches: [codex/held-series-ci-20261019]
-    paths:
-      - '.github/adaptive-mutation-validation/**'
-      - '.github/workflows/adaptive-mutations.yml'
-      - 'src/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
   workflow_dispatch:
 
 permissions:

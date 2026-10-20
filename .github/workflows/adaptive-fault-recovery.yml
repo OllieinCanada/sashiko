@@ -1,14 +1,6 @@
 name: Adaptive filesystem and crash recovery
 
 'on':
-  push:
-    branches: [codex/held-series-ci-20261019]
-    paths:
-      - '.github/adaptive-fault-recovery/**'
-      - '.github/workflows/adaptive-fault-recovery.yml'
-      - 'src/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
   workflow_dispatch:
 
 permissions:

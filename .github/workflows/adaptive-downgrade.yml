@@ -1,14 +1,6 @@
 name: Adaptive old-version access rehearsal
 
 'on':
-  push:
-    branches: [codex/held-series-ci-20261019]
-    paths:
-      - '.github/adaptive-downgrade/**'
-      - '.github/workflows/adaptive-downgrade.yml'
-      - 'src/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
   workflow_dispatch:
 
 permissions:

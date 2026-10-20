@@ -1,15 +1,6 @@
 name: Adaptive expiry and worker restart
 
 'on':
-  push:
-    branches: [codex/held-series-ci-20261019]
-    paths:
-      - '.github/adaptive-scheduling/**'
-      - '.github/adaptive-observability/instrument.py'
-      - '.github/workflows/adaptive-scheduling.yml'
-      - 'src/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
   workflow_dispatch:
 
 permissions:
