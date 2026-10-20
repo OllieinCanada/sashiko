@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Apply and verify the approved candidate in an isolated hosted checkout."""
+import difflib
 import hashlib
 import json
 import os
@@ -52,6 +53,10 @@ def command(args, label, timeout=900, expected=0, network=False):
     REPORT["checks"].append({"name": label, "status": "PASS",
                              "seconds": time.monotonic() - started})
     save()
+    if label == "required-check-pr":
+        REPORT["suite_summaries"] = [
+            line for line in text.splitlines() if line.startswith("test result:")]
+        print(json.dumps(REPORT["suite_summaries"]), flush=True)
     print("PASS " + label, flush=True)
     return text
 
@@ -87,8 +92,20 @@ try:
             raise RuntimeError("candidate new path already exists")
         (ROOT / path).write_text(source)
     command(["cargo", "fetch", "--locked"], "fetch-locked", 120, network=True)
-    command(["cargo", "fmt", "--all"], "format-native", 60)
     paths = [*ORIGINAL, *NEW]
+    unformatted = {path: (ROOT / path).read_text() for path in paths}
+    command(["cargo", "fmt", "--all"], "format-native", 60)
+    formatting = []
+    for path in paths:
+        before = unformatted[path].splitlines(keepends=True)
+        after = (ROOT / path).read_text().splitlines(keepends=True)
+        edits = [{"start": a, "end": b, "lines": after[c:d]}
+                 for tag, a, b, c, d in difflib.SequenceMatcher(
+                     None, before, after, autojunk=False).get_opcodes()
+                 if tag != "equal"]
+        formatting.append({"path": path, "edits": edits})
+    (OUT / "formatting-edits.json").write_text(json.dumps(formatting))
+    print("FORMAT_EDITS_JSON " + json.dumps(formatting), flush=True)
     for path in paths:
         destination = OUT / "formatted" / path
         destination.parent.mkdir(parents=True, exist_ok=True)
