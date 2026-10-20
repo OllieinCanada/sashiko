@@ -1,0 +1,37 @@
+name: Bounded conflict SQL design prototype
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths:
+      - '.github/adaptive-conflict/**'
+      - '.github/workflows/adaptive-conflict.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sql-design:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check checkpoint and isolated SQL prototype
+        run: |
+          if pgrep -x sashiko; then
+            exit 1
+          fi
+          python3 -m venv /tmp/adaptive-conflict-lint
+          /tmp/adaptive-conflict-lint/bin/pip install yamllint==1.37.1
+          export PATH="/tmp/adaptive-conflict-lint/bin:$PATH"
+          make check-pr RANGE=HEAD~1..HEAD
+          python3 -m py_compile .github/adaptive-conflict/prototype.py
+          python3 .github/adaptive-conflict/prototype.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adaptive-conflict-prototype-${{ github.sha }}
+          path: adaptive-conflict-results/
+          retention-days: 14
+          if-no-files-found: warn
