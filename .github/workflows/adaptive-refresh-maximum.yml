@@ -12,7 +12,44 @@ concurrency:
   group: adaptive-maximum-validation
   cancel-in-progress: true
 jobs:
+  wait-for-bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Wait for the bounded source preparation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.request
+          url = ("https://api.github.com/repos/OllieinCanada/"
+                 "sashiko/actions/runs/39370749173")
+          deadline = time.monotonic() + 1200
+          while True:
+              request = urllib.request.Request(url, headers={
+                  "Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                  "Accept": "application/vnd.github+json",
+              })
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  run = json.load(response)
+              if run["head_sha"] != (
+                      "c6e85fccb1e25e19237de8e8fe252dab8fb66bc7"):
+                  raise RuntimeError("unexpected preparation checkpoint")
+              if run["status"] == "completed":
+                  print("Preparation completed: " + str(run["conclusion"]))
+                  if run["conclusion"] != "success":
+                      raise RuntimeError("native optimization did not pass")
+                  break
+              if time.monotonic() >= deadline:
+                  raise RuntimeError("bounded preparation wait exceeded")
+              print("Preparation still running", flush=True)
+              time.sleep(15)
+          PY
   refresh:
+    needs: wait-for-bundle
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
@@ -29,8 +66,8 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 39367721490
-          name: adaptive-optimized-5839f5285c9940af3f2cd4e74b97f51119fffdf1
+          run-id: 39370749173
+          name: adaptive-message-cost-c6e85fccb1e25e19237de8e8fe252dab8fb66bc7
           path: input-refresh
       - run: >-
           rustup toolchain install stable --profile minimal

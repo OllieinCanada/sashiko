@@ -29,7 +29,7 @@ jobs:
           import time
           import urllib.request
           url = ("https://api.github.com/repos/OllieinCanada/"
-                 "sashiko/actions/runs/39367721490")
+                 "sashiko/actions/runs/39370749173")
           deadline = time.monotonic() + 1200
           while True:
               request = urllib.request.Request(url, headers={
@@ -39,7 +39,7 @@ jobs:
               with urllib.request.urlopen(request, timeout=20) as response:
                   run = json.load(response)
               if run["head_sha"] != (
-                      "5839f5285c9940af3f2cd4e74b97f51119fffdf1"):
+                      "c6e85fccb1e25e19237de8e8fe252dab8fb66bc7"):
                   raise RuntimeError("unexpected preparation checkpoint")
               if run["status"] == "completed":
                   print("Preparation completed: " + str(run["conclusion"]))
@@ -85,8 +85,8 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 39367721490
-          name: adaptive-optimized-5839f5285c9940af3f2cd4e74b97f51119fffdf1
+          run-id: 39370749173
+          name: adaptive-message-cost-c6e85fccb1e25e19237de8e8fe252dab8fb66bc7
           path: input-refresh
       - run: >-
           rustup toolchain install stable --profile minimal
