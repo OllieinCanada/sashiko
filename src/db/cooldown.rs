@@ -192,11 +192,24 @@ impl Database {
         context: Option<&CooldownContext>,
         late_cover: bool,
     ) -> Result<CooldownBinding> {
-        Self::ensure_cooldown_unblocked(conn, id).await?;
-        let mut rows = conn.query("SELECT list, author, policy, state FROM review_cooldown_intents WHERE patchset_id = ? UNION ALL SELECT NULL, NULL, NULL, 'blocked' FROM review_cooldown_blocks WHERE patchset_id = ? LIMIT 1", libsql::params![id, id]).await?;
-        let Some(row) = rows.next().await? else {
+        let mut rows = conn.query(
+            "SELECT c.list, c.author, c.policy,
+                    CASE WHEN b.patchset_id IS NOT NULL OR EXISTS (SELECT 1 FROM review_cooldown_conflict_members m
+                            JOIN review_cooldown_conflicts g ON g.id = m.group_id
+                            WHERE m.patchset_id = ? AND g.state = 'active')
+                         THEN 'blocked' ELSE COALESCE(c.state, 'legacy') END
+             FROM (SELECT 1) seed
+             LEFT JOIN review_cooldown_intents c ON c.patchset_id = ?
+             LEFT JOIN review_cooldown_blocks b ON b.patchset_id = ?",
+            libsql::params![id, id, id],
+        ).await?;
+        let row = rows
+            .next()
+            .await?
+            .context("missing source binding snapshot")?;
+        if row.get::<String>(3)? == "legacy" {
             return Ok(CooldownBinding::Legacy);
-        };
+        }
         Self::validate_cooldown_source_tx(conn, id, message, context, late_cover, row).await
     }
 
@@ -208,11 +221,13 @@ impl Database {
         context: Option<&CooldownContext>,
         new_index: Option<u32>,
     ) -> Result<(CooldownBinding, bool)> {
-        Self::ensure_cooldown_unblocked(conn, id).await?;
         let mut rows = conn
             .query(
                 "SELECT c.list, c.author, c.policy,
-                    CASE WHEN b.patchset_id IS NOT NULL THEN 'blocked'
+                    CASE WHEN b.patchset_id IS NOT NULL OR EXISTS (SELECT 1 FROM review_cooldown_conflict_members m
+                            JOIN review_cooldown_conflicts g ON g.id = m.group_id
+                            WHERE m.patchset_id = ? AND g.state = 'active')
+                         THEN 'blocked'
                          WHEN c.patchset_id IS NOT NULL THEN c.state
                          ELSE 'legacy' END,
                     EXISTS(SELECT 1 FROM patches
@@ -220,7 +235,7 @@ impl Database {
              FROM (SELECT 1) seed
              LEFT JOIN review_cooldown_intents c ON c.patchset_id = ?
              LEFT JOIN review_cooldown_blocks b ON b.patchset_id = ?",
-                libsql::params![id, new_index, message, id, id],
+                libsql::params![id, id, new_index, message, id, id],
             )
             .await?;
         let row = rows
@@ -374,8 +389,20 @@ impl Database {
         now: i64,
         context: Option<&CooldownContext>,
     ) -> Result<()> {
-        Self::ensure_cooldown_unblocked(conn, id).await?;
-        let mut rows = conn.query("SELECT c.list, c.author, c.policy, c.state, c.released_at, p.total_parts, p.embargo_until, p.status, p.cover_letter_message_id FROM review_cooldown_intents c JOIN patchsets p ON p.id = c.patchset_id WHERE c.patchset_id = ?", libsql::params![id]).await?;
+        let mut rows = conn.query(
+            "SELECT c.list, c.author, c.policy,
+                    CASE WHEN b.patchset_id IS NOT NULL OR EXISTS (SELECT 1 FROM review_cooldown_conflict_members m
+                            JOIN review_cooldown_conflicts g ON g.id = m.group_id
+                            WHERE m.patchset_id = ? AND g.state = 'active')
+                         THEN 'blocked' ELSE COALESCE(c.state, 'legacy') END,
+                    c.released_at, p.total_parts, p.embargo_until, p.status,
+                    p.cover_letter_message_id
+             FROM (SELECT 1) seed
+             LEFT JOIN review_cooldown_intents c ON c.patchset_id = ?
+             LEFT JOIN patchsets p ON p.id = ?
+             LEFT JOIN review_cooldown_blocks b ON b.patchset_id = ?",
+            libsql::params![id, id, id, id],
+        ).await?;
         if let Some(row) = rows.next().await? {
             let state: String = row.get(3)?;
             if state == "blocked" {

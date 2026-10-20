@@ -709,4 +709,50 @@ mod tests {
         assert!(db.drain_cooldown_conflict_batch(group).await?);
         Ok(())
     }
+
+    #[tokio::test]
+    async fn test_conflict_binding_snapshots_reject_decided_and_legacy_owners() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let db = database(&dir.path().join("bindings.db")).await?;
+        let ids = seed(&db, 3).await?;
+        let owners = [ids[0], ids[2]];
+        let group = db
+            .prepare_cooldown_conflict(2, "binding snapshot fixture")
+            .await?;
+        db.stage_cooldown_conflict(group, &owners).await?;
+        db.activate_cooldown_conflict(group).await?;
+        let tx = db.begin_immediate_transaction().await?;
+        for (id, index) in [(ids[0], 0), (ids[2], 2)] {
+            let message = format!("conflict-{index}@example.test");
+            let source = Database::bind_cooldown_message_tx(&tx, id, &message, None).await;
+            assert!(
+                matches!(source, Err(error) if error.to_string() == "adaptive cooldown is quarantined"),
+                "source binding bypassed the active group"
+            );
+            let patch = Database::bind_cooldown_patch_tx(&tx, id, &message, None, Some(1)).await;
+            assert!(
+                matches!(patch, Err(error) if error.to_string() == "adaptive cooldown is quarantined"),
+                "patch binding bypassed the active group"
+            );
+            let admission = Database::complete_patchset_tx(&tx, id, 2, None).await;
+            assert!(
+                matches!(admission, Err(error) if error.to_string() == "adaptive cooldown is quarantined"),
+                "completion bypassed the active group"
+            );
+        }
+        tx.rollback().await?;
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            1
+        );
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_messages").await?,
+            1
+        );
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_conflict_members").await?,
+            2
+        );
+        Ok(())
+    }
 }
