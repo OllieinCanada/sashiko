@@ -56,6 +56,8 @@ def run(args, label, cwd=SOURCE, timeout=1800, expected=0):
     print("PASS " + label, flush=True)
     return text
 def main():
+    run(["/tmp/adaptive-extended-lint/bin/yamllint", "."],
+        "audit-yaml", cwd=ROOT, timeout=60)
     if output(["git", "status", "--porcelain", "--untracked-files=no"], ROOT):
         raise RuntimeError("tracked audit checkout dirty")
     run(["git", "clone", "--no-hardlinks", "--no-checkout", str(ROOT), str(SOURCE)],
