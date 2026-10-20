@@ -2651,4 +2651,56 @@ mod tests {
         assert!(db.claim_patchset_for_review(id).await?);
         Ok(())
     }
+
+    #[tokio::test]
+    async fn test_cooldown_source_guard_precedes_thread_merge() -> Result<()> {
+        let db = database().await?;
+        let active =
+            db.with_cooldown_context(Some(context("list@example.test", "dev@example.test")));
+        let (id, old_thread, message) = seed(&active, "thread-source-guard", 1).await?;
+        active.create_patch(id, &message, 1, "diff").await?;
+        let new_thread = db
+            .create_thread("other-root@example.test", "other", 2)
+            .await?;
+        let result = db
+            .create_message(
+                &message,
+                new_thread,
+                None,
+                "victim@example.test",
+                "[PATCH] altered",
+                2,
+                "changed",
+                "list@example.test",
+                "",
+                None,
+                None,
+            )
+            .await;
+        assert!(
+            matches!(result, Err(error) if error.to_string() == "adaptive source correction quarantined"),
+            "source correction was accepted before thread merge"
+        );
+        let mut rows = db
+            .conn
+            .query(
+                "SELECT m.thread_id,m.author,p.thread_id,p.status
+             FROM messages m JOIN patchsets p ON p.id=?
+             WHERE m.message_id=?",
+                libsql::params![id, message],
+            )
+            .await?;
+        let row = rows.next().await?.context("missing preserved source")?;
+        assert_eq!(row.get::<i64>(0)?, old_thread);
+        assert_eq!(row.get::<String>(1)?, "dev@example.test");
+        assert_eq!(row.get::<i64>(2)?, old_thread);
+        assert_eq!(row.get::<String>(3)?, "Cooldown blocked");
+        assert_ne!(old_thread, new_thread);
+        assert_eq!(scalar(&db, "SELECT COUNT(*) FROM threads").await?, 2);
+        assert_eq!(
+            scalar(&db, "SELECT COUNT(*) FROM review_cooldown_events").await?,
+            1
+        );
+        Ok(())
+    }
 }

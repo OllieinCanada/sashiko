@@ -5891,26 +5891,19 @@ impl Database {
         let compressed_body = crate::compression::compress_string_if_needed(body);
         let tx = self.begin_immediate_transaction().await?;
 
-        // Read the source guard and previous thread in one point lookup. Both
-        // decisions still use the same writer snapshot before any message write.
-        let key =
-            crate::cooldown::message_key(message_id).unwrap_or_else(|_| message_id.to_owned());
+        // Only an existing message row has a stored source snapshot to compare.
+        // Keep its canonical owner lookup in this same writer transaction.
         let old_thread_id = {
-            let query = format!(
-                "SELECT m.thread_id, m.subject = '(placeholder)',
-                        m.cooldown_source_hash, ({})
-                 FROM messages m WHERE m.message_id = ?",
-                cooldown::COOLDOWN_OWNER_QUERY
-            );
             let mut rows = tx
                 .query(
-                    &query,
-                    libsql::params![key.clone(), key.clone(), key, message_id],
+                    "SELECT thread_id, subject = '(placeholder)', cooldown_source_hash
+                     FROM messages WHERE message_id = ?",
+                    libsql::params![message_id],
                 )
                 .await?;
             if let Some(row) = rows.next().await? {
                 let old_thread_id = get_optional_integer(&row, 0)?;
-                if let Some(owner) = get_optional_integer(&row, 3)? {
+                if let Some(owner) = Self::cooldown_owner(&tx, message_id).await? {
                     let placeholder: i64 = row.get(1)?;
                     let stored_source: Option<String> = row.get(2)?;
                     if placeholder == 0 && stored_source.as_deref() != Some(source_hash.as_str()) {
