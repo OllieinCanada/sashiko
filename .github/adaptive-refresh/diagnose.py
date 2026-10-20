@@ -131,6 +131,7 @@ def install(directory, candidate, fixture):
         REPORT["callsites"][("candidate" if candidate else "baseline") + ":" + path] = labels
     with db.open("a") as stream:
         stream.write('\n#[cfg(feature = "server")]\npub mod cost_probe;\n')
+    (directory / "src/db").mkdir(parents=True, exist_ok=True)
     (directory / "src/db/cost_probe.rs").write_bytes((ROOT / ".github/adaptive-refresh/cost_probe.rs").read_bytes())
 def main():
     run(["git", "clone", "--no-hardlinks", "--no-checkout", str(ROOT), str(SOURCE)], "clone", ROOT, timeout=60)
@@ -155,6 +156,26 @@ def main():
         run(["cargo", "fetch", "--locked"], "fetch-dependencies", timeout=120)
         install(SOURCE, True, fixture)
         candidate = build(SOURCE, "candidate")
+        def collect(variant, mode, binary, retained):
+            env = ENV.copy()
+            env.update(COOLDOWN_PROBE_MODE=mode, COOLDOWN_PROBE_RETAINED=str(retained))
+            text = run([str(binary), "test_cooldown_hosted_performance", "--ignored",
+                        "--nocapture", "--test-threads=1"], f"{variant}-{mode}-{retained}", env=env, timeout=180)
+            markers = [line.split("COOLDOWN_PROBE ", 1)[1] for line in text.splitlines() if "COOLDOWN_PROBE " in line]
+            if len(markers) != 1 or "1 passed; 0 failed" not in text:
+                raise RuntimeError("missing diagnostic workload")
+            row = json.loads(markers[0])
+            row["variant"] = variant
+            if not any(key.startswith("SPAN:") for key in row["api_cost"]):
+                raise RuntimeError("span instrumentation inactive")
+            if not any(":query:" in key for key in row["api_cost"]):
+                raise RuntimeError("query instrumentation inactive")
+            REPORT["samples"].append(row)
+            print("DIAGNOSTIC " + json.dumps(row), flush=True)
+            save()
+        for retained in [0, 10000]:
+            for mode in ["disabled", "enabled"]:
+                collect("candidate", mode, candidate, retained)
         archive = subprocess.check_output(["git", "archive", META["upstream"]], cwd=SOURCE)
         with tempfile.TemporaryDirectory(prefix="adaptive-cost-baseline-") as tmp:
             baseline_root = Path(tmp)
@@ -163,25 +184,7 @@ def main():
             install(baseline_root, False, fixture)
             baseline = build(baseline_root, "baseline")
         for retained in [0, 10000]:
-            for variant, mode, binary in [("baseline", "disabled", baseline),
-                                           ("candidate", "disabled", candidate),
-                                           ("candidate", "enabled", candidate)]:
-                env = ENV.copy()
-                env.update(COOLDOWN_PROBE_MODE=mode, COOLDOWN_PROBE_RETAINED=str(retained))
-                text = run([str(binary), "test_cooldown_hosted_performance", "--ignored",
-                            "--nocapture", "--test-threads=1"], f"{variant}-{mode}-{retained}", env=env, timeout=180)
-                markers = [line.split("COOLDOWN_PROBE ", 1)[1] for line in text.splitlines() if "COOLDOWN_PROBE " in line]
-                if len(markers) != 1 or "1 passed; 0 failed" not in text:
-                    raise RuntimeError("missing diagnostic workload")
-                row = json.loads(markers[0])
-                row["variant"] = variant
-                if not any(key.startswith("SPAN:") for key in row["api_cost"]):
-                    raise RuntimeError("span instrumentation inactive")
-                if not any(":query:" in key for key in row["api_cost"]):
-                    raise RuntimeError("query instrumentation inactive")
-                REPORT["samples"].append(row)
-                print("DIAGNOSTIC " + json.dumps(row), flush=True)
-                save()
+            collect("baseline", "disabled", baseline, retained)
         REPORT["status"] = "PASS"
         save()
         print(json.dumps({"status": "PASS", "samples": len(REPORT["samples"])}), flush=True)
