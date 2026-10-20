@@ -87,3 +87,31 @@ libsql instruction counts, disk I/O, or elapsed writer latency.
 The saved source is verified against the bundled native commit by comparing
 all tracked production paths; only .github audit files are excluded.
 The source-only upstream series still needs refreshing before submission.
+
+## Saved source and supplemental outcomes
+
+Saved source commit: **54a5abc1894bd0fcba1ebbfd7acf20044d7e5091**.
+[Exact production-tree verification passed](https://github.com/OllieinCanada/sashiko/actions/runs/39354526665/artifacts/12234921096).
+It confirms that every production path equals the checked native bundle,
+excluding only .github audit material.
+
+Two automatic existing-admission regressions also completed on this source:
+[16 writers / 128 admissions / 128 replays / 64 releases](https://github.com/OllieinCanada/sashiko/actions/runs/39354526733/artifacts/12234648775)
+and [ENOSPC, EIO, torn WAL and pre/post-commit SIGKILL](https://github.com/OllieinCanada/sashiko/actions/runs/39354526702/artifacts/12234319196).
+These do not cover every new conflict-group crash phase or real storage failure.
+
+Saving src changes triggered older src/** audit workflows. Nine older jobs and
+one redundant SQL job were stopped at this exact source SHA. The SQL job's
+diff-aware preflight had selected another full Rust build, while the same
+migration probe had already passed. Three older jobs completed successfully.
+The old rollback harness exited with **frozen production source changed**
+([run](https://github.com/OllieinCanada/sashiko/actions/runs/39354526657)).
+It did not test rollback of schema 16 and is not an upstream failure.
+The final exact-source verification was retained and passed.
+
+At 2026-10-20 01:42:00 UTC, upstream had advanced by three benchmark/CLI commits
+to **026195ab58e2099e81017adbc6b97f33c509c8ba**.
+Those changes also touch Cargo.toml, main, fetcher, reviewer and review prompts.
+The checked candidate is based on f6e2e172e1e669b6767a4c74fe91d062b41fd71c;
+refresh against the new upstream and repeat applicable checks before a PR.
+PR 685 remains open and unmerged. No upstream PR or provider call was made.

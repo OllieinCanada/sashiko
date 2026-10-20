@@ -898,7 +898,7 @@
       "upstream_pr_opened": false
     }
   },
-  "evidence_scope": "Historical bd59059 completion report; the new schema-16 candidate is tracked separately in bounded_conflict_candidate.",
+  "evidence_scope": "Historical bd59059 baseline completion report; bounded_conflict_candidate tracks the new schema-16 follow-up.",
   "bounded_conflict_candidate": {
     "status": "REQUIRED_NATIVE_CHECKS_PASS_EXTENDED_GATES_PENDING",
     "native_checked_head": "b24d9e05094ccfcf7609a46bb254608a3177dea1",
@@ -923,6 +923,10 @@
     "maintainer_agreement": false,
     "performance_refresh_required": true,
     "rollback_refresh_required": true,
-    "ready_for_upstream_pr": false
+    "ready_for_upstream_pr": false,
+    "saved_source_commit": "54a5abc1894bd0fcba1ebbfd7acf20044d7e5091",
+    "upstream_refresh_required": true,
+    "observed_upstream_head": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+    "tested_upstream_base": "f6e2e172e1e669b6767a4c74fe91d062b41fd71c"
   }
 }

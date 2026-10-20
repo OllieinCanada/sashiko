@@ -343,7 +343,7 @@
       "status": "PARTIAL",
       "evidence": "PROBE paused collaborator; ROUTE gated sendmail; deliberate contention calibration.",
       "remaining_or_scope": "External pauses permit unrelated writes. Unbounded indivisible canonical-owner quarantine remains a documented exception; broad load/fairness is not established.",
-      "current_candidate_note": "The bounded-conflict follow-up replaces the unbounded adaptive quarantine writer transaction with exact staged membership, atomic activation, and 64-owner handoff batches. D06 remains partial: canonical scanning and this handle's read-transaction mutex remain unbounded, and broad load/fairness is not established."
+      "current_candidate_note": "Bounded writer work is verified in the follow-up, but unbounded canonical scanning/shared read mutex and broad fairness remain unresolved."
     },
     {
       "id": "D07",
@@ -653,7 +653,7 @@
   "model_review_attempted": true,
   "model_review_completed": false,
   "model_review_performed_scope": "Actual source-built agent attempts were executed;both incomplete. This is not a completed required self-review.",
-  "evidence_scope": "The 55/8/1 scenario dispositions describe the frozen bd59059 baseline. See bounded_conflict_candidate for the new schema-16 follow-up; these counts are not full certification of the new candidate.",
+  "evidence_scope": "Historical bd59059 baseline dispositions; see bounded_conflict_candidate for new schema-16 source and validation. The 55/8/1 counts do not certify the follow-up.",
   "bounded_conflict_candidate": {
     "status": "REQUIRED_NATIVE_CHECKS_PASS_EXTENDED_GATES_PENDING",
     "native_checked_head": "b24d9e05094ccfcf7609a46bb254608a3177dea1",
@@ -678,6 +678,10 @@
     "maintainer_agreement": false,
     "performance_refresh_required": true,
     "rollback_refresh_required": true,
-    "ready_for_upstream_pr": false
+    "ready_for_upstream_pr": false,
+    "saved_source_commit": "54a5abc1894bd0fcba1ebbfd7acf20044d7e5091",
+    "upstream_refresh_required": true,
+    "observed_upstream_head": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+    "tested_upstream_base": "f6e2e172e1e669b6767a4c74fe91d062b41fd71c"
   }
 }

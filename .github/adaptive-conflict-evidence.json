@@ -180,7 +180,247 @@
     "maintainer_agreement": false,
     "performance_refresh_required": true,
     "rollback_refresh_required": true,
-    "ready_for_upstream_pr": false
+    "ready_for_upstream_pr": false,
+    "saved_source_commit": "54a5abc1894bd0fcba1ebbfd7acf20044d7e5091",
+    "upstream_refresh_required": true,
+    "observed_upstream_head": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+    "tested_upstream_base": "f6e2e172e1e669b6767a4c74fe91d062b41fd71c"
   },
-  "ready_for_upstream_pr": false
+  "ready_for_upstream_pr": false,
+  "saved_source_commit": "54a5abc1894bd0fcba1ebbfd7acf20044d7e5091",
+  "saved_source_verification": {
+    "run": 39354526665,
+    "artifact": 12234921096,
+    "status": "PASS",
+    "saved_source_commit": "54a5abc1894bd0fcba1ebbfd7acf20044d7e5091",
+    "native_checked_commit": "b24d9e05094ccfcf7609a46bb254608a3177dea1",
+    "production_tree_equivalent_to_checked_bundle": true,
+    "required_suite_reused_via_exact_source_equality": true,
+    "suite_summaries": [
+      "test result: ok. 1036 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 8.22s",
+      "test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s",
+      "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+      "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s"
+    ],
+    "provider_calls": 0,
+    "upstream_pr_opened": false
+  },
+  "supplemental_existing_admission_checks": {
+    "concurrency": {
+      "run": 39354526733,
+      "artifact": 12234648775,
+      "status": "PASS",
+      "candidate_commit": "54a5abc1894bd0fcba1ebbfd7acf20044d7e5091",
+      "fixture_sha256": "62cade09f8f8edd4d4c6211245262eb917959fd54794b7280e5dcd80697ec60c",
+      "checks": [
+        {
+          "name": "test_cooldown_sixteen_writers_replay_release",
+          "status": "PASS"
+        }
+      ],
+      "limitations": [
+        "Sixteen independent Database handles on file-backed SQLite; 128 admissions over eight scopes.",
+        "128 context-free replays and 64 explicit releases run during concurrent admission.",
+        "No production latency or fairness guarantee; source selection remains a DB-API fixture."
+      ],
+      "binary_sha256": "4a355e5b9bc766ab6c57db6f8dac4522e19c9c7b6dfcc9f48ec470160fe41fef"
+    },
+    "faults": {
+      "run": 39354526702,
+      "artifact": 12234319196,
+      "status": "PASS",
+      "checks": [
+        {
+          "mode": "enospc",
+          "status": "PASS"
+        },
+        {
+          "mode": "eio",
+          "status": "PASS"
+        },
+        {
+          "mode": "torn-write",
+          "status": "PASS"
+        },
+        {
+          "mode": "precommit",
+          "status": "PASS"
+        },
+        {
+          "mode": "postcommit",
+          "status": "PASS"
+        }
+      ],
+      "checkpoint": "54a5abc1894bd0fcba1ebbfd7acf20044d7e5091",
+      "limitations": [
+        "LD_PRELOAD injects ENOSPC/EIO and a partial WAL write; this is not actual device exhaustion or physical power loss.",
+        "SIGKILL tests process crash before and after successful COMMIT.",
+        "No remote SMTP acceptance crash or historical archive replay is exercised."
+      ],
+      "binary_sha256": "42bc2560bcbb773311118abcf0815420c5f63fb9c4c7a1e5b8c393278e117826"
+    },
+    "scope": "These existing admission fixtures passed on the saved source. They do not exercise every new conflict-group crash phase."
+  },
+  "automatic_run_cleanup": {
+    "first_stop_run": 39354643797,
+    "second_stop_run": 39354778124,
+    "first": {
+      "scoped_obsolete_runs": [
+        {
+          "id": 39354526625,
+          "cancel": 202
+        },
+        {
+          "id": 39354526634,
+          "cancel": 202
+        },
+        {
+          "id": 39354526657,
+          "completed": "failure"
+        },
+        {
+          "id": 39354526623,
+          "cancel": 202
+        },
+        {
+          "id": 39354526611,
+          "cancel": 202
+        },
+        {
+          "id": 39354526596,
+          "completed": "success"
+        },
+        {
+          "id": 39354526640,
+          "cancel": 202
+        },
+        {
+          "id": 39354526726,
+          "cancel": 202
+        },
+        {
+          "id": 39354526591,
+          "cancel": 202
+        },
+        {
+          "id": 39354526663,
+          "cancel": 202
+        },
+        {
+          "id": 39354526713,
+          "cancel": 202
+        },
+        {
+          "id": 39354526733,
+          "completed": "success"
+        },
+        {
+          "id": 39354526702,
+          "completed": "success"
+        }
+      ]
+    },
+    "duplicate_sql": {
+      "id": 39354526732,
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "reason": "Saving src changes triggered old src/** audit workflows. Nine old runs and one redundant SQL job were stopped. The old rollback harness refused its changed frozen source; no rollback behavior was exercised.",
+    "frozen_rollback_failure": {
+      "run": 39354526657,
+      "artifact": 12233978408,
+      "error": "frozen production source changed"
+    }
+  },
+  "observed_upstream": {
+    "base": "f6e2e172e1e669b6767a4c74fe91d062b41fd71c",
+    "head": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+    "status": "ahead",
+    "commits": [
+      {
+        "sha": "1d7e67410fd21acc27a3eddfea3217443a8f5fdb",
+        "subject": "designs: add sashiko benchmark command design document"
+      },
+      {
+        "sha": "4713ef426f1fd3311abe5bde5fd46b0b0224a790",
+        "subject": "benchmark: add built-in benchmark runner and telemetry engine"
+      },
+      {
+        "sha": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "subject": "cli: add sashiko benchmark subcommand and remove standalone binary"
+      }
+    ],
+    "files": [
+      {
+        "filename": ".gcloudignore",
+        "status": "modified"
+      },
+      {
+        "filename": ".gitignore",
+        "status": "modified"
+      },
+      {
+        "filename": ".yamllint",
+        "status": "modified"
+      },
+      {
+        "filename": "Cargo.toml",
+        "status": "modified"
+      },
+      {
+        "filename": "GEMINI.md",
+        "status": "modified"
+      },
+      {
+        "filename": "designs/DESIGN_BENCHMARK_COMMAND.md",
+        "status": "added"
+      },
+      {
+        "filename": "docs/benchmarking.md",
+        "status": "modified"
+      },
+      {
+        "filename": "projects/sashiko/prompts/false-positive-guide.md",
+        "status": "modified"
+      },
+      {
+        "filename": "projects/sashiko/prompts/review-core.md",
+        "status": "modified"
+      },
+      {
+        "filename": "projects/sashiko/prompts/subsystem/settings.md",
+        "status": "modified"
+      },
+      {
+        "filename": "src/benchmark.rs",
+        "status": "added"
+      },
+      {
+        "filename": "src/bin/benchmark.rs",
+        "status": "removed"
+      },
+      {
+        "filename": "src/fetcher.rs",
+        "status": "modified"
+      },
+      {
+        "filename": "src/lib.rs",
+        "status": "modified"
+      },
+      {
+        "filename": "src/main.rs",
+        "status": "modified"
+      },
+      {
+        "filename": "src/reviewer.rs",
+        "status": "modified"
+      }
+    ]
+  },
+  "pr685": {
+    "state": "open",
+    "merged": false,
+    "head": "bc3f5439ddb65f7d13908afb35c477aca00b280f"
+  },
+  "recorded_at_utc": "2026-10-20 01:42:00 UTC"
 }
