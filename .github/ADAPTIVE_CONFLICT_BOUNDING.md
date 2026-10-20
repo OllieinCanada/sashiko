@@ -1,3 +1,10 @@
+> **Current validation (2026-10-20).** Review head d7f7a5516cc805444f23c534199af7e65d51e551
+> has the identical source tree as tested a9e2a05f10ecf1a2e8a7b0c3e3025609d9d9c0e9.
+> 1126 native tests, eleven scoped phases, maximum-series and performance
+> median budgets passed. Model review timed out; maintainer agreement absent.
+> [Current evidence](ADAPTIVE_UPSTREAM_REFRESH.md) supersedes current-status
+> claims below. Historical 55/8/1 counts are preserved, not recertified.
+
 # Bounded conflict quarantine
 
 This change addresses SQLite writer work during adaptive canonical conflicts.

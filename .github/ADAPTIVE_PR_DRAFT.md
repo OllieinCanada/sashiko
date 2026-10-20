@@ -1,133 +1,93 @@
-> **Historical baseline evidence.** The results and 55/8/1 counts below describe
-> source bd59059f1864aea81b11b5de0eb97e5d2ec53667. The fork now has a
-> [bounded-conflict follow-up](ADAPTIVE_CONFLICT_BOUNDING.md) with schema 16.
-> These historical counts do not certify the new candidate; extended validation
-> and completion gates remain open.
+# Draft PR — publication not approved
 
-# Draft PR — not approved for publication
+Proposed title: Add opt-in publication cooldown for complete mail revisions
 
-## Problem and behavior
+## Problem and resulting behavior
 
-Complete mailing-list revisions from one author can cluster review notifications.
-Add an explicitly enabled per-list publication cooldown based on recent unique,
-complete revisions. Review computation continues while findings await release.
-Successful clean reviews and authorized early release keep their existing
-exceptions. Lists without explicit enablement retain fixed-embargo behavior.
+Complete mailing-list revisions from one author can cluster public review
+notifications. Add an explicitly enabled per-list publication cooldown based
+on recent unique complete revisions. Review computation continues while
+findings await release. Successful clean reviews and authorized early release
+retain their exceptions; lists without explicit enablement retain legacy
+fixed-embargo behavior.
 
-Each complete canonical revision counts once. Admission and the effective
-deadline commit atomically; duplicate messages, replay and restart retain that
-decision. New submissions cannot extend an old revision's frozen deadline.
-The effective hold is the longer of the existing fixed embargo and the adaptive
-delay. Per-list numeric templates cannot enable a list.
+Persist one admission and one frozen effective deadline per complete canonical
+revision. Replays, duplicate parts and restarts cannot add events or extend an
+old decision. Use local admission time, not email Date, and take the longer
+of legacy embargo and adaptive increment. Numeric templates cannot enable
+a list. Multiple configured list matches select shared legacy policy,
+including an opted-out list.
 
-## Proposed commit structure
+Canonical ownership conflicts quarantine the exact owner set. Stage every
+member in batches of 64, activate the complete guard atomically, then transfer
+protection to durable owner blocks in bounded batches with restart recovery.
+Preserve source-owner quarantine before rewriting existing message/thread
+bindings, including ingestion without an adaptive context.
 
-1. Four function-scoped Clippy allowances for the upstream handlers that return
-   Axum extractor rejections as concrete responses. Keep authentication before
-   body parsing, status codes and bodies unchanged. Untouched upstream reproduces
-   the warnings; preserve its failing stable-Rust baseline.
-2. Retire superseded series reviews still held for publication, cancelling their
-   unsent outboxes atomically and preserving active-candidate capacity.
-3. Add opt-in configuration, durable admission/accounting, frozen release
-   scheduling, publication guards, operator documentation and regressions.
+## Source and validation
 
-Fork-only workflows, fixtures, audit documents and model-budget preparation are
-excluded from the source-only contribution.
+Base: 026195ab58e2099e81017adbc6b97f33c509c8ba.
+Review head: d7f7a5516cc805444f23c534199af7e65d51e551.
+Tested head: a9e2a05f10ecf1a2e8a7b0c3e3025609d9d9c0e9.
+Identical tree: 9a92a08ab85001d30c037811f4546381e22dbeab.
+Branch: codex/adaptive-cooldown-review-20261020.
 
-## Policy and operational limitations requiring maintainer agreement
+Eight signed-off source-only commits: upstream Clippy compatibility,
+superseded held-review cleanup, adaptive policy/accounting/scheduling,
+bounded conflict groups, consolidated quarantine reads, design limits,
+compatible direct SHA hex encoding, and lazy source-owner lookup. No .github
+audit/workflow files enter this contribution.
 
-- Author identity is a normalized ASCII From mailbox, not authenticated ownership.
-  A forged address can affect another author's apparent activity in that scope.
-- Multiple configured To/Cc/NNTP matches use the shared legacy policy for the
-  complete revision, including a list that opts out. Non-NNTP ingestion stays legacy.
-- Resource ceilings (31-day window, 7-day cap, 1024 parts, 4096 history rows) are
-  implementation ceilings, not recommended rollout defaults.
-- Deduplication tombstones are retained permanently; global storage is not bounded.
-- Mixed ownership must be quarantined atomically. An indivisible ownership group
-  is an explicit unbounded writer exception; ordinary measured holds do not bound it.
-- A rollback requires stopped ingestion/review/delivery and an untouched backup.
-  An old binary must not operate on pending adaptive work without quiescing it.
+Formatting and all three Clippy profiles pass. Full native suite:
+**1126 passed, zero failed, two ignored**. Final fixtures pass production
+ingestion/publication, replay, restart, conflict recovery, 16-handle
+concurrency, actual SIGKILL, software I/O faults, process clock changes,
+stdio cancellation, historical read-only replay and stopped schema-16
+rollback. A separate check passes 1024 actual parts and reopened admission
+replay. Compiled mutants fail their intended regressions.
 
-The policy RFC is prepared in .github/ADAPTIVE_MAINTAINER_POLICY_RFC.md.
-Posting upstream failed with GitHub 403; no maintainer agreement is claimed.
+The exact upstream base passed 1073 tests with two ignored. Its four known
+Clippy large-response failures are separately reproduced; the first
+prerequisite scopes compatibility allowances to those extractor responses.
+Baseline evidence is explicitly reused from the same exact base/toolchain.
 
-## Validation status
+Eighteen file-backed debug samples pass unchanged three-repetition median
+budgets: disabled/upstream 1.1713/1.1546 and enabled/disabled 1.1482/1.1445
+at 0/10000 retained owners. Disabled legacy state projections match upstream.
+One individual disabled pair is 1.304; prior revisions failed median budgets.
+All samples and failures remain recorded. These are workload measurements,
+not production latency bounds. No email or token savings are claimed.
 
-Production checkpoint bd59059f1864aea81b11b5de0eb97e5d2ec53667 is refreshed
-against runtime base 7f92f869a960a20f7d395550b4879d897ebdf4ea.
-The newer f6e2e172e1e669b6767a4c74fe91d062b41fd71c changes PRESS.md
-only; it was merged and the source-only bundle rebuilt against it.
-The checked source-only bundle contains three signed-off commits ending at
-6667a81cd25a69feca76e65d94aacb4c83b2ce72, tree
-d38b668f511e2e0972aa4588174a2c55f3582b30. Bundle HEAD is not a published branch.
+[Exact evidence and commands](https://github.com/OllieinCanada/sashiko/blob/codex/held-series-ci-20261019/.github/ADAPTIVE_UPSTREAM_REFRESH.md)
+and [machine-readable manifests](https://github.com/OllieinCanada/sashiko/blob/codex/held-series-ci-20261019/.github/adaptive-upstream-refresh-evidence.json).
 
-The final restored-source run 39336545890 at ab5c5685d04e7e3134cd28f767a9a94a1dad99df
-passes formatting, three Clippy feature profiles and the all-feature suite:
-1, 111 tests passed and two ignored. All eight new focused fixtures pass.
-See .github/ADAPTIVE_COMPLETION_GATES.md for exact hashes and scopes. Each source-only commit passed
-make check-pr before creation and sign-off validation afterward. Independent
-artifact inspection verified the refreshed bundle's source equivalence, all
-three patch hashes and native check summaries, plus twelve mutation negatives. Fork-only evidence/checkpoint files are excluded.
+## Policy and operational limits
 
-Focused regressions cover identical concurrent submissions and stale snapshots,
-failed/mixed/incomplete reviews, eligible work behind held queue heads,
-independent competing release/email/Patchwork claims, eight untrusted dates in
-two time zones, enabled-adaptive endpoint ACLs and 12 legacy settings cases.
-Actual offline --no-ai reviews pass in minimal and minimal+cache profiles;
-these are CLI compatibility checks, not model self-review.
+- From is an unauthenticated ASCII mailbox; forgery can affect another author's
+  scope. Conflicts may quarantine an identity until operator repair.
+- Explicit enablement, positive adaptive parameters and cross-post fallback
+  require maintainer policy agreement.
+- Limits of 31 days, seven days, 1024 parts and 4096 history rows are
+  implementation ceilings, not rollout defaults.
+- Canonical scans, owner-vector memory, same-handle mutex occupancy,
+  permanent tombstones and total storage remain unbounded. Owner batching
+  does not establish global latency or fairness.
+- A delivery already claimed before guard activation may finish afterwards.
+- Rollback requires stopped workers, quiesced affected work and an untouched
+  complete backup. Old binaries do not understand active conflict guards.
+  No new old-version work may be overwritten by restoring the backup.
+- Fault injection is a software model; cancellation uses a local mock provider.
+  No live SMTP acknowledgment or physical power-loss guarantee is claimed.
 
-Twelve compiled semantic mutants are detected, with positive/unrelated and
-restored controls. Four additional guard-removal cases cover ignored-author
-handling, private review visibility and active-review cancellation cleanup. Final-source maximum
-series, process restart, 16-writer concurrency, SQLite fault/recovery/pruning,
-software crash simulation, expiry/slow recording transport and stopped backup
-restore/pending-work resume checks pass. None sends real mail.
+## Outstanding before publication
 
-Matched upstream performance passes unchanged ratio-of-medians limits:
+Maintainer policy agreement remains absent. The required Sashiko agent review
+on the final source timed out after one bounded generation; no completed
+review is claimed, and automatic paid execution is disabled. Resolve those
+gates and valid review findings before requesting separate PR publication
+approval. After publication, act on every upstream sashiko-bot finding.
 
-| Archived owners | Disabled / upstream | Enabled / disabled |
-| --- | ---: | ---: |
-| 0 | 1.1500 | 1.1137 |
-| 10, 000 | 1.1486 | 1.1531 |
-
-These are 3-sample medians of an instrumentation-free debug synthetic workload,
-not production guarantees. Disabled mode retains about 15% measured overhead.
-A final individual fresh pair exceeds 20%; two earlier revisions failed the
-median budget. Their 18 samples each are retained alongside the final 18.
-Calibrated query API counts fell from 8, 750 to 1, 250 extra calls over baseline;
-this is not physical SQL statement count. Prior 844.91 ms and final-baseline
-150.31 ms writer outliers are preserved without assigning an unproven cause.
-No email-volume or model-token savings are claimed.
-
-Historical replay now passes using one real2005 Gmane message preserved in
-Git's immutable test corpus. Three separate processes preserve one frozen
-admission and leave the protected source DB and tracked repository unchanged.
-The corpus has maintained encoding syntax; this is not a direct modern archive
-download or a full activity dataset. The protected source fixture is not a
-production database. Actual candidate/old/candidate daemon boots, quiesce,
-untouched backup restore and pending-work selection also pass on loopback,
-with review paused and transport dry-run.
-
-The 64-row matrix records 55 VERIFIED, 8 PARTIAL and one BLOCKED scenarios.
-The new clock/routing/privacy/admission/transport and mock-provider cancellation
-checks pass within their documented scopes. Policy agreement, actual model
-self-review and the remaining feature-specific
-coverage/operational gaps prevent a readiness claim.
-
-## Self-review and publication gates
-
-Two real source-built Sashiko agent attempts on the checked bundle remain
-incomplete. Gemini 3.8 Flash returned one response before a later proxy failure;
-the single Gemini 3.6 follow-up returned generateContent HTTP 503. The combined
-conservative reservation is $0.10011075, not actual billing. No clean review is
-claimed; both bounded attempts are used and provider execution is disabled.
-
-The eight remaining partial scenarios have explicit technical justifications
-and required decisions in .github/ADAPTIVE_REMAINING_GATES.md. Documentation
-does not waive them. Posting the RFC upstream failed 403; there is no maintainer
-agreement. PR #685 remains open with migration 014 overlap; rebase, renumber and
-repeat applicable checks if it lands first.
-
-Before publication: record final checks and exact hashes, obtain maintainer
-policy agreement, complete model review and fix valid findings, refresh the
-64-row evidence matrix, and obtain separate approval to publish the PR.
+Historical 55 verified/eight partial/one blocked counts are not a fresh
+certification of all 64 scenarios. Recheck upstream and migration numbering
+before publication, especially if PR #685 using migration 014 lands first.
+This candidate uses migrations 014, 015 and 016.

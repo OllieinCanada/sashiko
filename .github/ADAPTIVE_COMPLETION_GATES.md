@@ -1,3 +1,10 @@
+> **Current validation (2026-10-20).** Review head d7f7a5516cc805444f23c534199af7e65d51e551
+> has the identical source tree as tested a9e2a05f10ecf1a2e8a7b0c3e3025609d9d9c0e9.
+> 1126 native tests, eleven scoped phases, maximum-series and performance
+> median budgets passed. Model review timed out; maintainer agreement absent.
+> [Current evidence](ADAPTIVE_UPSTREAM_REFRESH.md) supersedes current-status
+> claims below. Historical 55/8/1 counts are preserved, not recertified.
+
 > **Historical baseline evidence.** The results and 55/8/1 counts below describe
 > source bd59059f1864aea81b11b5de0eb97e5d2ec53667. The fork now has a
 > [bounded-conflict follow-up](ADAPTIVE_CONFLICT_BOUNDING.md) with schema 16.

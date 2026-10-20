@@ -1,8 +1,11 @@
 # Bounded canonical-conflict quarantine (proposal)
 
-Status: architecture approved by the user; native candidate validation pending.
-The isolated SQL prototype passed; production source is unchanged on the fork.
-Base runtime: bd59059f1864aea81b11b5de0eb97e5d2ec53667.
+Status: approved architecture implemented and validated on the rebased source.
+Current exact heads, native and recovery proof: [final evidence](../ADAPTIVE_UPSTREAM_REFRESH.md).
+The proposal below is retained as design history. Current source design lives
+in designs/ADAPTIVE_PUBLICATION_COOLDOWN.md on the review branch.
+Writer batches are bounded; scans, memory, mutex occupancy and lifetime
+storage remain unbounded. This is not upstream submission approval.
 
 ## Problem and invariant
 

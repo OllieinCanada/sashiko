@@ -46,9 +46,14 @@ The final Rust code passes formatting, all three Clippy profiles and 1126
 tests with two ignored. Fingerprint standard vectors, source-correction
 guards, maximum-series and stopped rollback checks pass. The earlier two
 candidate revisions failed the unchanged performance budgets; their results
-are preserved. Fresh performance and recovery checks on the changed source
-are still running. This is not a submission-readiness or production
-performance claim. Required model review is not yet complete.
+are preserved. All eleven final extended phases, including recovery and performance, pass.
+Disabled/upstream median ratios are 1.1713/1.1546 and enabled/disabled ratios
+are 1.1482/1.1445 at zero/10000 retained owners. One individual disabled
+pair was 1.304; the declared three-repetition median criterion passed. This is not a submission-readiness or production
+performance claim. Required model review remains incomplete after a bounded provider timeout;
+automatic execution is disabled. The published review head is
+d7f7a5516cc805444f23c534199af7e65d51e551, tree-identical to the tested native
+head; only commit-message trailer formatting changed.
 
 The candidate uses migrations 014 (held-series index), 015 (accounting) and
 016 (conflict groups). Recheck numbering and repeat affected validation if

@@ -1,0 +1,38 @@
+name: Verify final adaptive evidence
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/held-series-ci-20261019
+    paths:
+      - .github/ADAPTIVE_UPSTREAM_REFRESH.md
+      - .github/adaptive-upstream-refresh-evidence.json
+      - .github/adaptive-refresh/verify_final.py
+      - .github/workflows/adaptive-refresh-final-evidence.yml
+permissions:
+  contents: read
+jobs:
+  evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check audit changes
+        run: |
+          python3 -m venv /tmp/adaptive-final-evidence-lint
+          /tmp/adaptive-final-evidence-lint/bin/pip install yamllint==1.37.1
+          export PATH="/tmp/adaptive-final-evidence-lint/bin:$PATH"
+          make check-pr RANGE=HEAD~1..HEAD
+      - name: Verify pinned source and evidence
+        run: |
+          /tmp/adaptive-final-evidence-lint/bin/python \
+            .github/adaptive-refresh/verify_final.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adaptive-final-evidence-${{ github.sha }}
+          path: final-evidence-verification.json
+          retention-days: 14
