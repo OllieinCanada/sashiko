@@ -169,3 +169,48 @@ with tempfile.TemporaryDirectory() as temporary:
         pass
     assert len(fake.timeouts) == count_before
     print("PASS: exact transport timeout selection, remaining deadline and failure redaction")
+
+# Native commit-range reviews report existing patches as present/current-tree.
+# These independently specified fixtures guard against both false failures and
+# misleading passes after a stopped or partially reviewed range.
+import copy
+with tempfile.TemporaryDirectory() as temporary:
+    module.OUT = Path(temporary)
+    reset()
+    module.REPORT["calls"] = [{"status": "RETURNED", "counted_input_tokens": 10}]
+    current = {"status": "clean", "patches": [
+        {"index": i, "status": "present", "method": "current-tree"}
+        for i in range(1, 9)]}
+    assert module.review_is_complete(0, current, 8)
+    applied = copy.deepcopy(current)
+    for patch in applied["patches"]:
+        patch.update(status="applied", method="git-am")
+    assert module.review_is_complete(0, applied, 8)
+    findings = copy.deepcopy(current)
+    findings.update(status="issues_found", findings=[{"problem": "inspect this"}])
+    assert module.review_is_complete(0, findings, 8)
+    invalid = []
+    for field, value in [("status", "error"), ("partial", True), ("error", "stopped")]:
+        fixture = copy.deepcopy(current)
+        fixture[field] = value
+        invalid.append(fixture)
+    fixture = copy.deepcopy(current)
+    fixture["patches"].pop()
+    invalid.append(fixture)
+    for field, value in [
+        ("index", 7), ("index", True), ("status", "error"),
+        ("status", "unknown"), ("method", "unknown"),
+        ("review_status", "incomplete"), ("review_error", "stopped"),
+        ("partial", True), ("error", "apply failed")]:
+        fixture = copy.deepcopy(current)
+        fixture["patches"][-1][field] = value
+        invalid.append(fixture)
+    for fixture in invalid:
+        assert not module.review_is_complete(0, fixture, 8), fixture
+    assert not module.review_is_complete(1, current, 8)
+    module.REPORT["last_error"] = "provider stopped"
+    assert not module.review_is_complete(0, current, 8)
+    module.REPORT.pop("last_error")
+    module.REPORT["calls"] = []
+    assert not module.review_is_complete(0, current, 8)
+    print("PASS: native current-tree completion, findings preserved and incomplete/duplicate/error fixtures rejected")

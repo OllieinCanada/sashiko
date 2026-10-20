@@ -124,6 +124,30 @@ def validate_request(body):
     walk(body)
 
 
+def review_is_complete(code, result, expected):
+    """Accept native current-tree results while rejecting incomplete reviews."""
+    if not isinstance(result, dict) or expected < 1:
+        return False
+    patches = result.get("patches")
+    if (code != 0 or result.get("status") not in ("clean", "issues_found")
+            or result.get("partial", False) is not False or result.get("error")
+            or not isinstance(patches, list) or len(patches) != expected
+            or not REPORT["calls"] or REPORT.get("last_error")):
+        return False
+    indexes = []
+    for patch in patches:
+        if (not isinstance(patch, dict) or type(patch.get("index")) is not int
+                or patch.get("error") or patch.get("review_error")
+                or patch.get("partial") or patch.get("review_status") == "incomplete"):
+            return False
+        status = patch.get("status")
+        if status != "applied" and not (
+                status == "present" and patch.get("method") == "current-tree"):
+            return False
+        indexes.append(patch["index"])
+    return sorted(indexes) == list(range(1, expected + 1))
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
@@ -268,15 +292,7 @@ def review(directory, base, head):
         expected = subprocess.check_output(
             ["git", "rev-list", "--count", base + ".." + head],
             cwd=directory, text=True).strip()
-        complete = (code == 0 and result.get("status") in ("clean", "issues_found")
-                    and result.get("partial", False) is False and not result.get("error")
-                    and REPORT["calls"] and not REPORT.get("last_error")
-                    and len(patches) == int(expected)
-                    and len({p.get("index") for p in patches}) == len(patches)
-                    and not any(p.get("error") or p.get("partial")
-                                or p.get("status") != "applied"
-                                or p.get("review_status") == "incomplete"
-                                for p in patches))
+        complete = review_is_complete(code, result, int(expected))
         REPORT["agent_status"] = result.get("status")
         REPORT["patches"] = patches
         REPORT["findings"] = result.get("findings", [])
