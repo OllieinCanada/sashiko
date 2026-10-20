@@ -68,6 +68,22 @@ def main():
         raise RuntimeError("prepared tree mismatch")
     if output(["git", "status", "--porcelain"]):
         raise RuntimeError("contribution checkout not clean")
+    if MODE == "performance" and PREPARED.get("performance"):
+        previous = PREPARED["performance"]
+        REPORT["detail"] = previous
+        REPORT["original_performance_run"] = 39359678639
+        if previous.get("status") == "FAIL_BUDGET":
+            raise RuntimeError("exact-source performance failed its original budget; no retry")
+        if previous.get("status") == "PASS":
+            if (previous.get("candidate_commit") != HEAD
+                    or previous.get("baseline_commit") != UPSTREAM):
+                raise RuntimeError("performance provenance mismatch")
+            REPORT["status"] = "PASS"
+            REPORT["reused_exact_source_performance"] = True
+            REPORT["production_source_restored"] = True
+            save()
+            print(json.dumps(REPORT, indent=2), flush=True)
+            return
     for directory in (ROOT / ".github").glob("adaptive-*"):
         if directory.is_dir():
             shutil.copytree(directory, SOURCE / ".github" / directory.name, dirs_exist_ok=True)
