@@ -27,7 +27,7 @@ jobs:
           export PATH="/tmp/adaptive-conflict-lint/bin:$PATH"
           make check-pr RANGE=HEAD~1..HEAD
           python3 -m py_compile .github/adaptive-conflict/prototype.py
-          python3 .github/adaptive-conflict/prototype.py
+          python3 .github/adaptive-conflict/actual_probe.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
