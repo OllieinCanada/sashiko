@@ -1,0 +1,21 @@
+name: Final-source model budget offline controls
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths:
+      - '.github/adaptive-final-model-review/run.py'
+      - '.github/adaptive-final-model-review/selftest.py'
+      - '.github/workflows/adaptive-final-model-controls.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Offline budget and credential controls only
+        run: python3 .github/adaptive-final-model-review/selftest.py
