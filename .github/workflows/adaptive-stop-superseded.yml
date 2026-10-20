@@ -1,4 +1,4 @@
-name: Stop superseded adaptive validation runs
+name: Stop obsolete adaptive baseline runs
 'on':
   push:
     branches: [codex/held-series-ci-20261019]
@@ -9,30 +9,36 @@ permissions:
 jobs:
   stop-superseded:
     runs-on: ubuntu-24.04
-    timeout-minutes: 3
+    timeout-minutes: 4
     steps:
-      - name: Stop the diagnosed failed run only
+      - name: Stop only obsolete runs at the saved source checkpoint
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'PY'
           import json, os, urllib.request
           base = "https://api.github.com/repos/OllieinCanada/sashiko"
-          target = base + "/actions/runs/39333144037"
+          targets = [39354526625,39354526634,39354526657,39354526623,39354526611,39354526596,39354526640,39354526726,39354526591,39354526663,39354526713,39354526733,39354526702]
+          expected = "54a5abc1894bd0fcba1ebbfd7acf20044d7e5091"
           headers = {
               "Authorization": "Bearer " + os.environ["GH_TOKEN"],
               "Accept": "application/vnd.github+json",
           }
-          request = urllib.request.Request(target, headers=headers)
-          with urllib.request.urlopen(request, timeout=20) as response:
-              run = json.load(response)
-          if run["status"] != "completed":
-              assert run["head_sha"] == "ed081ca81391a7745684bec31b2245c6b8eed0ae"
-              request = urllib.request.Request(
-                  target + "/force-cancel", headers=headers,
-                  data=b"", method="POST")
-              with urllib.request.urlopen(request, timeout=20) as response:
-                  print("Scoped force cancellation:", response.status)
-          else:
-              print("Already complete:", run["conclusion"])
+          results = []
+          for run_id in targets:
+              target = base + "/actions/runs/" + str(run_id)
+              request = urllib.request.Request(target, headers=headers)
+              with urllib.request.urlopen(request, timeout=15) as response:
+                  run = json.load(response)
+              assert run["head_sha"] == expected
+              assert run["head_branch"] == "codex/held-series-ci-20261019"
+              if run["status"] != "completed":
+                  request = urllib.request.Request(
+                      target + "/force-cancel", headers=headers,
+                      data=b"", method="POST")
+                  with urllib.request.urlopen(request, timeout=15) as response:
+                      results.append({"id": run_id, "cancel": response.status})
+              else:
+                  results.append({"id": run_id, "completed": run["conclusion"]})
+          print(json.dumps({"scoped_obsolete_runs": results}, indent=2))
           PY
