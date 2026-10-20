@@ -1,3 +1,8 @@
+> **Latest model investigation:** The resumed review timed out at 120.093
+> seconds on its first generation. Metadata and token counting succeeded;
+> no review completed. All provider workflows remain disabled.
+> [Exact outcome and offline harness correction](ADAPTIVE_MODEL_REVIEW_STATUS.md).
+
 # Draft PR — publication not approved
 
 Proposed title: Add opt-in publication cooldown for complete mail revisions

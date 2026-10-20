@@ -1,3 +1,8 @@
+> **Latest model investigation:** The resumed review timed out at 120.093
+> seconds on its first generation. Metadata and token counting succeeded;
+> no review completed. All provider workflows remain disabled.
+> [Exact outcome and offline harness correction](ADAPTIVE_MODEL_REVIEW_STATUS.md).
+
 Bursts of complete mail revisions can cluster public review notifications.
 I am preparing an opt-in per-author publication cooldown and would like
 agreement on its policy before submitting a code PR. It delays publication,

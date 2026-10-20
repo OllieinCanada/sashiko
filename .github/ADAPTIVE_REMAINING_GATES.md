@@ -1,3 +1,8 @@
+> **Latest model investigation:** The resumed review timed out at 120.093
+> seconds on its first generation. Metadata and token counting succeeded;
+> no review completed. All provider workflows remain disabled.
+> [Exact outcome and offline harness correction](ADAPTIVE_MODEL_REVIEW_STATUS.md).
+
 # Remaining acceptance decisions
 
 Current source is d7f7a5516cc805444f23c534199af7e65d51e551, tree-identical to

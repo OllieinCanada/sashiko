@@ -42,7 +42,18 @@ for comparison in evidence["performance"]["report"]["detail"]["comparisons"]:
 assert len(evidence["performance"]["report"]["detail"]["samples"]) == 18
 assert evidence["model_review"]["report"]["status"] == "INCOMPLETE"
 assert evidence["model_review"]["report"]["provider_failure"]["error_type"] == "TimeoutError"
-for name in ["adaptive-self-review.yml", "adaptive-final-model-review.yml"]:
+resumed = evidence["model_review"]["resumed_timeout_attempt"]["report"]
+assert resumed["status"] == "INCOMPLETE"
+assert resumed["head"] == REVIEW
+assert len(resumed["calls"]) == 1
+assert resumed["calls"][0]["status"] == "DISPATCHED"
+assert resumed["provider_failure"]["error_type"] == "TimeoutError"
+assert resumed["provider_failure"]["timeout_seconds"] == 120
+assert resumed["provider_failure"]["elapsed_seconds"] >= 120
+assert len(resumed["patches"]) == 8
+assert all(p["review_status"] == "incomplete" for p in resumed["patches"])
+for name in ["adaptive-self-review.yml", "adaptive-final-model-review.yml",
+             "adaptive-timeout-model-review.yml"]:
     workflow = yaml.safe_load((ROOT / ".github/workflows" / name).read_text())
     for job in workflow["jobs"].values():
         assert str(job.get("if", "")).replace(" ", "") == "${{false}}", name

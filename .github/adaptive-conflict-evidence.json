@@ -438,11 +438,13 @@
     "native_ignored": 2,
     "extended_phases_passed": 11,
     "maximum_parts": 1024,
-    "model_review": "INCOMPLETE_PROVIDER_TIMEOUT",
+    "model_review": "INCOMPLETE_AFTER_120_SECOND_GENERATION_TIMEOUT",
     "maintainer_agreement": false,
     "ready_for_upstream_pr": false,
     "upstream_pr_opened": false,
-    "evidence": ".github/adaptive-upstream-refresh-evidence.json"
+    "evidence": ".github/adaptive-upstream-refresh-evidence.json",
+    "model_review_attempt": 39375620121
   },
-  "historical_record_notice": "All other legacy counts/production_source/status fields retain their original historical scope. Current pointer does not certify all 64 scenarios."
+  "historical_record_notice": "All other legacy counts/production_source/status fields retain their original historical scope. Current pointer does not certify all 64 scenarios.",
+  "latest_model_evidence": ".github/ADAPTIVE_MODEL_REVIEW_STATUS.md"
 }

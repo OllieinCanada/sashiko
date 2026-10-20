@@ -16,11 +16,12 @@
     "native_ignored": 2,
     "extended_phases_passed": 11,
     "maximum_parts": 1024,
-    "model_review": "INCOMPLETE_PROVIDER_TIMEOUT",
+    "model_review": "INCOMPLETE_AFTER_120_SECOND_GENERATION_TIMEOUT",
     "maintainer_agreement": false,
     "ready_for_upstream_pr": false,
     "upstream_pr_opened": false,
-    "evidence": ".github/adaptive-upstream-refresh-evidence.json"
+    "evidence": ".github/adaptive-upstream-refresh-evidence.json",
+    "model_review_attempt": 39375620121
   },
   "native": {
     "run": 39370749173,
@@ -2588,7 +2589,143 @@
     "automatic_execution_disabled": true,
     "disable_commit": "81dad637e9bfa362d0701e1442297b63f7d5c19a",
     "offline_controls_run": 39372371968,
-    "note": "One bounded fresh attempt, one dispatched generation timed out. Empty findings are not a completed review. Reservation is not actual billing. No automatic retry."
+    "note": "One bounded fresh attempt, one dispatched generation timed out. Empty findings are not a completed review. Reservation is not actual billing. No automatic retry.",
+    "resumed_timeout_attempt": {
+      "run": 39375620121,
+      "checkpoint": "1ce85bc6af803b9d0b566e05db3017f1f0c924d4",
+      "artifact": 12243715494,
+      "report": {
+        "status": "INCOMPLETE",
+        "model": "gemini-3.8-flash",
+        "maximum_usd_this_attempt": "1.00",
+        "maximum_seconds_this_attempt": 600,
+        "overall_authorization": "one user-resumed timeout-corrected attempt; $1.00, 10 minutes, no automatic follow-up",
+        "maximum_counted_input_tokens_total": 500000,
+        "generation_timeout_seconds": 120,
+        "client_timeout_seconds": 130,
+        "pricing_source": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricing_checked_utc": "2026-10-19",
+        "input_usd_per_million": "0.75",
+        "output_usd_per_million_including_thinking": "3.75",
+        "reserved_usd": "0.03363",
+        "calls": [
+          {
+            "number": 1,
+            "counted_input_tokens": 1832,
+            "reserved_input_tokens": 3880,
+            "maximum_output_tokens": 8192,
+            "reserved_usd": "0.03363",
+            "status": "DISPATCHED"
+          }
+        ],
+        "limitations": [
+          "Model review is advisory; deterministic checks remain required.",
+          "A timeout, exhausted budget, partial result or missing patch result is not a clean review."
+        ],
+        "base": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "head": "d7f7a5516cc805444f23c534199af7e65d51e551",
+        "command": [
+          "/home/runner/work/sashiko/sashiko/target/debug/sashiko",
+          "--project",
+          "sashiko",
+          "review",
+          "--settings",
+          "/home/runner/work/sashiko/sashiko/adaptive-model-review-results/review-settings.toml",
+          "--agent",
+          "026195ab58e2099e81017adbc6b97f33c509c8ba..d7f7a5516cc805444f23c534199af7e65d51e551"
+        ],
+        "provider_failure": {
+          "action": "generateContent",
+          "error_type": "TimeoutError",
+          "elapsed_seconds": 120.093,
+          "timeout_seconds": 120
+        },
+        "last_error": "provider proxy refused or failed request",
+        "agent_status": "error",
+        "patches": [
+          {
+            "index": 1,
+            "method": "current-tree",
+            "review_error": "Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n\nCaused by:\n    0: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n    1: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}",
+            "review_status": "incomplete",
+            "status": "present",
+            "subject": "server: allow concrete extractor rejection response size"
+          },
+          {
+            "index": 2,
+            "method": "current-tree",
+            "review_error": "Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n\nCaused by:\n    0: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n    1: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}",
+            "review_status": "incomplete",
+            "status": "present",
+            "subject": "db: retire superseded series reviews awaiting publication"
+          },
+          {
+            "index": 3,
+            "method": "current-tree",
+            "review_error": "Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n\nCaused by:\n    0: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n    1: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}",
+            "review_status": "incomplete",
+            "status": "present",
+            "subject": "mail: add opt-in per-author publication cooldowns"
+          },
+          {
+            "index": 4,
+            "method": "current-tree",
+            "review_error": "Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n\nCaused by:\n    0: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n    1: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}",
+            "review_status": "incomplete",
+            "status": "present",
+            "subject": "db: bound adaptive conflict quarantine transactions"
+          },
+          {
+            "index": 5,
+            "method": "current-tree",
+            "review_error": "Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n\nCaused by:\n    0: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n    1: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}",
+            "review_status": "incomplete",
+            "status": "present",
+            "subject": "db: consolidate quarantine checks into binding snapshots"
+          },
+          {
+            "index": 6,
+            "method": "current-tree",
+            "review_error": "Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n\nCaused by:\n    0: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n    1: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}",
+            "review_status": "incomplete",
+            "status": "present",
+            "subject": "docs: describe staged conflict quarantine and recovery limits"
+          },
+          {
+            "index": 7,
+            "method": "current-tree",
+            "review_error": "Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n\nCaused by:\n    0: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n    1: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}",
+            "review_status": "incomplete",
+            "status": "present",
+            "subject": "cooldown: encode fingerprints without per-byte formatting"
+          },
+          {
+            "index": 8,
+            "method": "current-tree",
+            "review_error": "Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n\nCaused by:\n    0: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n    1: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}",
+            "review_status": "incomplete",
+            "status": "present",
+            "subject": "db: defer source ownership lookup until a message exists"
+          }
+        ],
+        "findings": [],
+        "concerns": [],
+        "agent_sha256": "d22bed17a85633d14751d8641759c3e6a0ab576e42ae8e5dbd4fea4e40b92161",
+        "error": "model review did not complete all patches"
+      },
+      "controls_run": 39375505623,
+      "controls_checkpoint": "f82ffc7ab2c30be3b430f38daa141a3f6a5b7459",
+      "automatic_execution_disabled": true,
+      "disabled_checkpoint": "2dbbb74929d44c06d8d2775fdfc820d6f5e970ad",
+      "diagnosis": "Metadata GET and countTokens succeeded; first generation timed out at 120.093 seconds. Increasing the old 60-second cutoff did not establish a functioning generation path. No further generation attempt scheduled.",
+      "completion_guard_followup": "Native range patch status is present/current-tree. Offline guard fix accepts this alongside applied; incomplete/error/duplicate results remain rejected. No model call is needed to verify that correction.",
+      "completion_guard_controls": {
+        "run": 39375980733,
+        "checkpoint": "c8cd1423f4d4d5642ee0d7fcb7cf9924ee81e1f7",
+        "status": "PASS",
+        "generation_calls": 0
+      }
+    }
   },
   "upstream": {
     "head": "026195ab58e2099e81017adbc6b97f33c509c8ba",
@@ -4119,5 +4256,14 @@
       "metadata": "616c728ab3568101a13f92869d09839776c09cfa"
     },
     "note": "Use pinned workflow and runner script at these commits to reproduce fixtures. Artifacts contain exact commands, environment and full logs; source branch remains after artifact expiry. Review-head source tree equals tested-head source tree."
+  },
+  "maintainer_posting": {
+    "issue_created": false,
+    "discussion_enabled": false,
+    "connector_error": "403 Resource not accessible by integration",
+    "existing_issue_search": "No cooldown issue found at 2026-10-20 05:31 UTC",
+    "manual_issue_link": "https://github.com/sashiko-dev/sashiko/issues/new",
+    "maintainer_agreement": false,
+    "user_authorized_posting": true
   }
 }
