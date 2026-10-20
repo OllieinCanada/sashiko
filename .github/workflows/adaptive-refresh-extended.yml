@@ -67,6 +67,7 @@ jobs:
           - cancel
           - concurrency
           - faults
+          - upstream
     env:
       RUSTUP_TOOLCHAIN: stable
       CARGO_BUILD_JOBS: 2

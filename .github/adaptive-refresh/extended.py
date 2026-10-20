@@ -74,7 +74,32 @@ def main():
     run(["git", "remote", "set-url", "origin",
          "https://github.com/sashiko-dev/sashiko.git"], "set-origin", timeout=30)
     run(["cargo", "fetch", "--locked"], "fetch-dependencies", timeout=120)
-    if MODE == "crash":
+    if MODE == "upstream":
+        run(["git", "checkout", "--detach", UPSTREAM], "checkout-baseline", timeout=30)
+        REPORT["baseline_checked_commit"] = output(["git", "rev-parse", "HEAD"])
+        try:
+            run(["cargo", "fmt", "--all", "--", "--check"], "baseline-fmt", timeout=60)
+            try:
+                run(["cargo", "clippy", "--locked", "--offline", "--all-targets",
+                     "--all-features", "--", "-D", "warnings"], "baseline-clippy")
+                REPORT["baseline_clippy"] = "PASS"
+            except RuntimeError:
+                log = (OUT / "baseline-clippy.log").read_text()
+                errors = [line for line in log.splitlines() if line.startswith("error:")]
+                if (len([line for line in errors if
+                         line == "error: the `Err`-variant returned from this function is very large"]) != 4
+                        or any(not ("the `Err`-variant" in line
+                                   or line.startswith("error: could not compile")) for line in errors)):
+                    raise
+                REPORT["baseline_clippy"] = "KNOWN_UPSTREAM_LARGE_ERROR_FAILURE"
+                REPORT["baseline_clippy_errors"] = errors
+            text = run(["cargo", "test", "--locked", "--offline", "--all-features"],
+                       "baseline-tests")
+            REPORT["baseline_suite_summaries"] = [line for line in text.splitlines()
+                                                   if line.startswith("test result:")]
+        finally:
+            run(["git", "checkout", "--detach", HEAD], "restore-candidate", timeout=30)
+    elif MODE == "crash":
         module = SOURCE / "src/db/conflict.rs"
         original = module.read_text()
         fixture = (ROOT / ".github/adaptive-refresh/process_fixture.rs").read_text()
