@@ -10,11 +10,17 @@ pub(super) const COOLDOWN_OWNER_QUERY: &str =
 UNION ALL
 SELECT p.id FROM patchsets p WHERE p.cover_letter_message_id = ?
 AND (EXISTS (SELECT 1 FROM review_cooldown_intents WHERE patchset_id = p.id)
- OR EXISTS (SELECT 1 FROM review_cooldown_blocks WHERE patchset_id = p.id))
+ OR EXISTS (SELECT 1 FROM review_cooldown_blocks WHERE patchset_id = p.id)
+ OR EXISTS (SELECT 1 FROM review_cooldown_conflict_members m
+            JOIN review_cooldown_conflicts g ON g.id = m.group_id
+            WHERE m.patchset_id = p.id AND g.state = 'active'))
 UNION ALL
 SELECT p.patchset_id FROM patches p WHERE p.message_id = ?
 AND (EXISTS (SELECT 1 FROM review_cooldown_intents WHERE patchset_id = p.patchset_id)
- OR EXISTS (SELECT 1 FROM review_cooldown_blocks WHERE patchset_id = p.patchset_id))
+ OR EXISTS (SELECT 1 FROM review_cooldown_blocks WHERE patchset_id = p.patchset_id)
+ OR EXISTS (SELECT 1 FROM review_cooldown_conflict_members m
+            JOIN review_cooldown_conflicts g ON g.id = m.group_id
+            WHERE m.patchset_id = p.patchset_id AND g.state = 'active'))
 LIMIT 1";
 
 /// Binding and patch validation share one state read under the writer lock.
@@ -91,6 +97,7 @@ impl Database {
     /// before the caller receives the error, so a retry cannot publish old state.
     pub(super) async fn bind_cooldown_message(&self, id: i64, message: &str) -> Result<()> {
         let tx = self.begin_immediate_transaction().await?;
+        Self::ensure_cooldown_unblocked(&tx, id).await?;
         let mut rows = tx
             .query(
                 "SELECT list, author, state FROM review_cooldown_intents WHERE patchset_id = ?",
@@ -185,6 +192,7 @@ impl Database {
         context: Option<&CooldownContext>,
         late_cover: bool,
     ) -> Result<CooldownBinding> {
+        Self::ensure_cooldown_unblocked(conn, id).await?;
         let mut rows = conn.query("SELECT list, author, policy, state FROM review_cooldown_intents WHERE patchset_id = ? UNION ALL SELECT NULL, NULL, NULL, 'blocked' FROM review_cooldown_blocks WHERE patchset_id = ? LIMIT 1", libsql::params![id, id]).await?;
         let Some(row) = rows.next().await? else {
             return Ok(CooldownBinding::Legacy);
@@ -200,6 +208,7 @@ impl Database {
         context: Option<&CooldownContext>,
         new_index: Option<u32>,
     ) -> Result<(CooldownBinding, bool)> {
+        Self::ensure_cooldown_unblocked(conn, id).await?;
         let mut rows = conn
             .query(
                 "SELECT c.list, c.author, c.policy,
@@ -365,6 +374,7 @@ impl Database {
         now: i64,
         context: Option<&CooldownContext>,
     ) -> Result<()> {
+        Self::ensure_cooldown_unblocked(conn, id).await?;
         let mut rows = conn.query("SELECT c.list, c.author, c.policy, c.state, c.released_at, p.total_parts, p.embargo_until, p.status, p.cover_letter_message_id FROM review_cooldown_intents c JOIN patchsets p ON p.id = c.patchset_id WHERE c.patchset_id = ?", libsql::params![id]).await?;
         if let Some(row) = rows.next().await? {
             let state: String = row.get(3)?;
@@ -775,7 +785,7 @@ mod tests {
         db.execute_batch("DROP INDEX idx_patchsets_held_series; PRAGMA user_version = 14;")
             .await?;
         db.migrate().await?;
-        assert_eq!(scalar(&db, "PRAGMA user_version").await?, 15);
+        assert_eq!(scalar(&db, "PRAGMA user_version").await?, 16);
         assert_eq!(
             scalar(&db, "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_patchsets_held_series'").await?,
             1
