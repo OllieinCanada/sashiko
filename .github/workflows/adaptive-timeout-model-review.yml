@@ -1,0 +1,80 @@
+name: One timeout-corrected Sashiko review attempt
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths: ['.github/workflows/adaptive-timeout-model-review.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: adaptive-final-source-model-review
+  cancel-in-progress: false
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+      CARGO_NET_RETRY: 0
+      CARGO_HTTP_TIMEOUT: 20
+      SASHIKO_REVIEW_MODEL: gemini-3.8-flash
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Validate review harness before provider access
+        run: |
+          python3 -m venv /tmp/adaptive-final-model-lint
+          /tmp/adaptive-final-model-lint/bin/pip install yamllint==1.37.1
+          export PATH="/tmp/adaptive-final-model-lint/bin:$PATH"
+          make check-pr RANGE=HEAD~1..HEAD
+          python3 .github/adaptive-final-model-review/selftest.py
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39370749173
+          name: adaptive-message-cost-c6e85fccb1e25e19237de8e8fe252dab8fb66bc7
+          path: model-source-artifact
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39370876283
+          name: adaptive-extended-performance-e0e415ff6f2e398dc027155eb2bbb2b2ca25763d
+          path: model-performance-artifact
+      - name: Verify exact source and budget prerequisites
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/adaptive-final-model-review/prepare_retry.py
+      - name: One bounded final-source model review
+        timeout-minutes: 14
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: >-
+          python3 .github/adaptive-final-model-review/run.py
+          /tmp/adaptive-final-model-source
+          026195ab58e2099e81017adbc6b97f33c509c8ba
+          d7f7a5516cc805444f23c534199af7e65d51e551
+      - name: Record concise outcome without retrying
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = Path("adaptive-model-review-results/manifest.json")
+          if report.exists():
+              print(json.dumps(json.loads(report.read_text()), indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: timeout-corrected-model-review-${{ github.sha }}
+          path: adaptive-model-review-results/
+          retention-days: 14
+          if-no-files-found: warn
