@@ -1,390 +1,872 @@
 {
-  "status": "REBASED_NATIVE_PASS_PERFORMANCE_BLOCKED",
-  "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
-  "native": {
-    "status": "REBASED_REQUIRED_CHECKS_PASS_EXTENDED_PENDING",
+  "schema_version": 2,
+  "status": "NATIVE_AND_RECOVERY_PASS_PERFORMANCE_BLOCKED",
+  "current_candidate": {
+    "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+    "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
+    "checked_code_head": "8132865258bd8cefb1f3dad5f009f6676b4778b0",
     "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
-    "original_source": "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
-    "original_bounded_patch": "b24d9e05094ccfcf7609a46bb254608a3177dea1",
+    "native_run": 39367721490,
+    "native_artifact": 12240441672,
+    "extended_run": 39367967782,
+    "maximum_run": 39369061867,
+    "remote_source_branch_published": false
+  },
+  "native": {
+    "status": "CHECKED_OPTIMIZATION_EXTENDED_PENDING",
+    "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+    "previous_head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
     "checks": [
       {
-        "name": "clone-source",
+        "name": "clone",
         "exit": 0,
-        "seconds": 0.0411695459999919
-      },
-      {
-        "name": "fetch-clean-bundle",
-        "exit": 0,
-        "seconds": 0.07312332899999774
-      },
-      {
-        "name": "verify-old-source",
-        "exit": 0,
-        "seconds": 0.015455973000001677
-      },
-      {
-        "name": "fetch-native-bundle",
-        "exit": 0,
-        "seconds": 0.1227681820000015
-      },
-      {
-        "name": "verify-native-source",
-        "exit": 0,
-        "seconds": 0.012649218999996492
+        "seconds": 0.032329013999998324
       },
       {
         "name": "fetch-upstream",
         "exit": 0,
-        "seconds": 0.5238104139999962
+        "seconds": 0.36529112300000577
       },
       {
-        "name": "checkout-clean-source",
+        "name": "fetch-checked-bundle",
         "exit": 0,
-        "seconds": 0.07270441800000071
+        "seconds": 0.06503893700000418
       },
       {
-        "name": "configure-user.name",
+        "name": "checkout",
         "exit": 0,
-        "seconds": 0.012941492999999582
-      },
-      {
-        "name": "configure-user.email",
-        "exit": 0,
-        "seconds": 0.015818991999992704
-      },
-      {
-        "name": "rebase-source",
-        "exit": 0,
-        "seconds": 0.32309311199999513
-      },
-      {
-        "name": "apply-bounded-source",
-        "exit": 0,
-        "seconds": 0.07275139799999408
+        "seconds": 0.4150687369999986
       },
       {
         "name": "fetch-dependencies",
         "exit": 0,
-        "seconds": 6.3880627110000034
+        "seconds": 2.9218426889999947
+      },
+      {
+        "name": "clear-package-generated-paths",
+        "exit": 0,
+        "seconds": 0.114336121000008
+      },
+      {
+        "name": "format",
+        "exit": 0,
+        "seconds": 1.1170853539999968
+      },
+      {
+        "name": "positive",
+        "exit": 0,
+        "seconds": 43.08565551400001
+      },
+      {
+        "name": "mutant-bind_cooldown_source_tx",
+        "exit": 101,
+        "seconds": 42.894142148
+      },
+      {
+        "name": "mutant-bind_cooldown_patch_tx",
+        "exit": 101,
+        "seconds": 43.293254683000015
+      },
+      {
+        "name": "mutant-complete_patchset_tx",
+        "exit": 101,
+        "seconds": 42.44023457900002
+      },
+      {
+        "name": "restored",
+        "exit": 0,
+        "seconds": 42.740509910000014
       },
       {
         "name": "required-check-pr",
         "exit": 0,
-        "seconds": 374.784183589
+        "seconds": 93.06903398999998
       },
       {
         "name": "diff-check",
         "exit": 0,
-        "seconds": 0.012559404000000995
+        "seconds": 0.008109923000006347
       },
       {
-        "name": "commit-bounded-source",
+        "name": "configure-user.name",
         "exit": 0,
-        "seconds": 0.040096366000000216
+        "seconds": 0.004040733000010732
       },
       {
-        "name": "verify-final-signoffs",
+        "name": "configure-user.email",
         "exit": 0,
-        "seconds": 0.04052268799995318
+        "seconds": 0.004007870999998886
       },
       {
-        "name": "export-bundle",
+        "name": "stage-optimization",
         "exit": 0,
-        "seconds": 0.0725118610000095
+        "seconds": 0.007925593000038589
+      },
+      {
+        "name": "commit-optimization",
+        "exit": 0,
+        "seconds": 0.015984150000008412
+      },
+      {
+        "name": "required-doc-check",
+        "exit": 0,
+        "seconds": 0.03210045899999159
+      },
+      {
+        "name": "stage-design",
+        "exit": 0,
+        "seconds": 0.0038875359999792636
+      },
+      {
+        "name": "commit-design",
+        "exit": 0,
+        "seconds": 0.007934269999964272
+      },
+      {
+        "name": "final-signoffs",
+        "exit": 0,
+        "seconds": 0.06420349300003636
+      },
+      {
+        "name": "export-source",
+        "exit": 0,
+        "seconds": 0.03204067199999372
+      }
+    ],
+    "mutants": [
+      {
+        "name": "bind_cooldown_source_tx",
+        "status": "KILLED",
+        "oracle": "source binding bypassed the active group"
+      },
+      {
+        "name": "bind_cooldown_patch_tx",
+        "status": "KILLED",
+        "oracle": "patch binding bypassed the active group"
+      },
+      {
+        "name": "complete_patchset_tx",
+        "status": "KILLED",
+        "oracle": "completion bypassed the active group"
       }
     ],
     "provider_calls": 0,
     "upstream_pr_opened": false,
+    "previous_performance": {
+      "run": 39359678639,
+      "status": "FAIL_BUDGET",
+      "disabled_ratios": [
+        1.2450766801569302,
+        1.35295309389588
+      ]
+    },
     "suite_summaries": [
-      "test result: ok. 1043 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 8.22s",
-      "test result: ok. 50 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s",
+      "test result: ok. 1044 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 10.63s",
+      "test result: ok. 50 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s",
       "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
-      "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s"
+      "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s"
     ],
-    "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-    "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+    "checked_code_head": "8132865258bd8cefb1f3dad5f009f6676b4778b0",
+    "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+    "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
     "commits": [
+      "7bbbd266c8c9f427a96be9589a003c44922fb3a7 docs: describe staged conflict quarantine and recovery limits",
+      "8132865258bd8cefb1f3dad5f009f6676b4778b0 db: consolidate quarantine checks into binding snapshots",
       "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4 db: bound adaptive conflict quarantine transactions",
       "f7688ce9ed8cdfaf2d8ae6d19c810af412a8f878 mail: add opt-in per-author publication cooldowns",
       "4a1e3083dcacda94e5b5bd5cf23e10929c635f73 db: retire superseded series reviews awaiting publication",
       "a84ad5868987524662f9e4cc32b1e1c3e2d90296 server: allow concrete extractor rejection response size"
-    ],
-    "changed_paths": [
-      "MAINTAINERS_GUIDE.md",
-      "designs/ADAPTIVE_PUBLICATION_COOLDOWN.md",
-      "docs/configuration.md",
-      "src/cooldown.rs",
-      "src/db.rs",
-      "src/db/conflict.rs",
-      "src/db/cooldown.rs",
-      "src/email_policy.rs",
-      "src/lib.rs",
-      "src/main.rs",
-      "src/migrations/014_held_series_index.sql",
-      "src/migrations/015_publication_cooldown.sql",
-      "src/migrations/016_cooldown_conflicts.sql",
-      "src/prerequisites.rs",
-      "src/server.rs"
     ]
   },
-  "native_run": 39359678639,
-  "native_artifact": 12237721302,
-  "deterministic": {
-    "status": "PASS",
-    "cases": 8,
-    "compiled_mutants_killed": 2,
-    "run": 39359678639
-  },
-  "performance": {
-    "status": "FAIL_BUDGET",
-    "run": 39359678639,
-    "budgets": {
-      "disabled_over_upstream": 1.2,
-      "enabled_over_disabled": 1.5
-    },
-    "comparisons": [
-      {
-        "retained": 0,
-        "disabled_over_upstream": 1.2450766801569302,
-        "enabled_over_disabled": 1.2207647121352523,
-        "legacy_state_equal": true
-      },
-      {
-        "retained": 10000,
-        "disabled_over_upstream": 1.35295309389588,
-        "enabled_over_disabled": 0.9559658378424324,
-        "legacy_state_equal": true
-      }
-    ]
-  },
-  "extended_run": 39360690253,
   "extended": {
-    "clock": {
+    "deterministic": {
       "status": "PASS",
-      "phase": "clock",
-      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "phase": "deterministic",
+      "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+      "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
       "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
       "checks": [
         {
           "name": "audit-yaml",
           "exit": 0,
-          "seconds": 0.46507010800002035
+          "seconds": 0.3646895329999893
         },
         {
           "name": "clone",
           "exit": 0,
-          "seconds": 0.031968790999997054
+          "seconds": 0.032064648000016405
         },
         {
           "name": "fetch-upstream",
           "exit": 0,
-          "seconds": 0.3646239550000132
+          "seconds": 0.26453238199999873
         },
         {
           "name": "fetch-bundle",
           "exit": 0,
-          "seconds": 0.06402936899996803
+          "seconds": 0.16439391999998065
         },
         {
           "name": "checkout",
           "exit": 0,
-          "seconds": 0.06408110000000988
+          "seconds": 0.06409533099997589
         },
         {
           "name": "set-origin",
           "exit": 0,
-          "seconds": 0.0036637740000173835
+          "seconds": 0.003677050000021609
         },
         {
           "name": "fetch-dependencies",
           "exit": 0,
-          "seconds": 2.3685581679999927
+          "seconds": 2.119005665000003
         },
         {
-          "name": "clock",
+          "name": "deterministic",
           "exit": 0,
-          "seconds": 290.12871634100003
+          "seconds": 395.101981021
         }
       ],
       "provider_calls": 0,
       "upstream_pr_opened": false,
-      "runner_sha256": "eff381943194130a8addff77e04768cf1c3a9470f5e727484534b6543484122c",
+      "environment": {
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+        "runner": "Ubuntu 24.04"
+      },
+      "runner_sha256": "6662e65b0dd6db033310bf60c5e82a80ba1d5eb9241524701b77e36df9e76771",
       "detail": {
         "status": "PASS",
-        "production_base": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-        "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-        "source_sha256": "66bfd8a2085787e6285493c2a85c797f6403126cd34c86adaf4940bd0c31ed99",
+        "checkpoint": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+        "production_base": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+        "source_sha256": {
+          "src/main.rs": "66bfd8a2085787e6285493c2a85c797f6403126cd34c86adaf4940bd0c31ed99",
+          "src/reviewer.rs": "f93900b66c0ee0a1e02a15284f7a7eec01624e8b3b7de4c310e082405b00e91e",
+          "src/db/cooldown.rs": "28a46ecf608896735a015f0347f5c40b592421cf9f05c653d3f786b0b3de9506",
+          "src/cooldown.rs": "d4ab167d27628783ae25d5d47af2e4ae88e4cf45a8c8d4503cecd733004b024e",
+          "src/server.rs": "1c1116e7057fb611267f2b73a7c693cac4e9d86d34d9165b656a6756a0c51a05"
+        },
+        "fixture_sha256": {
+          "main_fixture.rs": "2ad96c5658c1ce36701b2da17ee78ef6ee0e6bba27e5258d718f1e56fbd1f99e",
+          "cancel_fixture.rs": "607d3e05976d252584fc42e541eccd0107322cf438352903de8d4968877236e4",
+          "reviewer_fixture.rs": "ccdafabef2cd25ad47c4f7f231b36ac045d850b8547acb0808913c8a82a3b1c1",
+          "db_fixture.rs": "cf0a442e67de178094ade9e47c9a39fdb63ea2ef745c0e676284efbeff1d1bf8",
+          "pure_fixture.rs": "4cd0894af7521e69c4131dd5653fc753a7a615c1560ba5cd8e079cdc2e1aa4ec",
+          "server_fixture.rs": "182def9492d0ca36651fc93ba6ce6c0471554b707acb2b4a289c411d5aa8050e"
+        },
         "checks": [
           {
-            "timezone": "UTC",
+            "name": "ingestion-crosspost-ignore",
+            "test": "tests::test_det6_ingestion_crosspost_and_ignore_matrix",
+            "seconds": 0.36505069499997944,
             "status": "PASS",
-            "wall_clock_states": 6,
-            "natural_deadline_release": 1,
-            "post_release_replay_jumps": 2
+            "case_markers": [
+              "ingestion=19 replay_each=2"
+            ]
           },
           {
-            "timezone": "America/New_York",
+            "name": "enabled-routing",
+            "test": "reviewer::tests::test_det6_enabled_routing_and_integration_matrix",
+            "seconds": 0.46493782699997155,
             "status": "PASS",
-            "wall_clock_states": 6,
-            "natural_deadline_release": 1,
-            "post_release_replay_jumps": 2
+            "case_markers": [
+              "notification_policy=16 earned_hold_each=3600"
+            ]
+          },
+          {
+            "name": "clock-jumps",
+            "test": "db::cooldown::tests::test_det6_forward_clock_release_is_irreversible",
+            "seconds": 0.0642107329999817,
+            "status": "PASS",
+            "case_markers": [
+              "selector_clock_instants=7 forward_admission=1 backward_rejection=1"
+            ]
+          },
+          {
+            "name": "cancel-admission",
+            "test": "db::cooldown::tests::test_det6_cancel_uncommitted_admission_releases_writer",
+            "seconds": 0.11419993799995609,
+            "status": "PASS",
+            "case_markers": []
+          },
+          {
+            "name": "bound-sql",
+            "test": "db::cooldown::tests::test_det6_bound_sql_payloads_preserve_schema_and_dedup",
+            "seconds": 0.41486827199997833,
+            "status": "PASS",
+            "case_markers": []
+          },
+          {
+            "name": "malformed-canaries",
+            "test": "cooldown::tests::test_det6_malformed_identity_and_id_errors_do_not_echo_inputs",
+            "seconds": 0.007835022999984176,
+            "status": "PASS",
+            "case_markers": []
+          },
+          {
+            "name": "private-routes-traces",
+            "test": "server::tests::test_det6_held_and_quarantined_canaries_stay_private",
+            "seconds": 0.11424920000001748,
+            "status": "PASS",
+            "case_markers": [
+              "visibility_states=2 public_paths=6 authorized_paths=3 trace_canaries=3"
+            ]
+          },
+          {
+            "name": "abort-transport-recover",
+            "test": "tests::test_det6_abort_adaptive_transport_then_recover",
+            "seconds": 0.21442241800002648,
+            "status": "PASS",
+            "case_markers": [
+              "transport_abort=1 child_reaped=1 fresh_lease_preserved=1 expired_lease_recovered=1 accepted=1"
+            ]
+          },
+          {
+            "name": "negative-ignore-ingestion",
+            "test": "tests::test_det6_ingestion_crosspost_and_ignore_matrix",
+            "seconds": 0.3646046669999805,
+            "status": "KILLED",
+            "case_markers": []
+          },
+          {
+            "name": "unrelated-under-ignore-ingestion",
+            "test": "cooldown::tests::test_det6_malformed_identity_and_id_errors_do_not_echo_inputs",
+            "seconds": 0.007751267999992706,
+            "status": "PASS",
+            "case_markers": []
+          },
+          {
+            "name": "negative-review-privacy",
+            "test": "server::tests::test_det6_held_and_quarantined_canaries_stay_private",
+            "seconds": 0.06414669200000844,
+            "status": "KILLED",
+            "case_markers": []
+          },
+          {
+            "name": "unrelated-under-review-privacy",
+            "test": "cooldown::tests::test_det6_malformed_identity_and_id_errors_do_not_echo_inputs",
+            "seconds": 0.00786399399999027,
+            "status": "PASS",
+            "case_markers": []
+          },
+          {
+            "name": "restored-privacy",
+            "test": "server::tests::test_det6_held_and_quarantined_canaries_stay_private",
+            "seconds": 0.11426968099999613,
+            "status": "PASS",
+            "case_markers": [
+              "visibility_states=2 public_paths=6 authorized_paths=3 trace_canaries=3"
+            ]
+          }
+        ],
+        "mutants": [
+          {
+            "name": "ignore-ingestion",
+            "status": "KILLED",
+            "target": "tests::test_det6_ingestion_crosspost_and_ignore_matrix",
+            "binary_sha256": "da4192348770ee35f5cc38ede426de979a9f3c589620dab5846b941af5d6b832"
+          },
+          {
+            "name": "review-privacy",
+            "status": "KILLED",
+            "target": "server::tests::test_det6_held_and_quarantined_canaries_stay_private",
+            "binary_sha256": "cd9d0d446265e04638068eb3fef1165a4c7fae2c152f3d4044cc880ec065b834"
           }
         ],
         "limitations": [
-          "LD_PRELOAD changes wall-clock APIs only in the owned test process and its recording MTA; no host-clock change.",
-          "Monotonic time remains real; child process groups have bounded external timeouts.",
-          "Review output is a fixture and delivery is local recording only.",
-          "This does not establish arbitrary host/kernel clock behavior or remove fixed-deadline policy tradeoffs."
+          "Temporary databases, fixed fixture review outputs, local recording sendmail; no model calls or external delivery.",
+          "Clock tests drive explicit scheduling/admission time parameters, not the host wall clock.",
+          "Resource tests cover bounded corpus and configured ceilings, not a universal allocation bound.",
+          "Privacy test covers public review/details/summary routes and captured handler tracing; actual model-provider logs are not exercised.",
+          "Cancellation covers uncommitted admission and pre-acceptance sendmail, not every detached review-task or SMTP acknowledgement window.",
+          "Policy agreement, permanent storage and indivisible ownership-group limitations remain open."
         ],
-        "reviewer_source_sha256": "f93900b66c0ee0a1e02a15284f7a7eec01624e8b3b7de4c310e082405b00e91e",
-        "fixture_sha256": "9c4d2d4cc2d76c024c313c3567893cc56d41de430041b34abca0e1649336272b",
-        "shim_sha256": "f2a1c1e752b204a38fef7bcab4ec3dc0345773223966324e6bac5ba54909fd11",
-        "release_query_observer": "records actual now and selected count after production query",
-        "binary_sha256": "4b33a66ba36c7f2e3cb49684013aa4ef71256bada08c7311bafb532a3a2c2d60",
+        "initial_binary_sha256": {
+          "bin": "f78c1a32516238626fe3867114bee4f9838e93404ad85a64b3ce23bc897311c6",
+          "lib": "b87df8409dd4de2521ece29e1d60c839299516165c8590de017b8d4b49157cf0"
+        },
         "source_restored": true
+      },
+      "production_source_restored": true
+    },
+    "crash": {
+      "status": "PASS",
+      "phase": "crash",
+      "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+      "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "checks": [
+        {
+          "name": "audit-yaml",
+          "exit": 0,
+          "seconds": 0.46511017399996035
+        },
+        {
+          "name": "clone",
+          "exit": 0,
+          "seconds": 0.032397473000003174
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.41523705299999847
+        },
+        {
+          "name": "fetch-bundle",
+          "exit": 0,
+          "seconds": 0.06441423199999008
+        },
+        {
+          "name": "checkout",
+          "exit": 0,
+          "seconds": 0.06424000399999841
+        },
+        {
+          "name": "set-origin",
+          "exit": 0,
+          "seconds": 0.003923286000031112
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 2.4204206769999814
+        },
+        {
+          "name": "format-crash-fixture",
+          "exit": 0,
+          "seconds": 1.1172608710000418
+        },
+        {
+          "name": "build-crash-fixture",
+          "exit": 0,
+          "seconds": 188.281042882
+        },
+        {
+          "name": "clippy-crash-fixture",
+          "exit": 0,
+          "seconds": 121.54801179200001
+        }
+      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "environment": {
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+        "runner": "Ubuntu 24.04"
+      },
+      "binary_sha256": "9d2c1be55825b073306fb379146bbde65efaa9d47a623a32b5f353e44bdba1cc",
+      "fixture_sha256": "92aadab06b016e5c2ce7b2e9684521c7460903930eaf46dc675c2eea5743b17a",
+      "crash_phases": [
+        {
+          "phase": "preparing",
+          "status": "PASS",
+          "killed_after_commit": true
+        },
+        {
+          "phase": "active",
+          "status": "PASS",
+          "killed_after_commit": true
+        },
+        {
+          "phase": "handoff",
+          "status": "PASS",
+          "killed_after_commit": true
+        }
+      ],
+      "production_source_restored": true
+    },
+    "faults": {
+      "status": "PASS",
+      "phase": "faults",
+      "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+      "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "checks": [
+        {
+          "name": "audit-yaml",
+          "exit": 0,
+          "seconds": 0.31449024099999434
+        },
+        {
+          "name": "clone",
+          "exit": 0,
+          "seconds": 0.11422852700000163
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.2645165560000038
+        },
+        {
+          "name": "fetch-bundle",
+          "exit": 0,
+          "seconds": 0.06416150700000145
+        },
+        {
+          "name": "checkout",
+          "exit": 0,
+          "seconds": 0.1141947869999953
+        },
+        {
+          "name": "set-origin",
+          "exit": 0,
+          "seconds": 0.0036382229999958327
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 2.6697530400000034
+        },
+        {
+          "name": "faults",
+          "exit": 0,
+          "seconds": 172.392102048
+        }
+      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "environment": {
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+        "runner": "Ubuntu 24.04"
+      },
+      "runner_sha256": "159972828441057e0a0b7ac1b49536b82ca061f420040f8e8002eb22facf8b63",
+      "detail": {
+        "status": "PASS",
+        "checks": [
+          {
+            "mode": "enospc",
+            "status": "PASS"
+          },
+          {
+            "mode": "eio",
+            "status": "PASS"
+          },
+          {
+            "mode": "torn-write",
+            "status": "PASS"
+          },
+          {
+            "mode": "precommit",
+            "status": "PASS"
+          },
+          {
+            "mode": "postcommit",
+            "status": "PASS"
+          }
+        ],
+        "checkpoint": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+        "limitations": [
+          "LD_PRELOAD injects ENOSPC/EIO and a partial WAL write; this is not actual device exhaustion or physical power loss.",
+          "SIGKILL tests process crash before and after successful COMMIT.",
+          "No remote SMTP acceptance crash or historical archive replay is exercised."
+        ],
+        "binary_sha256": "f7a1f14f8cc3d3dcf58ff9c84c01317cc05def1ff00dcff84b024171b50bd8c4"
       },
       "production_source_restored": true
     },
     "upstream": {
       "status": "PASS",
       "phase": "upstream",
-      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+      "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
       "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
       "checks": [
         {
           "name": "audit-yaml",
           "exit": 0,
-          "seconds": 0.31443910199999436
+          "seconds": 0.4649573420000479
         },
         {
           "name": "clone",
           "exit": 0,
-          "seconds": 0.21425187399999857
+          "seconds": 0.03232609799999864
         },
         {
           "name": "fetch-upstream",
           "exit": 0,
-          "seconds": 0.5648746120000041
+          "seconds": 0.6154835220000905
         },
         {
           "name": "fetch-bundle",
           "exit": 0,
-          "seconds": 0.0640101400000006
+          "seconds": 0.06416264200004207
         },
         {
           "name": "checkout",
           "exit": 0,
-          "seconds": 0.06388956300000359
-        },
-        {
-          "name": "set-origin",
-          "exit": 0,
-          "seconds": 0.0015361039999959303
-        },
-        {
-          "name": "fetch-dependencies",
-          "exit": 0,
-          "seconds": 1.6164871020000007
-        },
-        {
-          "name": "checkout-baseline",
-          "exit": 0,
-          "seconds": 0.21426605400000653
-        },
-        {
-          "name": "baseline-fmt",
-          "exit": 0,
-          "seconds": 1.5164209759999991
-        },
-        {
-          "name": "baseline-clippy",
-          "exit": 101,
-          "seconds": 112.48362946699999
-        },
-        {
-          "name": "baseline-tests",
-          "exit": 0,
-          "seconds": 167.377307325
-        },
-        {
-          "name": "restore-candidate",
-          "exit": 0,
-          "seconds": 0.015648837000014737
+          "seconds": 0.06432068699996307
         }
       ],
       "provider_calls": 0,
       "upstream_pr_opened": false,
-      "baseline_checked_commit": "026195ab58e2099e81017adbc6b97f33c509c8ba",
-      "baseline_clippy": "KNOWN_UPSTREAM_LARGE_ERROR_FAILURE",
-      "baseline_clippy_errors": [
-        "error: the `Err`-variant returned from this function is very large",
-        "error: the `Err`-variant returned from this function is very large",
-        "error: the `Err`-variant returned from this function is very large",
-        "error: the `Err`-variant returned from this function is very large",
-        "error: could not compile `sashiko` (lib) due to 4 previous errors",
-        "error: could not compile `sashiko` (lib test) due to 4 previous errors"
+      "environment": {
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+        "runner": "Ubuntu 24.04"
+      },
+      "reused_exact_upstream_evidence": {
+        "status": "PASS",
+        "phase": "upstream",
+        "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+        "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "checks": [
+          {
+            "name": "audit-yaml",
+            "exit": 0,
+            "seconds": 0.31443910199999436
+          },
+          {
+            "name": "clone",
+            "exit": 0,
+            "seconds": 0.21425187399999857
+          },
+          {
+            "name": "fetch-upstream",
+            "exit": 0,
+            "seconds": 0.5648746120000041
+          },
+          {
+            "name": "fetch-bundle",
+            "exit": 0,
+            "seconds": 0.0640101400000006
+          },
+          {
+            "name": "checkout",
+            "exit": 0,
+            "seconds": 0.06388956300000359
+          },
+          {
+            "name": "set-origin",
+            "exit": 0,
+            "seconds": 0.0015361039999959303
+          },
+          {
+            "name": "fetch-dependencies",
+            "exit": 0,
+            "seconds": 1.6164871020000007
+          },
+          {
+            "name": "checkout-baseline",
+            "exit": 0,
+            "seconds": 0.21426605400000653
+          },
+          {
+            "name": "baseline-fmt",
+            "exit": 0,
+            "seconds": 1.5164209759999991
+          },
+          {
+            "name": "baseline-clippy",
+            "exit": 101,
+            "seconds": 112.48362946699999
+          },
+          {
+            "name": "baseline-tests",
+            "exit": 0,
+            "seconds": 167.377307325
+          },
+          {
+            "name": "restore-candidate",
+            "exit": 0,
+            "seconds": 0.015648837000014737
+          }
+        ],
+        "provider_calls": 0,
+        "upstream_pr_opened": false,
+        "baseline_checked_commit": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "baseline_clippy": "KNOWN_UPSTREAM_LARGE_ERROR_FAILURE",
+        "baseline_clippy_errors": [
+          "error: the `Err`-variant returned from this function is very large",
+          "error: the `Err`-variant returned from this function is very large",
+          "error: the `Err`-variant returned from this function is very large",
+          "error: the `Err`-variant returned from this function is very large",
+          "error: could not compile `sashiko` (lib) due to 4 previous errors",
+          "error: could not compile `sashiko` (lib test) due to 4 previous errors"
+        ],
+        "baseline_suite_summaries": [
+          "test result: ok. 996 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 5.39s",
+          "test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s",
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s"
+        ],
+        "production_source_restored": true
+      },
+      "original_upstream_run": 39360690253,
+      "production_source_restored": true
+    },
+    "cancel": {
+      "status": "PASS",
+      "phase": "cancel",
+      "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+      "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "checks": [
+        {
+          "name": "audit-yaml",
+          "exit": 0,
+          "seconds": 0.26436590299999807
+        },
+        {
+          "name": "clone",
+          "exit": 0,
+          "seconds": 0.032049388999979556
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.3647046349999812
+        },
+        {
+          "name": "fetch-bundle",
+          "exit": 0,
+          "seconds": 0.06407755299997575
+        },
+        {
+          "name": "checkout",
+          "exit": 0,
+          "seconds": 0.06401467499998148
+        },
+        {
+          "name": "set-origin",
+          "exit": 0,
+          "seconds": 0.003617112999990013
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 4.3725098900000035
+        },
+        {
+          "name": "cancel",
+          "exit": 0,
+          "seconds": 398.096729102
+        }
       ],
-      "baseline_suite_summaries": [
-        "test result: ok. 996 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 5.39s",
-        "test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s",
-        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
-        "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s"
-      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "environment": {
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+        "runner": "Ubuntu 24.04"
+      },
+      "runner_sha256": "feed051437e62eaef968b0d173f64a41aa97a75a48e1d718564507f9ce2d2864",
+      "detail": {
+        "status": "PASS",
+        "checkpoint": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+        "production_base": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+        "source_sha256": "f93900b66c0ee0a1e02a15284f7a7eec01624e8b3b7de4c310e082405b00e91e",
+        "checks": [
+          {
+            "name": "active-review-cancellation",
+            "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+            "status": "PASS"
+          },
+          {
+            "name": "negative-cancel-watch",
+            "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+            "status": "KILLED"
+          },
+          {
+            "name": "unrelated-cancel-watch",
+            "target": "cooldown::tests::identity_normalization_has_no_unknown_bucket",
+            "status": "PASS"
+          },
+          {
+            "name": "negative-task-abort",
+            "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+            "status": "KILLED"
+          },
+          {
+            "name": "unrelated-task-abort",
+            "target": "cooldown::tests::identity_normalization_has_no_unknown_bucket",
+            "status": "PASS"
+          },
+          {
+            "name": "restored-cancellation",
+            "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+            "status": "PASS"
+          }
+        ],
+        "mutants": [
+          {
+            "name": "cancel-watch",
+            "status": "KILLED",
+            "binary_sha256": "839fd2dff46aa9ac27fd2b4d6529be4edc9db4fa209d6c7b2833b5b8406994ee"
+          },
+          {
+            "name": "task-abort",
+            "status": "KILLED",
+            "binary_sha256": "ae1ae2f67008faf701f3a99cde5f166981f1d146fa2a1715aa8131d83803f33f"
+          }
+        ],
+        "limitations": [
+          "Persisted adaptive owner; actual stdio RPC loop, cancellation watcher and model-permit wrapper.",
+          "Provider is an in-process pending future; child is a local static Python script. No real model/API call.",
+          "This isolates review-tool resource cleanup; full worktree preparation and remote SMTP acknowledgement are not exercised."
+        ],
+        "fixture_sha256": "10fa5ac54c438ac66c4ffdbd6d3dc519f0201282f2f039fa157c186984a06967",
+        "source_restored": true
+      },
       "production_source_restored": true
     },
     "rollback": {
       "status": "PASS",
       "phase": "rollback",
-      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+      "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
       "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
       "checks": [
         {
           "name": "audit-yaml",
           "exit": 0,
-          "seconds": 0.4647685600000031
+          "seconds": 0.31446920500002307
         },
         {
           "name": "clone",
           "exit": 0,
-          "seconds": 0.03216866600000401
+          "seconds": 0.031865306000099736
         },
         {
           "name": "fetch-upstream",
           "exit": 0,
-          "seconds": 0.3147346490000018
+          "seconds": 0.26433812000004764
         },
         {
           "name": "fetch-bundle",
           "exit": 0,
-          "seconds": 0.06411784600000203
+          "seconds": 0.06399070899988146
         },
         {
           "name": "checkout",
           "exit": 0,
-          "seconds": 0.06399364299999633
+          "seconds": 0.06402428299998064
         },
         {
           "name": "set-origin",
           "exit": 0,
-          "seconds": 0.0036859450000008565
+          "seconds": 0.0036959839999326505
         },
         {
           "name": "fetch-dependencies",
           "exit": 0,
-          "seconds": 5.776360367000002
+          "seconds": 2.0182809509999515
         },
         {
           "name": "rollback",
           "exit": 0,
-          "seconds": 333.349753308
+          "seconds": 241.98350193600004
         }
       ],
       "provider_calls": 0,
       "upstream_pr_opened": false,
-      "runner_sha256": "64ce1645d0750c286dadfd4c1d80d7d1938a72bce0124f9994048498d89a174a",
+      "environment": {
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+        "runner": "Ubuntu 24.04"
+      },
+      "runner_sha256": "55dcdfd8d33f20b608ee76540d12f4bfab900983150eb053c39549c28b59a06d",
       "detail": {
         "status": "PASS",
         "base": "7f92f869a960a20f7d395550b4879d897ebdf4ea",
@@ -438,7 +920,7 @@
             "status": "PASS"
           }
         ],
-        "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "checkpoint": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
         "limitations": [
           "Runs actual old/new daemon binaries on loopback plus native database fixtures; not a deployment.",
           "Review concurrency zero is a test-only pause; all transports are dry-run and runtime network proxies refuse egress.",
@@ -446,190 +928,85 @@
           "Restoration assumes all ingestion, review and delivery processes are stopped and no new work was accepted during old-version access.",
           "Stopped-system backup/restore includes old/new daemon cold starts; no live rolling upgrade or real remote acknowledgement is exercised."
         ],
-        "candidate_binary_sha256": "95f0565d635ed74f2ad0d7a5b539b724472ee93cd575882b3cfa2150786a4dd1",
-        "candidate_daemon_sha256": "547141775df0917bcfed2729cf20cc6089e8efcf5c7b09f501118260efeebf44",
-        "old_binary_sha256": "1d8638d11f556c79afba0be8512c760667983d107f8cdc7831093cef2de7c7ef",
-        "old_daemon_sha256": "26d5713b385c22b41aab6ef35c4d8d6274d9fa950826cdb0a83fa3f6aba39df6",
-        "preserved_pending_state_sha256": "45b72893561029cfb0bdfc574580fc556962aabb25b47a583b89cfc5520c51b2",
+        "candidate_binary_sha256": "881de76521ecd052d808c1270037017b7a52613640cd25adf42a01e9a20fc6d6",
+        "candidate_daemon_sha256": "e57400cfca7ae41c653b31524bbb92a5bdc235f7073a27815a1d2b7f3386b0be",
+        "old_binary_sha256": "499915a4a3576c2194509002dce9dbb0c19e200eb310b1751fa09f1f986b4d1a",
+        "old_daemon_sha256": "edc28e2075ff94a7e626ebd2395f32678dccbcb6cc9921b633468548b6acda29",
+        "preserved_pending_state_sha256": "e5c97b15c7edecd31a3f3e4c9cef7555ae63207e2efa2bf407209189c043a23e",
         "pending_work_restore": "PASS: complete recorded pending state restored before candidate resume"
-      },
-      "production_source_restored": true
-    },
-    "cancel": {
-      "status": "PASS",
-      "phase": "cancel",
-      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
-      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
-      "checks": [
-        {
-          "name": "audit-yaml",
-          "exit": 0,
-          "seconds": 0.3144440080000024
-        },
-        {
-          "name": "clone",
-          "exit": 0,
-          "seconds": 0.03193680399999721
-        },
-        {
-          "name": "fetch-upstream",
-          "exit": 0,
-          "seconds": 0.26436393099999833
-        },
-        {
-          "name": "fetch-bundle",
-          "exit": 0,
-          "seconds": 0.2644949170000004
-        },
-        {
-          "name": "checkout",
-          "exit": 0,
-          "seconds": 0.06404315200000354
-        },
-        {
-          "name": "set-origin",
-          "exit": 0,
-          "seconds": 0.0035961680000013985
-        },
-        {
-          "name": "fetch-dependencies",
-          "exit": 0,
-          "seconds": 2.268530632000001
-        },
-        {
-          "name": "cancel",
-          "exit": 0,
-          "seconds": 391.712042712
-        }
-      ],
-      "provider_calls": 0,
-      "upstream_pr_opened": false,
-      "runner_sha256": "969ca3a2af221a0725d1f58dfb2f2cc39033886d2245f95c824e922954649691",
-      "detail": {
-        "status": "PASS",
-        "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-        "production_base": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-        "source_sha256": "f93900b66c0ee0a1e02a15284f7a7eec01624e8b3b7de4c310e082405b00e91e",
-        "checks": [
-          {
-            "name": "active-review-cancellation",
-            "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
-            "status": "PASS"
-          },
-          {
-            "name": "negative-cancel-watch",
-            "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
-            "status": "KILLED"
-          },
-          {
-            "name": "unrelated-cancel-watch",
-            "target": "cooldown::tests::identity_normalization_has_no_unknown_bucket",
-            "status": "PASS"
-          },
-          {
-            "name": "negative-task-abort",
-            "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
-            "status": "KILLED"
-          },
-          {
-            "name": "unrelated-task-abort",
-            "target": "cooldown::tests::identity_normalization_has_no_unknown_bucket",
-            "status": "PASS"
-          },
-          {
-            "name": "restored-cancellation",
-            "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
-            "status": "PASS"
-          }
-        ],
-        "mutants": [
-          {
-            "name": "cancel-watch",
-            "status": "KILLED",
-            "binary_sha256": "b40a214feae552fa78d2620f7802478f78c9ae44ff41a663bcbe7411e9fda2f5"
-          },
-          {
-            "name": "task-abort",
-            "status": "KILLED",
-            "binary_sha256": "5c31b58ab8a5fa0ca25360aef59405e380a8a086981f26de8cf987adfddc0d1d"
-          }
-        ],
-        "limitations": [
-          "Persisted adaptive owner; actual stdio RPC loop, cancellation watcher and model-permit wrapper.",
-          "Provider is an in-process pending future; child is a local static Python script. No real model/API call.",
-          "This isolates review-tool resource cleanup; full worktree preparation and remote SMTP acknowledgement are not exercised."
-        ],
-        "fixture_sha256": "10fa5ac54c438ac66c4ffdbd6d3dc519f0201282f2f039fa157c186984a06967",
-        "source_restored": true
       },
       "production_source_restored": true
     },
     "conflict": {
       "status": "PASS",
       "phase": "conflict",
-      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+      "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
       "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
       "checks": [
         {
           "name": "audit-yaml",
           "exit": 0,
-          "seconds": 0.5155117449999977
+          "seconds": 0.4647655149999963
         },
         {
           "name": "clone",
           "exit": 0,
-          "seconds": 0.3149589699999993
+          "seconds": 0.06442323899999991
         },
         {
           "name": "fetch-upstream",
           "exit": 0,
-          "seconds": 0.31489515399999846
+          "seconds": 0.6152750810000001
         },
         {
           "name": "fetch-bundle",
           "exit": 0,
-          "seconds": 0.06447368900000328
+          "seconds": 0.30410551099999594
         },
         {
           "name": "checkout",
           "exit": 0,
-          "seconds": 0.06415779999999671
+          "seconds": 0.21442674599999378
         },
         {
           "name": "set-origin",
           "exit": 0,
-          "seconds": 0.0038406130000012695
+          "seconds": 0.032000017999997965
         },
         {
           "name": "fetch-dependencies",
           "exit": 0,
-          "seconds": 2.4206057230000013
+          "seconds": 2.5189840350000026
         },
         {
           "name": "positive",
           "exit": 0,
-          "seconds": 228.98709392599997
+          "seconds": 200.432537363
         },
         {
           "name": "mutant-preparing",
           "exit": 101,
-          "seconds": 51.52458643799997
+          "seconds": 44.43092861100001
         },
         {
           "name": "mutant-active",
           "exit": 101,
-          "seconds": 49.15788236999998
+          "seconds": 44.28226539399998
         },
         {
           "name": "restored",
           "exit": 0,
-          "seconds": 47.04640009399998
+          "seconds": 44.629458201000034
         }
       ],
       "provider_calls": 0,
       "upstream_pr_opened": false,
+      "environment": {
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+        "runner": "Ubuntu 24.04"
+      },
       "mutants": [
         {
           "name": "preparing",
@@ -644,228 +1021,67 @@
       ],
       "production_source_restored": true
     },
-    "crash": {
-      "status": "PASS",
-      "phase": "crash",
-      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
-      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
-      "checks": [
-        {
-          "name": "audit-yaml",
-          "exit": 0,
-          "seconds": 0.31458154200004174
-        },
-        {
-          "name": "clone",
-          "exit": 0,
-          "seconds": 0.032005113000025176
-        },
-        {
-          "name": "fetch-upstream",
-          "exit": 0,
-          "seconds": 0.6153497560000005
-        },
-        {
-          "name": "fetch-bundle",
-          "exit": 0,
-          "seconds": 0.06407159299999421
-        },
-        {
-          "name": "checkout",
-          "exit": 0,
-          "seconds": 0.06406095099998765
-        },
-        {
-          "name": "set-origin",
-          "exit": 0,
-          "seconds": 0.003616744000055405
-        },
-        {
-          "name": "fetch-dependencies",
-          "exit": 0,
-          "seconds": 4.6742554350000205
-        },
-        {
-          "name": "format-crash-fixture",
-          "exit": 0,
-          "seconds": 4.874949982999965
-        },
-        {
-          "name": "build-crash-fixture",
-          "exit": 0,
-          "seconds": 196.846085781
-        },
-        {
-          "name": "clippy-crash-fixture",
-          "exit": 0,
-          "seconds": 116.86166281199996
-        }
-      ],
-      "provider_calls": 0,
-      "upstream_pr_opened": false,
-      "binary_sha256": "2905edb02493a34df4f835567a719e06dee4252a2a55174d37ce3b9a088364e6",
-      "fixture_sha256": "92aadab06b016e5c2ce7b2e9684521c7460903930eaf46dc675c2eea5743b17a",
-      "crash_phases": [
-        {
-          "phase": "preparing",
-          "status": "PASS",
-          "killed_after_commit": true
-        },
-        {
-          "phase": "active",
-          "status": "PASS",
-          "killed_after_commit": true
-        },
-        {
-          "phase": "handoff",
-          "status": "PASS",
-          "killed_after_commit": true
-        }
-      ],
-      "production_source_restored": true
-    },
-    "faults": {
-      "status": "PASS",
-      "phase": "faults",
-      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
-      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
-      "checks": [
-        {
-          "name": "audit-yaml",
-          "exit": 0,
-          "seconds": 0.2642099199999848
-        },
-        {
-          "name": "clone",
-          "exit": 0,
-          "seconds": 0.015830891999996766
-        },
-        {
-          "name": "fetch-upstream",
-          "exit": 0,
-          "seconds": 0.4644305359999805
-        },
-        {
-          "name": "fetch-bundle",
-          "exit": 0,
-          "seconds": 0.06376673399998367
-        },
-        {
-          "name": "checkout",
-          "exit": 0,
-          "seconds": 0.06385161200000766
-        },
-        {
-          "name": "set-origin",
-          "exit": 0,
-          "seconds": 0.0035032750000141277
-        },
-        {
-          "name": "fetch-dependencies",
-          "exit": 0,
-          "seconds": 3.2204488440000034
-        },
-        {
-          "name": "faults",
-          "exit": 0,
-          "seconds": 161.175992909
-        }
-      ],
-      "provider_calls": 0,
-      "upstream_pr_opened": false,
-      "runner_sha256": "159972828441057e0a0b7ac1b49536b82ca061f420040f8e8002eb22facf8b63",
-      "detail": {
-        "status": "PASS",
-        "checks": [
-          {
-            "mode": "enospc",
-            "status": "PASS"
-          },
-          {
-            "mode": "eio",
-            "status": "PASS"
-          },
-          {
-            "mode": "torn-write",
-            "status": "PASS"
-          },
-          {
-            "mode": "precommit",
-            "status": "PASS"
-          },
-          {
-            "mode": "postcommit",
-            "status": "PASS"
-          }
-        ],
-        "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-        "limitations": [
-          "LD_PRELOAD injects ENOSPC/EIO and a partial WAL write; this is not actual device exhaustion or physical power loss.",
-          "SIGKILL tests process crash before and after successful COMMIT.",
-          "No remote SMTP acceptance crash or historical archive replay is exercised."
-        ],
-        "binary_sha256": "1da30caa5397e6b52da33d53b8fba78e4d83b8d5c74d7192ffb6fea4e433bca3"
-      },
-      "production_source_restored": true
-    },
     "historical": {
       "status": "PASS",
       "phase": "historical",
-      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+      "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
       "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
       "checks": [
         {
           "name": "audit-yaml",
           "exit": 0,
-          "seconds": 0.36491948799994134
+          "seconds": 0.2641824039999996
         },
         {
           "name": "clone",
           "exit": 0,
-          "seconds": 0.032077562999916154
+          "seconds": 0.031768511000002775
         },
         {
           "name": "fetch-upstream",
           "exit": 0,
-          "seconds": 0.4148639640000056
+          "seconds": 0.41472050800000204
         },
         {
           "name": "fetch-bundle",
           "exit": 0,
-          "seconds": 0.06418434199997591
+          "seconds": 0.06547974799999423
         },
         {
           "name": "checkout",
           "exit": 0,
-          "seconds": 0.06412267000007432
+          "seconds": 0.06376619400000294
         },
         {
           "name": "set-origin",
           "exit": 0,
-          "seconds": 0.003933361000008517
+          "seconds": 0.003501590999995585
         },
         {
           "name": "fetch-dependencies",
           "exit": 0,
-          "seconds": 1.6170933019999438
+          "seconds": 2.167585719999998
         },
         {
           "name": "historical",
           "exit": 0,
-          "seconds": 167.32513905300004
+          "seconds": 135.532437793
         }
       ],
       "provider_calls": 0,
       "upstream_pr_opened": false,
-      "runner_sha256": "93a3e3c776509af2783f0b0623e0cc602a37fcdf8024e4ea054ced80922d2b01",
+      "environment": {
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+        "runner": "Ubuntu 24.04"
+      },
+      "runner_sha256": "4c0568de1010b1bd1b0d575c9a9b7aa4c82f436b4f6c9ac1383cfd78da28d9b5",
       "detail": {
         "status": "PASS",
         "archive_url": "https://raw.githubusercontent.com/git/git/ba4324c4e1e32a28381ea1f4835b78e4c9d45575/t/t5100/sample.mbox",
         "provenance": "https://github.com/git/git/commit/b0921331030d52febf52839753eee1b2b9ca1f24",
-        "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "checkpoint": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
         "checks": [
           {
             "name": "prepare",
@@ -915,66 +1131,163 @@
         "corpus_sha256": "c1b7fc338ed7f0f3dbf6de5108f80355f3966f41cc88b6b169c25ae9185db1bc",
         "historical_date": "Mon, 15 Aug 2005 20:18:25 +0200",
         "archive_sha256": "a191fcedd79cb128e8e01287ce811e47cd1220e37fea775b62cee67f3ae3570c",
-        "binary_sha256": "cf4fefd0da96f062d540e0c1298fcbc11863e80eecb235581beededa23b4e97f",
+        "binary_sha256": "98a9dbd56a2e180693e6f4ba10e2c52d0aa189b2849390bbd45b9cd0aa0f2ca1",
         "protected_source_sha256_before_and_after": "3848d4015c31b0c11fbe86052f45a71dcf82b79be73dd5011a8cc5f2d922ff19",
         "replay_performed": true
+      },
+      "production_source_restored": true
+    },
+    "clock": {
+      "status": "PASS",
+      "phase": "clock",
+      "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+      "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "checks": [
+        {
+          "name": "audit-yaml",
+          "exit": 0,
+          "seconds": 0.46473130600000445
+        },
+        {
+          "name": "clone",
+          "exit": 0,
+          "seconds": 0.03192697299999736
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.4146291899999994
+        },
+        {
+          "name": "fetch-bundle",
+          "exit": 0,
+          "seconds": 0.06397551199999896
+        },
+        {
+          "name": "checkout",
+          "exit": 0,
+          "seconds": 0.06424376200000381
+        },
+        {
+          "name": "set-origin",
+          "exit": 0,
+          "seconds": 0.0036674019999978213
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 2.419196883000005
+        },
+        {
+          "name": "clock",
+          "exit": 0,
+          "seconds": 281.861489314
+        }
+      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "environment": {
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+        "runner": "Ubuntu 24.04"
+      },
+      "runner_sha256": "4b6234faf8ab0891b291a1db70ab96e90c5b9f3924aeef26cb0572518b70131b",
+      "detail": {
+        "status": "PASS",
+        "production_base": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+        "checkpoint": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+        "source_sha256": "66bfd8a2085787e6285493c2a85c797f6403126cd34c86adaf4940bd0c31ed99",
+        "checks": [
+          {
+            "timezone": "UTC",
+            "status": "PASS",
+            "wall_clock_states": 6,
+            "natural_deadline_release": 1,
+            "post_release_replay_jumps": 2
+          },
+          {
+            "timezone": "America/New_York",
+            "status": "PASS",
+            "wall_clock_states": 6,
+            "natural_deadline_release": 1,
+            "post_release_replay_jumps": 2
+          }
+        ],
+        "limitations": [
+          "LD_PRELOAD changes wall-clock APIs only in the owned test process and its recording MTA; no host-clock change.",
+          "Monotonic time remains real; child process groups have bounded external timeouts.",
+          "Review output is a fixture and delivery is local recording only.",
+          "This does not establish arbitrary host/kernel clock behavior or remove fixed-deadline policy tradeoffs."
+        ],
+        "reviewer_source_sha256": "f93900b66c0ee0a1e02a15284f7a7eec01624e8b3b7de4c310e082405b00e91e",
+        "fixture_sha256": "9c4d2d4cc2d76c024c313c3567893cc56d41de430041b34abca0e1649336272b",
+        "shim_sha256": "f2a1c1e752b204a38fef7bcab4ec3dc0345773223966324e6bac5ba54909fd11",
+        "release_query_observer": "records actual now and selected count after production query",
+        "binary_sha256": "072babd19f2eec4822ca8d4f5926f96684aaf2542581415fa021602db4c54885",
+        "source_restored": true
       },
       "production_source_restored": true
     },
     "concurrency": {
       "status": "PASS",
       "phase": "concurrency",
-      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
-      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+      "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
       "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
       "checks": [
         {
           "name": "audit-yaml",
           "exit": 0,
-          "seconds": 0.46497277099999934
+          "seconds": 0.2644864590000111
         },
         {
           "name": "clone",
           "exit": 0,
-          "seconds": 0.03203243800000166
+          "seconds": 0.03203940800000282
         },
         {
           "name": "fetch-upstream",
           "exit": 0,
-          "seconds": 0.3146864919999999
+          "seconds": 0.4650866589999936
         },
         {
           "name": "fetch-bundle",
           "exit": 0,
-          "seconds": 0.11451649400000008
+          "seconds": 0.06407849699999701
         },
         {
           "name": "checkout",
           "exit": 0,
-          "seconds": 0.06421886100000052
+          "seconds": 0.06410981400000537
         },
         {
           "name": "set-origin",
           "exit": 0,
-          "seconds": 0.0038700329999983296
+          "seconds": 0.00355556200000251
         },
         {
           "name": "fetch-dependencies",
           "exit": 0,
-          "seconds": 2.6702844289999987
+          "seconds": 1.767240196000003
         },
         {
           "name": "concurrency",
           "exit": 0,
-          "seconds": 214.42565444
+          "seconds": 140.91280021
         }
       ],
       "provider_calls": 0,
       "upstream_pr_opened": false,
+      "environment": {
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+        "runner": "Ubuntu 24.04"
+      },
       "runner_sha256": "eb2050b2d9cac0743a62e90adbd2f0cc11cc38b1cbe82d4642d22453c90274a3",
       "detail": {
         "status": "PASS",
-        "candidate_commit": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "candidate_commit": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
         "fixture_sha256": "62cade09f8f8edd4d4c6211245262eb917959fd54794b7280e5dcd80697ec60c",
         "checks": [
           {
@@ -987,32 +1300,1570 @@
           "128 context-free replays and 64 explicit releases run during concurrent admission.",
           "No production latency or fairness guarantee; source selection remains a DB-API fixture."
         ],
-        "binary_sha256": "a607a12accc12ce8c5383ed694c2ee55ab076b230f3da1e255a2d1906638899f"
+        "binary_sha256": "29d1ea2cc564be13f9c57e31c0143e39a9e0c66176278c457232bfc2256bef9f"
       },
       "production_source_restored": true
     }
   },
-  "optimization": {
-    "status": "NATIVE_VALIDATION_RUNNING",
-    "checkpoint": "5839f5285c9940af3f2cd4e74b97f51119fffdf1",
-    "run": 39367721490,
-    "extended_run": 39367817904,
-    "scope": "Combine active and durable quarantine checks into existing source binding, patch binding and completion snapshots.",
-    "source_changed": true,
-    "budget_unchanged": true
+  "maximum": {
+    "status": "PASS",
+    "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+    "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
+    "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+    "checks": [
+      {
+        "name": "clone",
+        "exit": 0
+      },
+      {
+        "name": "fetch-upstream",
+        "exit": 0
+      },
+      {
+        "name": "fetch-bundle",
+        "exit": 0
+      },
+      {
+        "name": "checkout",
+        "exit": 0
+      },
+      {
+        "name": "fetch-dependencies",
+        "exit": 0
+      },
+      {
+        "name": "clear-generated-paths",
+        "exit": 0
+      },
+      {
+        "name": "format",
+        "exit": 0
+      },
+      {
+        "name": "build",
+        "exit": 0
+      },
+      {
+        "name": "maximum-1024-parts",
+        "exit": 0
+      },
+      {
+        "name": "history-read-failure",
+        "exit": 0
+      },
+      {
+        "name": "exit-after-commit",
+        "exit": 23
+      },
+      {
+        "name": "reopened-replay-and-release",
+        "exit": 0
+      }
+    ],
+    "provider_calls": 0,
+    "fixture_sha256": "d8e550639bb969c12d7c50ac30479e0d36e26d78a196166e1ce58030f4bcf95c",
+    "binary_sha256": "26fd061f8511b5289b1de1d895bf4efe237c19fe1d9c6973fcade98dae0e5bd5",
+    "production_source_restored": true
   },
-  "negative_results": [
-    {
-      "run": 39359678639,
-      "phase": "performance",
-      "reason": "Original changed-source trace exceeded disabled-mode budget; preserved, not retried unchanged."
+  "performance": {
+    "status": "FAIL_BUDGET",
+    "run": 39367967782,
+    "job": 118449990877,
+    "artifact": 12241170066,
+    "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+    "budgets": {
+      "disabled_over_upstream": 1.2,
+      "enabled_over_disabled": 1.5
     },
-    {
+    "comparisons": [
+      {
+        "retained": 0,
+        "disabled_over_upstream": 1.282352694445276,
+        "enabled_over_disabled": 1.1363331088489,
+        "legacy_state_equal": true
+      },
+      {
+        "retained": 10000,
+        "disabled_over_upstream": 1.280274788596906,
+        "enabled_over_disabled": 1.1618441263400336,
+        "legacy_state_equal": true
+      }
+    ],
+    "samples": [
+      {
+        "events": 0,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "6c0a667e4c451746dd53063ad3bf154ff27811fa7a394d4e1d3a5c9c11f1c26d",
+        "mode": "disabled",
+        "patches": 3750,
+        "process_seconds": 13.547590220000018,
+        "profile": "instrumentation-free-debug",
+        "repetition": 0,
+        "retained": 0,
+        "seconds": 13.436690832,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "baseline"
+      },
+      {
+        "events": 0,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "6c0a667e4c451746dd53063ad3bf154ff27811fa7a394d4e1d3a5c9c11f1c26d",
+        "mode": "disabled",
+        "patches": 3750,
+        "process_seconds": 15.348539126999981,
+        "profile": "instrumentation-free-debug",
+        "repetition": 0,
+        "retained": 0,
+        "seconds": 15.245909705,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "candidate"
+      },
+      {
+        "events": 800,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "6a30faee388084261afcb3719f639fc741c828f98f03e57a073e60f413024e3d",
+        "mode": "enabled",
+        "patches": 3750,
+        "process_seconds": 20.959765688999994,
+        "profile": "instrumentation-free-debug",
+        "repetition": 0,
+        "retained": 0,
+        "seconds": 20.884772506,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "candidate"
+      },
+      {
+        "events": 0,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "18f26b84f300c17d1c20aca6e474e8b37d09d672feb2cc837f13e3cecd329090",
+        "mode": "disabled",
+        "patches": 3750,
+        "process_seconds": 11.33925973700002,
+        "profile": "instrumentation-free-debug",
+        "repetition": 0,
+        "retained": 10000,
+        "seconds": 11.145653553,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "baseline"
+      },
+      {
+        "events": 0,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "18f26b84f300c17d1c20aca6e474e8b37d09d672feb2cc837f13e3cecd329090",
+        "mode": "disabled",
+        "patches": 3750,
+        "process_seconds": 14.693671101999996,
+        "profile": "instrumentation-free-debug",
+        "repetition": 0,
+        "retained": 10000,
+        "seconds": 14.444982391,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "candidate"
+      },
+      {
+        "events": 800,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "9fb904f3d02ab0dc8cbdea0d63083ce1f818249d732dc3d5a683dc2559fed000",
+        "mode": "enabled",
+        "patches": 3750,
+        "process_seconds": 16.84926556900001,
+        "profile": "instrumentation-free-debug",
+        "repetition": 0,
+        "retained": 10000,
+        "seconds": 16.565848455,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "candidate"
+      },
+      {
+        "events": 800,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "13f095a0e43fba00ed111e4053a80b1419bf9541f74dd860a81696d48f076625",
+        "mode": "enabled",
+        "patches": 3750,
+        "process_seconds": 16.353400881000027,
+        "profile": "instrumentation-free-debug",
+        "repetition": 1,
+        "retained": 0,
+        "seconds": 16.26551677,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "candidate"
+      },
+      {
+        "events": 0,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "6c0a667e4c451746dd53063ad3bf154ff27811fa7a394d4e1d3a5c9c11f1c26d",
+        "mode": "disabled",
+        "patches": 3750,
+        "process_seconds": 14.24272096499999,
+        "profile": "instrumentation-free-debug",
+        "repetition": 1,
+        "retained": 0,
+        "seconds": 14.148304499,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "candidate"
+      },
+      {
+        "events": 0,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "6c0a667e4c451746dd53063ad3bf154ff27811fa7a394d4e1d3a5c9c11f1c26d",
+        "mode": "disabled",
+        "patches": 3750,
+        "process_seconds": 11.237391090000017,
+        "profile": "instrumentation-free-debug",
+        "repetition": 1,
+        "retained": 0,
+        "seconds": 11.162326367,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "baseline"
+      },
+      {
+        "events": 800,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "a4b93d3eb935831acc6bccdc3ac6220113b96ebc599bfb799be25d5e98f42bfb",
+        "mode": "enabled",
+        "patches": 3750,
+        "process_seconds": 16.702011529999993,
+        "profile": "instrumentation-free-debug",
+        "repetition": 1,
+        "retained": 10000,
+        "seconds": 16.460556151,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "candidate"
+      },
+      {
+        "events": 0,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "18f26b84f300c17d1c20aca6e474e8b37d09d672feb2cc837f13e3cecd329090",
+        "mode": "disabled",
+        "patches": 3750,
+        "process_seconds": 14.391202719999967,
+        "profile": "instrumentation-free-debug",
+        "repetition": 1,
+        "retained": 10000,
+        "seconds": 14.137953807,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "candidate"
+      },
+      {
+        "events": 0,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "18f26b84f300c17d1c20aca6e474e8b37d09d672feb2cc837f13e3cecd329090",
+        "mode": "disabled",
+        "patches": 3750,
+        "process_seconds": 11.288194117999979,
+        "profile": "instrumentation-free-debug",
+        "repetition": 1,
+        "retained": 10000,
+        "seconds": 11.103241817,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "baseline"
+      },
+      {
+        "events": 0,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "6c0a667e4c451746dd53063ad3bf154ff27811fa7a394d4e1d3a5c9c11f1c26d",
+        "mode": "disabled",
+        "patches": 3750,
+        "process_seconds": 11.087526631999935,
+        "profile": "instrumentation-free-debug",
+        "repetition": 2,
+        "retained": 0,
+        "seconds": 11.020804363,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "baseline"
+      },
+      {
+        "events": 0,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "6c0a667e4c451746dd53063ad3bf154ff27811fa7a394d4e1d3a5c9c11f1c26d",
+        "mode": "disabled",
+        "patches": 3750,
+        "process_seconds": 14.394191875000047,
+        "profile": "instrumentation-free-debug",
+        "repetition": 2,
+        "retained": 0,
+        "seconds": 14.314039293,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "candidate"
+      },
+      {
+        "events": 800,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "88ff112c09e2d09fb0c36bd80b76aa4c1eac13a7b80ff3af32c7b0e3353527ee",
+        "mode": "enabled",
+        "patches": 3750,
+        "process_seconds": 16.34676169399995,
+        "profile": "instrumentation-free-debug",
+        "repetition": 2,
+        "retained": 0,
+        "seconds": 16.25349209,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "candidate"
+      },
+      {
+        "events": 0,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "18f26b84f300c17d1c20aca6e474e8b37d09d672feb2cc837f13e3cecd329090",
+        "mode": "disabled",
+        "patches": 3750,
+        "process_seconds": 11.188033904000008,
+        "profile": "instrumentation-free-debug",
+        "repetition": 2,
+        "retained": 10000,
+        "seconds": 11.005137271,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "baseline"
+      },
+      {
+        "events": 0,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "18f26b84f300c17d1c20aca6e474e8b37d09d672feb2cc837f13e3cecd329090",
+        "mode": "disabled",
+        "patches": 3750,
+        "process_seconds": 14.444480712999962,
+        "profile": "instrumentation-free-debug",
+        "repetition": 2,
+        "retained": 10000,
+        "seconds": 14.21520057,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "candidate"
+      },
+      {
+        "events": 800,
+        "legacy_patches_sha256": "cbddcfd30a0b635299716eb3b257c82f7e5c03ff81d0158ed6ac950d0c9581e3",
+        "legacy_patchsets_sha256": "367188620cfed8269075f4f67b41eeca7a6f7a96b46fbf3390012985a7440e24",
+        "mode": "enabled",
+        "patches": 3750,
+        "process_seconds": 16.748923537999985,
+        "profile": "instrumentation-free-debug",
+        "repetition": 2,
+        "retained": 10000,
+        "seconds": 16.515847287,
+        "series": 1000,
+        "storage": "file-backed",
+        "variant": "candidate"
+      }
+    ]
+  },
+  "previous_rebased_candidate": {
+    "status": "REBASED_NATIVE_PASS_PERFORMANCE_BLOCKED",
+    "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+    "native": {
+      "status": "REBASED_REQUIRED_CHECKS_PASS_EXTENDED_PENDING",
+      "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+      "original_source": "6667a81cd25a69feca76e65d94aacb4c83b2ce72",
+      "original_bounded_patch": "b24d9e05094ccfcf7609a46bb254608a3177dea1",
+      "checks": [
+        {
+          "name": "clone-source",
+          "exit": 0,
+          "seconds": 0.0411695459999919
+        },
+        {
+          "name": "fetch-clean-bundle",
+          "exit": 0,
+          "seconds": 0.07312332899999774
+        },
+        {
+          "name": "verify-old-source",
+          "exit": 0,
+          "seconds": 0.015455973000001677
+        },
+        {
+          "name": "fetch-native-bundle",
+          "exit": 0,
+          "seconds": 0.1227681820000015
+        },
+        {
+          "name": "verify-native-source",
+          "exit": 0,
+          "seconds": 0.012649218999996492
+        },
+        {
+          "name": "fetch-upstream",
+          "exit": 0,
+          "seconds": 0.5238104139999962
+        },
+        {
+          "name": "checkout-clean-source",
+          "exit": 0,
+          "seconds": 0.07270441800000071
+        },
+        {
+          "name": "configure-user.name",
+          "exit": 0,
+          "seconds": 0.012941492999999582
+        },
+        {
+          "name": "configure-user.email",
+          "exit": 0,
+          "seconds": 0.015818991999992704
+        },
+        {
+          "name": "rebase-source",
+          "exit": 0,
+          "seconds": 0.32309311199999513
+        },
+        {
+          "name": "apply-bounded-source",
+          "exit": 0,
+          "seconds": 0.07275139799999408
+        },
+        {
+          "name": "fetch-dependencies",
+          "exit": 0,
+          "seconds": 6.3880627110000034
+        },
+        {
+          "name": "required-check-pr",
+          "exit": 0,
+          "seconds": 374.784183589
+        },
+        {
+          "name": "diff-check",
+          "exit": 0,
+          "seconds": 0.012559404000000995
+        },
+        {
+          "name": "commit-bounded-source",
+          "exit": 0,
+          "seconds": 0.040096366000000216
+        },
+        {
+          "name": "verify-final-signoffs",
+          "exit": 0,
+          "seconds": 0.04052268799995318
+        },
+        {
+          "name": "export-bundle",
+          "exit": 0,
+          "seconds": 0.0725118610000095
+        }
+      ],
+      "provider_calls": 0,
+      "upstream_pr_opened": false,
+      "suite_summaries": [
+        "test result: ok. 1043 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 8.22s",
+        "test result: ok. 50 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s",
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s"
+      ],
+      "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+      "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+      "commits": [
+        "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4 db: bound adaptive conflict quarantine transactions",
+        "f7688ce9ed8cdfaf2d8ae6d19c810af412a8f878 mail: add opt-in per-author publication cooldowns",
+        "4a1e3083dcacda94e5b5bd5cf23e10929c635f73 db: retire superseded series reviews awaiting publication",
+        "a84ad5868987524662f9e4cc32b1e1c3e2d90296 server: allow concrete extractor rejection response size"
+      ],
+      "changed_paths": [
+        "MAINTAINERS_GUIDE.md",
+        "designs/ADAPTIVE_PUBLICATION_COOLDOWN.md",
+        "docs/configuration.md",
+        "src/cooldown.rs",
+        "src/db.rs",
+        "src/db/conflict.rs",
+        "src/db/cooldown.rs",
+        "src/email_policy.rs",
+        "src/lib.rs",
+        "src/main.rs",
+        "src/migrations/014_held_series_index.sql",
+        "src/migrations/015_publication_cooldown.sql",
+        "src/migrations/016_cooldown_conflicts.sql",
+        "src/prerequisites.rs",
+        "src/server.rs"
+      ]
+    },
+    "native_run": 39359678639,
+    "native_artifact": 12237721302,
+    "deterministic": {
+      "status": "PASS",
+      "cases": 8,
+      "compiled_mutants_killed": 2,
+      "run": 39359678639
+    },
+    "performance": {
+      "status": "FAIL_BUDGET",
       "run": 39359678639,
-      "phase": "rollback",
-      "reason": "Shared build output referenced prompt files in a deleted baseline temporary checkout. No rollback behavior exercised in this failed step. Independent schema-16 rollback later passed."
-    }
-  ],
+      "budgets": {
+        "disabled_over_upstream": 1.2,
+        "enabled_over_disabled": 1.5
+      },
+      "comparisons": [
+        {
+          "retained": 0,
+          "disabled_over_upstream": 1.2450766801569302,
+          "enabled_over_disabled": 1.2207647121352523,
+          "legacy_state_equal": true
+        },
+        {
+          "retained": 10000,
+          "disabled_over_upstream": 1.35295309389588,
+          "enabled_over_disabled": 0.9559658378424324,
+          "legacy_state_equal": true
+        }
+      ]
+    },
+    "extended_run": 39360690253,
+    "extended": {
+      "clock": {
+        "status": "PASS",
+        "phase": "clock",
+        "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+        "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "checks": [
+          {
+            "name": "audit-yaml",
+            "exit": 0,
+            "seconds": 0.46507010800002035
+          },
+          {
+            "name": "clone",
+            "exit": 0,
+            "seconds": 0.031968790999997054
+          },
+          {
+            "name": "fetch-upstream",
+            "exit": 0,
+            "seconds": 0.3646239550000132
+          },
+          {
+            "name": "fetch-bundle",
+            "exit": 0,
+            "seconds": 0.06402936899996803
+          },
+          {
+            "name": "checkout",
+            "exit": 0,
+            "seconds": 0.06408110000000988
+          },
+          {
+            "name": "set-origin",
+            "exit": 0,
+            "seconds": 0.0036637740000173835
+          },
+          {
+            "name": "fetch-dependencies",
+            "exit": 0,
+            "seconds": 2.3685581679999927
+          },
+          {
+            "name": "clock",
+            "exit": 0,
+            "seconds": 290.12871634100003
+          }
+        ],
+        "provider_calls": 0,
+        "upstream_pr_opened": false,
+        "runner_sha256": "eff381943194130a8addff77e04768cf1c3a9470f5e727484534b6543484122c",
+        "detail": {
+          "status": "PASS",
+          "production_base": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+          "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+          "source_sha256": "66bfd8a2085787e6285493c2a85c797f6403126cd34c86adaf4940bd0c31ed99",
+          "checks": [
+            {
+              "timezone": "UTC",
+              "status": "PASS",
+              "wall_clock_states": 6,
+              "natural_deadline_release": 1,
+              "post_release_replay_jumps": 2
+            },
+            {
+              "timezone": "America/New_York",
+              "status": "PASS",
+              "wall_clock_states": 6,
+              "natural_deadline_release": 1,
+              "post_release_replay_jumps": 2
+            }
+          ],
+          "limitations": [
+            "LD_PRELOAD changes wall-clock APIs only in the owned test process and its recording MTA; no host-clock change.",
+            "Monotonic time remains real; child process groups have bounded external timeouts.",
+            "Review output is a fixture and delivery is local recording only.",
+            "This does not establish arbitrary host/kernel clock behavior or remove fixed-deadline policy tradeoffs."
+          ],
+          "reviewer_source_sha256": "f93900b66c0ee0a1e02a15284f7a7eec01624e8b3b7de4c310e082405b00e91e",
+          "fixture_sha256": "9c4d2d4cc2d76c024c313c3567893cc56d41de430041b34abca0e1649336272b",
+          "shim_sha256": "f2a1c1e752b204a38fef7bcab4ec3dc0345773223966324e6bac5ba54909fd11",
+          "release_query_observer": "records actual now and selected count after production query",
+          "binary_sha256": "4b33a66ba36c7f2e3cb49684013aa4ef71256bada08c7311bafb532a3a2c2d60",
+          "source_restored": true
+        },
+        "production_source_restored": true
+      },
+      "upstream": {
+        "status": "PASS",
+        "phase": "upstream",
+        "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+        "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "checks": [
+          {
+            "name": "audit-yaml",
+            "exit": 0,
+            "seconds": 0.31443910199999436
+          },
+          {
+            "name": "clone",
+            "exit": 0,
+            "seconds": 0.21425187399999857
+          },
+          {
+            "name": "fetch-upstream",
+            "exit": 0,
+            "seconds": 0.5648746120000041
+          },
+          {
+            "name": "fetch-bundle",
+            "exit": 0,
+            "seconds": 0.0640101400000006
+          },
+          {
+            "name": "checkout",
+            "exit": 0,
+            "seconds": 0.06388956300000359
+          },
+          {
+            "name": "set-origin",
+            "exit": 0,
+            "seconds": 0.0015361039999959303
+          },
+          {
+            "name": "fetch-dependencies",
+            "exit": 0,
+            "seconds": 1.6164871020000007
+          },
+          {
+            "name": "checkout-baseline",
+            "exit": 0,
+            "seconds": 0.21426605400000653
+          },
+          {
+            "name": "baseline-fmt",
+            "exit": 0,
+            "seconds": 1.5164209759999991
+          },
+          {
+            "name": "baseline-clippy",
+            "exit": 101,
+            "seconds": 112.48362946699999
+          },
+          {
+            "name": "baseline-tests",
+            "exit": 0,
+            "seconds": 167.377307325
+          },
+          {
+            "name": "restore-candidate",
+            "exit": 0,
+            "seconds": 0.015648837000014737
+          }
+        ],
+        "provider_calls": 0,
+        "upstream_pr_opened": false,
+        "baseline_checked_commit": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "baseline_clippy": "KNOWN_UPSTREAM_LARGE_ERROR_FAILURE",
+        "baseline_clippy_errors": [
+          "error: the `Err`-variant returned from this function is very large",
+          "error: the `Err`-variant returned from this function is very large",
+          "error: the `Err`-variant returned from this function is very large",
+          "error: the `Err`-variant returned from this function is very large",
+          "error: could not compile `sashiko` (lib) due to 4 previous errors",
+          "error: could not compile `sashiko` (lib test) due to 4 previous errors"
+        ],
+        "baseline_suite_summaries": [
+          "test result: ok. 996 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 5.39s",
+          "test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s",
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s"
+        ],
+        "production_source_restored": true
+      },
+      "rollback": {
+        "status": "PASS",
+        "phase": "rollback",
+        "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+        "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "checks": [
+          {
+            "name": "audit-yaml",
+            "exit": 0,
+            "seconds": 0.4647685600000031
+          },
+          {
+            "name": "clone",
+            "exit": 0,
+            "seconds": 0.03216866600000401
+          },
+          {
+            "name": "fetch-upstream",
+            "exit": 0,
+            "seconds": 0.3147346490000018
+          },
+          {
+            "name": "fetch-bundle",
+            "exit": 0,
+            "seconds": 0.06411784600000203
+          },
+          {
+            "name": "checkout",
+            "exit": 0,
+            "seconds": 0.06399364299999633
+          },
+          {
+            "name": "set-origin",
+            "exit": 0,
+            "seconds": 0.0036859450000008565
+          },
+          {
+            "name": "fetch-dependencies",
+            "exit": 0,
+            "seconds": 5.776360367000002
+          },
+          {
+            "name": "rollback",
+            "exit": 0,
+            "seconds": 333.349753308
+          }
+        ],
+        "provider_calls": 0,
+        "upstream_pr_opened": false,
+        "runner_sha256": "64ce1645d0750c286dadfd4c1d80d7d1938a72bce0124f9994048498d89a174a",
+        "detail": {
+          "status": "PASS",
+          "base": "7f92f869a960a20f7d395550b4879d897ebdf4ea",
+          "checks": [
+            {
+              "phase": "prepare",
+              "status": "PASS"
+            },
+            {
+              "phase": "candidate-before-stop",
+              "status": "PASS",
+              "actual_daemon": true,
+              "http_health": 200,
+              "review_concurrency": 0,
+              "dry_run": true
+            },
+            {
+              "phase": "unsafe-copy",
+              "status": "PASS"
+            },
+            {
+              "phase": "quiesce",
+              "status": "PASS"
+            },
+            {
+              "phase": "old-after-quiesce",
+              "status": "PASS",
+              "actual_daemon": true,
+              "http_health": 200,
+              "review_concurrency": 0,
+              "dry_run": true
+            },
+            {
+              "phase": "safe-old-access",
+              "status": "PASS"
+            },
+            {
+              "phase": "verify",
+              "status": "PASS"
+            },
+            {
+              "phase": "candidate-after-restore",
+              "status": "PASS",
+              "actual_daemon": true,
+              "http_health": 200,
+              "review_concurrency": 0,
+              "dry_run": true
+            },
+            {
+              "phase": "resume",
+              "status": "PASS"
+            }
+          ],
+          "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+          "limitations": [
+            "Runs actual old/new daemon binaries on loopback plus native database fixtures; not a deployment.",
+            "Review concurrency zero is a test-only pause; all transports are dry-run and runtime network proxies refuse egress.",
+            "Unsafe claims are demonstrated only on a copied native fixture; daemon delivery workers run in dry-run with guarded pending work and no external service access.",
+            "Restoration assumes all ingestion, review and delivery processes are stopped and no new work was accepted during old-version access.",
+            "Stopped-system backup/restore includes old/new daemon cold starts; no live rolling upgrade or real remote acknowledgement is exercised."
+          ],
+          "candidate_binary_sha256": "95f0565d635ed74f2ad0d7a5b539b724472ee93cd575882b3cfa2150786a4dd1",
+          "candidate_daemon_sha256": "547141775df0917bcfed2729cf20cc6089e8efcf5c7b09f501118260efeebf44",
+          "old_binary_sha256": "1d8638d11f556c79afba0be8512c760667983d107f8cdc7831093cef2de7c7ef",
+          "old_daemon_sha256": "26d5713b385c22b41aab6ef35c4d8d6274d9fa950826cdb0a83fa3f6aba39df6",
+          "preserved_pending_state_sha256": "45b72893561029cfb0bdfc574580fc556962aabb25b47a583b89cfc5520c51b2",
+          "pending_work_restore": "PASS: complete recorded pending state restored before candidate resume"
+        },
+        "production_source_restored": true
+      },
+      "cancel": {
+        "status": "PASS",
+        "phase": "cancel",
+        "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+        "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "checks": [
+          {
+            "name": "audit-yaml",
+            "exit": 0,
+            "seconds": 0.3144440080000024
+          },
+          {
+            "name": "clone",
+            "exit": 0,
+            "seconds": 0.03193680399999721
+          },
+          {
+            "name": "fetch-upstream",
+            "exit": 0,
+            "seconds": 0.26436393099999833
+          },
+          {
+            "name": "fetch-bundle",
+            "exit": 0,
+            "seconds": 0.2644949170000004
+          },
+          {
+            "name": "checkout",
+            "exit": 0,
+            "seconds": 0.06404315200000354
+          },
+          {
+            "name": "set-origin",
+            "exit": 0,
+            "seconds": 0.0035961680000013985
+          },
+          {
+            "name": "fetch-dependencies",
+            "exit": 0,
+            "seconds": 2.268530632000001
+          },
+          {
+            "name": "cancel",
+            "exit": 0,
+            "seconds": 391.712042712
+          }
+        ],
+        "provider_calls": 0,
+        "upstream_pr_opened": false,
+        "runner_sha256": "969ca3a2af221a0725d1f58dfb2f2cc39033886d2245f95c824e922954649691",
+        "detail": {
+          "status": "PASS",
+          "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+          "production_base": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+          "source_sha256": "f93900b66c0ee0a1e02a15284f7a7eec01624e8b3b7de4c310e082405b00e91e",
+          "checks": [
+            {
+              "name": "active-review-cancellation",
+              "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+              "status": "PASS"
+            },
+            {
+              "name": "negative-cancel-watch",
+              "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+              "status": "KILLED"
+            },
+            {
+              "name": "unrelated-cancel-watch",
+              "target": "cooldown::tests::identity_normalization_has_no_unknown_bucket",
+              "status": "PASS"
+            },
+            {
+              "name": "negative-task-abort",
+              "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+              "status": "KILLED"
+            },
+            {
+              "name": "unrelated-task-abort",
+              "target": "cooldown::tests::identity_normalization_has_no_unknown_bucket",
+              "status": "PASS"
+            },
+            {
+              "name": "restored-cancellation",
+              "target": "reviewer::tests::test_det6_cancel_active_review_reaps_child_and_provider",
+              "status": "PASS"
+            }
+          ],
+          "mutants": [
+            {
+              "name": "cancel-watch",
+              "status": "KILLED",
+              "binary_sha256": "b40a214feae552fa78d2620f7802478f78c9ae44ff41a663bcbe7411e9fda2f5"
+            },
+            {
+              "name": "task-abort",
+              "status": "KILLED",
+              "binary_sha256": "5c31b58ab8a5fa0ca25360aef59405e380a8a086981f26de8cf987adfddc0d1d"
+            }
+          ],
+          "limitations": [
+            "Persisted adaptive owner; actual stdio RPC loop, cancellation watcher and model-permit wrapper.",
+            "Provider is an in-process pending future; child is a local static Python script. No real model/API call.",
+            "This isolates review-tool resource cleanup; full worktree preparation and remote SMTP acknowledgement are not exercised."
+          ],
+          "fixture_sha256": "10fa5ac54c438ac66c4ffdbd6d3dc519f0201282f2f039fa157c186984a06967",
+          "source_restored": true
+        },
+        "production_source_restored": true
+      },
+      "conflict": {
+        "status": "PASS",
+        "phase": "conflict",
+        "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+        "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "checks": [
+          {
+            "name": "audit-yaml",
+            "exit": 0,
+            "seconds": 0.5155117449999977
+          },
+          {
+            "name": "clone",
+            "exit": 0,
+            "seconds": 0.3149589699999993
+          },
+          {
+            "name": "fetch-upstream",
+            "exit": 0,
+            "seconds": 0.31489515399999846
+          },
+          {
+            "name": "fetch-bundle",
+            "exit": 0,
+            "seconds": 0.06447368900000328
+          },
+          {
+            "name": "checkout",
+            "exit": 0,
+            "seconds": 0.06415779999999671
+          },
+          {
+            "name": "set-origin",
+            "exit": 0,
+            "seconds": 0.0038406130000012695
+          },
+          {
+            "name": "fetch-dependencies",
+            "exit": 0,
+            "seconds": 2.4206057230000013
+          },
+          {
+            "name": "positive",
+            "exit": 0,
+            "seconds": 228.98709392599997
+          },
+          {
+            "name": "mutant-preparing",
+            "exit": 101,
+            "seconds": 51.52458643799997
+          },
+          {
+            "name": "mutant-active",
+            "exit": 101,
+            "seconds": 49.15788236999998
+          },
+          {
+            "name": "restored",
+            "exit": 0,
+            "seconds": 47.04640009399998
+          }
+        ],
+        "provider_calls": 0,
+        "upstream_pr_opened": false,
+        "mutants": [
+          {
+            "name": "preparing",
+            "status": "KILLED",
+            "oracle": "preparing conflict became visible"
+          },
+          {
+            "name": "active",
+            "status": "KILLED",
+            "oracle": "group owner escaped quarantine"
+          }
+        ],
+        "production_source_restored": true
+      },
+      "crash": {
+        "status": "PASS",
+        "phase": "crash",
+        "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+        "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "checks": [
+          {
+            "name": "audit-yaml",
+            "exit": 0,
+            "seconds": 0.31458154200004174
+          },
+          {
+            "name": "clone",
+            "exit": 0,
+            "seconds": 0.032005113000025176
+          },
+          {
+            "name": "fetch-upstream",
+            "exit": 0,
+            "seconds": 0.6153497560000005
+          },
+          {
+            "name": "fetch-bundle",
+            "exit": 0,
+            "seconds": 0.06407159299999421
+          },
+          {
+            "name": "checkout",
+            "exit": 0,
+            "seconds": 0.06406095099998765
+          },
+          {
+            "name": "set-origin",
+            "exit": 0,
+            "seconds": 0.003616744000055405
+          },
+          {
+            "name": "fetch-dependencies",
+            "exit": 0,
+            "seconds": 4.6742554350000205
+          },
+          {
+            "name": "format-crash-fixture",
+            "exit": 0,
+            "seconds": 4.874949982999965
+          },
+          {
+            "name": "build-crash-fixture",
+            "exit": 0,
+            "seconds": 196.846085781
+          },
+          {
+            "name": "clippy-crash-fixture",
+            "exit": 0,
+            "seconds": 116.86166281199996
+          }
+        ],
+        "provider_calls": 0,
+        "upstream_pr_opened": false,
+        "binary_sha256": "2905edb02493a34df4f835567a719e06dee4252a2a55174d37ce3b9a088364e6",
+        "fixture_sha256": "92aadab06b016e5c2ce7b2e9684521c7460903930eaf46dc675c2eea5743b17a",
+        "crash_phases": [
+          {
+            "phase": "preparing",
+            "status": "PASS",
+            "killed_after_commit": true
+          },
+          {
+            "phase": "active",
+            "status": "PASS",
+            "killed_after_commit": true
+          },
+          {
+            "phase": "handoff",
+            "status": "PASS",
+            "killed_after_commit": true
+          }
+        ],
+        "production_source_restored": true
+      },
+      "faults": {
+        "status": "PASS",
+        "phase": "faults",
+        "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+        "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "checks": [
+          {
+            "name": "audit-yaml",
+            "exit": 0,
+            "seconds": 0.2642099199999848
+          },
+          {
+            "name": "clone",
+            "exit": 0,
+            "seconds": 0.015830891999996766
+          },
+          {
+            "name": "fetch-upstream",
+            "exit": 0,
+            "seconds": 0.4644305359999805
+          },
+          {
+            "name": "fetch-bundle",
+            "exit": 0,
+            "seconds": 0.06376673399998367
+          },
+          {
+            "name": "checkout",
+            "exit": 0,
+            "seconds": 0.06385161200000766
+          },
+          {
+            "name": "set-origin",
+            "exit": 0,
+            "seconds": 0.0035032750000141277
+          },
+          {
+            "name": "fetch-dependencies",
+            "exit": 0,
+            "seconds": 3.2204488440000034
+          },
+          {
+            "name": "faults",
+            "exit": 0,
+            "seconds": 161.175992909
+          }
+        ],
+        "provider_calls": 0,
+        "upstream_pr_opened": false,
+        "runner_sha256": "159972828441057e0a0b7ac1b49536b82ca061f420040f8e8002eb22facf8b63",
+        "detail": {
+          "status": "PASS",
+          "checks": [
+            {
+              "mode": "enospc",
+              "status": "PASS"
+            },
+            {
+              "mode": "eio",
+              "status": "PASS"
+            },
+            {
+              "mode": "torn-write",
+              "status": "PASS"
+            },
+            {
+              "mode": "precommit",
+              "status": "PASS"
+            },
+            {
+              "mode": "postcommit",
+              "status": "PASS"
+            }
+          ],
+          "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+          "limitations": [
+            "LD_PRELOAD injects ENOSPC/EIO and a partial WAL write; this is not actual device exhaustion or physical power loss.",
+            "SIGKILL tests process crash before and after successful COMMIT.",
+            "No remote SMTP acceptance crash or historical archive replay is exercised."
+          ],
+          "binary_sha256": "1da30caa5397e6b52da33d53b8fba78e4d83b8d5c74d7192ffb6fea4e433bca3"
+        },
+        "production_source_restored": true
+      },
+      "historical": {
+        "status": "PASS",
+        "phase": "historical",
+        "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+        "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "checks": [
+          {
+            "name": "audit-yaml",
+            "exit": 0,
+            "seconds": 0.36491948799994134
+          },
+          {
+            "name": "clone",
+            "exit": 0,
+            "seconds": 0.032077562999916154
+          },
+          {
+            "name": "fetch-upstream",
+            "exit": 0,
+            "seconds": 0.4148639640000056
+          },
+          {
+            "name": "fetch-bundle",
+            "exit": 0,
+            "seconds": 0.06418434199997591
+          },
+          {
+            "name": "checkout",
+            "exit": 0,
+            "seconds": 0.06412267000007432
+          },
+          {
+            "name": "set-origin",
+            "exit": 0,
+            "seconds": 0.003933361000008517
+          },
+          {
+            "name": "fetch-dependencies",
+            "exit": 0,
+            "seconds": 1.6170933019999438
+          },
+          {
+            "name": "historical",
+            "exit": 0,
+            "seconds": 167.32513905300004
+          }
+        ],
+        "provider_calls": 0,
+        "upstream_pr_opened": false,
+        "runner_sha256": "93a3e3c776509af2783f0b0623e0cc602a37fcdf8024e4ea054ced80922d2b01",
+        "detail": {
+          "status": "PASS",
+          "archive_url": "https://raw.githubusercontent.com/git/git/ba4324c4e1e32a28381ea1f4835b78e4c9d45575/t/t5100/sample.mbox",
+          "provenance": "https://github.com/git/git/commit/b0921331030d52febf52839753eee1b2b9ca1f24",
+          "checkpoint": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+          "checks": [
+            {
+              "name": "prepare",
+              "status": "PASS"
+            },
+            {
+              "name": "read-only write negative control",
+              "status": "PASS"
+            },
+            {
+              "name": "replay-0",
+              "status": "PASS"
+            },
+            {
+              "name": "replay-1",
+              "status": "PASS"
+            },
+            {
+              "name": "replay-2",
+              "status": "PASS"
+            },
+            {
+              "name": "read-only write negative control",
+              "status": "PASS"
+            },
+            {
+              "name": "source DB unchanged",
+              "status": "PASS"
+            },
+            {
+              "name": "tracked repository unchanged",
+              "status": "PASS"
+            },
+            {
+              "name": "frozen admission unchanged across three restarted replays",
+              "status": "PASS"
+            }
+          ],
+          "limitations": [
+            "One real 2005 Gmane mailing-list message preserved in Git test corpus; not a modern activity dataset.",
+            "Git maintains the archived fixture and has adjusted encoding syntax; this is not an untouched direct archive download.",
+            "Protected database is an isolated seeded source snapshot, not a supplied production database.",
+            "No review model, publication worker, actual email or external integration runs."
+          ],
+          "transport": "pinned Git corpus copy of 2005 Gmane mailing-list message",
+          "corpus_git_blob": "4a54ee517198cf218d330bdc4cd93cd279abcf0e",
+          "corpus_sha256": "c1b7fc338ed7f0f3dbf6de5108f80355f3966f41cc88b6b169c25ae9185db1bc",
+          "historical_date": "Mon, 15 Aug 2005 20:18:25 +0200",
+          "archive_sha256": "a191fcedd79cb128e8e01287ce811e47cd1220e37fea775b62cee67f3ae3570c",
+          "binary_sha256": "cf4fefd0da96f062d540e0c1298fcbc11863e80eecb235581beededa23b4e97f",
+          "protected_source_sha256_before_and_after": "3848d4015c31b0c11fbe86052f45a71dcf82b79be73dd5011a8cc5f2d922ff19",
+          "replay_performed": true
+        },
+        "production_source_restored": true
+      },
+      "concurrency": {
+        "status": "PASS",
+        "phase": "concurrency",
+        "head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "tree": "1de3c7d27ec93a608838aed9b0d3ff5bd1f63cb5",
+        "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "checks": [
+          {
+            "name": "audit-yaml",
+            "exit": 0,
+            "seconds": 0.46497277099999934
+          },
+          {
+            "name": "clone",
+            "exit": 0,
+            "seconds": 0.03203243800000166
+          },
+          {
+            "name": "fetch-upstream",
+            "exit": 0,
+            "seconds": 0.3146864919999999
+          },
+          {
+            "name": "fetch-bundle",
+            "exit": 0,
+            "seconds": 0.11451649400000008
+          },
+          {
+            "name": "checkout",
+            "exit": 0,
+            "seconds": 0.06421886100000052
+          },
+          {
+            "name": "set-origin",
+            "exit": 0,
+            "seconds": 0.0038700329999983296
+          },
+          {
+            "name": "fetch-dependencies",
+            "exit": 0,
+            "seconds": 2.6702844289999987
+          },
+          {
+            "name": "concurrency",
+            "exit": 0,
+            "seconds": 214.42565444
+          }
+        ],
+        "provider_calls": 0,
+        "upstream_pr_opened": false,
+        "runner_sha256": "eb2050b2d9cac0743a62e90adbd2f0cc11cc38b1cbe82d4642d22453c90274a3",
+        "detail": {
+          "status": "PASS",
+          "candidate_commit": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+          "fixture_sha256": "62cade09f8f8edd4d4c6211245262eb917959fd54794b7280e5dcd80697ec60c",
+          "checks": [
+            {
+              "name": "test_cooldown_sixteen_writers_replay_release",
+              "status": "PASS"
+            }
+          ],
+          "limitations": [
+            "Sixteen independent Database handles on file-backed SQLite; 128 admissions over eight scopes.",
+            "128 context-free replays and 64 explicit releases run during concurrent admission.",
+            "No production latency or fairness guarantee; source selection remains a DB-API fixture."
+          ],
+          "binary_sha256": "a607a12accc12ce8c5383ed694c2ee55ab076b230f3da1e255a2d1906638899f"
+        },
+        "production_source_restored": true
+      }
+    },
+    "optimization": {
+      "status": "NATIVE_CHECKS_PASS_PERFORMANCE_AND_RECOVERY_RUNNING",
+      "checkpoint": "5839f5285c9940af3f2cd4e74b97f51119fffdf1",
+      "run": 39367721490,
+      "artifact": 12240441672,
+      "native": {
+        "status": "CHECKED_OPTIMIZATION_EXTENDED_PENDING",
+        "upstream": "026195ab58e2099e81017adbc6b97f33c509c8ba",
+        "previous_head": "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4",
+        "checks": [
+          {
+            "name": "clone",
+            "exit": 0,
+            "seconds": 0.032329013999998324
+          },
+          {
+            "name": "fetch-upstream",
+            "exit": 0,
+            "seconds": 0.36529112300000577
+          },
+          {
+            "name": "fetch-checked-bundle",
+            "exit": 0,
+            "seconds": 0.06503893700000418
+          },
+          {
+            "name": "checkout",
+            "exit": 0,
+            "seconds": 0.4150687369999986
+          },
+          {
+            "name": "fetch-dependencies",
+            "exit": 0,
+            "seconds": 2.9218426889999947
+          },
+          {
+            "name": "clear-package-generated-paths",
+            "exit": 0,
+            "seconds": 0.114336121000008
+          },
+          {
+            "name": "format",
+            "exit": 0,
+            "seconds": 1.1170853539999968
+          },
+          {
+            "name": "positive",
+            "exit": 0,
+            "seconds": 43.08565551400001
+          },
+          {
+            "name": "mutant-bind_cooldown_source_tx",
+            "exit": 101,
+            "seconds": 42.894142148
+          },
+          {
+            "name": "mutant-bind_cooldown_patch_tx",
+            "exit": 101,
+            "seconds": 43.293254683000015
+          },
+          {
+            "name": "mutant-complete_patchset_tx",
+            "exit": 101,
+            "seconds": 42.44023457900002
+          },
+          {
+            "name": "restored",
+            "exit": 0,
+            "seconds": 42.740509910000014
+          },
+          {
+            "name": "required-check-pr",
+            "exit": 0,
+            "seconds": 93.06903398999998
+          },
+          {
+            "name": "diff-check",
+            "exit": 0,
+            "seconds": 0.008109923000006347
+          },
+          {
+            "name": "configure-user.name",
+            "exit": 0,
+            "seconds": 0.004040733000010732
+          },
+          {
+            "name": "configure-user.email",
+            "exit": 0,
+            "seconds": 0.004007870999998886
+          },
+          {
+            "name": "stage-optimization",
+            "exit": 0,
+            "seconds": 0.007925593000038589
+          },
+          {
+            "name": "commit-optimization",
+            "exit": 0,
+            "seconds": 0.015984150000008412
+          },
+          {
+            "name": "required-doc-check",
+            "exit": 0,
+            "seconds": 0.03210045899999159
+          },
+          {
+            "name": "stage-design",
+            "exit": 0,
+            "seconds": 0.0038875359999792636
+          },
+          {
+            "name": "commit-design",
+            "exit": 0,
+            "seconds": 0.007934269999964272
+          },
+          {
+            "name": "final-signoffs",
+            "exit": 0,
+            "seconds": 0.06420349300003636
+          },
+          {
+            "name": "export-source",
+            "exit": 0,
+            "seconds": 0.03204067199999372
+          }
+        ],
+        "mutants": [
+          {
+            "name": "bind_cooldown_source_tx",
+            "status": "KILLED",
+            "oracle": "source binding bypassed the active group"
+          },
+          {
+            "name": "bind_cooldown_patch_tx",
+            "status": "KILLED",
+            "oracle": "patch binding bypassed the active group"
+          },
+          {
+            "name": "complete_patchset_tx",
+            "status": "KILLED",
+            "oracle": "completion bypassed the active group"
+          }
+        ],
+        "provider_calls": 0,
+        "upstream_pr_opened": false,
+        "previous_performance": {
+          "run": 39359678639,
+          "status": "FAIL_BUDGET",
+          "disabled_ratios": [
+            1.2450766801569302,
+            1.35295309389588
+          ]
+        },
+        "suite_summaries": [
+          "test result: ok. 1044 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 10.63s",
+          "test result: ok. 50 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s",
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s"
+        ],
+        "checked_code_head": "8132865258bd8cefb1f3dad5f009f6676b4778b0",
+        "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+        "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
+        "commits": [
+          "7bbbd266c8c9f427a96be9589a003c44922fb3a7 docs: describe staged conflict quarantine and recovery limits",
+          "8132865258bd8cefb1f3dad5f009f6676b4778b0 db: consolidate quarantine checks into binding snapshots",
+          "0bf683e6eb4ac55ad1338f71f5e8dbda43baa7a4 db: bound adaptive conflict quarantine transactions",
+          "f7688ce9ed8cdfaf2d8ae6d19c810af412a8f878 mail: add opt-in per-author publication cooldowns",
+          "4a1e3083dcacda94e5b5bd5cf23e10929c635f73 db: retire superseded series reviews awaiting publication",
+          "a84ad5868987524662f9e4cc32b1e1c3e2d90296 server: allow concrete extractor rejection response size"
+        ]
+      },
+      "extended_run": 39367967782,
+      "scope": "Quarantine checks are consolidated into existing source/patch binding and completion snapshots.",
+      "source_changed": true,
+      "budget_unchanged": true
+    },
+    "negative_results": [
+      {
+        "run": 39359678639,
+        "phase": "performance",
+        "reason": "Original changed-source trace exceeded disabled-mode budget; preserved, not retried unchanged."
+      },
+      {
+        "run": 39359678639,
+        "phase": "rollback",
+        "reason": "Shared build output referenced prompt files in a deleted baseline temporary checkout. No rollback behavior exercised in this failed step. Independent schema-16 rollback later passed."
+      }
+    ],
+    "ready_for_upstream_pr": false,
+    "model_review_completed": false,
+    "maintainer_agreement": false,
+    "provider_calls": 0,
+    "upstream_pr_opened": false
+  },
+  "diagnostic": {
+    "run": 39370018018,
+    "status": "RUNNING_NOT_A_BUDGET_RETRY",
+    "negative_runs": [
+      {
+        "run": 39369325542,
+        "reason": "Receiver wrapper split qualified field access; format rejected instrumented source."
+      },
+      {
+        "run": 39369601099,
+        "reason": "Baseline lacks src/db directory; probe module setup failed. No baseline measurements."
+      }
+    ]
+  },
   "ready_for_upstream_pr": false,
   "model_review_completed": false,
   "maintainer_agreement": false,
