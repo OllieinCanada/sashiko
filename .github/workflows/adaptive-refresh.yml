@@ -1,0 +1,81 @@
+name: Adaptive upstream refresh
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths:
+      - '.github/adaptive-refresh/run.py'
+      - '.github/workflows/adaptive-refresh.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: adaptive-upstream-refresh
+  cancel-in-progress: true
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify clean starting checkout
+        run: test -z "$(git status --porcelain)"
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39330032302
+          name: adaptive-source-preparation-010274b4d10a4db39cb7de2bcef0108a92bdc82b
+          path: input-source
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39353773252
+          name: adaptive-conflict-native-a34b3e366ed06fff98ca9784fcd7a343cc73942e
+          path: input-native
+      - run: >-
+          rustup toolchain install stable --profile minimal
+          --component rustfmt --component clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Check audit harness
+        run: |
+          if pgrep -x sashiko; then
+            exit 1
+          fi
+          python3 -m venv /tmp/adaptive-refresh-lint
+          /tmp/adaptive-refresh-lint/bin/pip install yamllint==1.37.1
+          export PATH="/tmp/adaptive-refresh-lint/bin:$PATH"
+          make check-pr RANGE=HEAD~1..HEAD
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+          ast.parse(Path(".github/adaptive-refresh/run.py").read_text())
+          PY
+      - name: Rebase and required native checks
+        id: prepare
+        run: |
+          export PATH="/tmp/adaptive-refresh-lint/bin:$PATH"
+          python3 .github/adaptive-refresh/run.py prepare
+      - name: Deterministic workflow and mutation checks
+        if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
+        run: python3 .github/adaptive-refresh/run.py deterministic
+      - name: Matched upstream performance
+        if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
+        run: python3 .github/adaptive-refresh/run.py performance
+      - name: Stopped rollback and pending preservation
+        if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
+        run: python3 .github/adaptive-refresh/run.py rollback
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adaptive-refresh-${{ github.sha }}
+          path: refresh-results/
+          retention-days: 14
+          if-no-files-found: warn
