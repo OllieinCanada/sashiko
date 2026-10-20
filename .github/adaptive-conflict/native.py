@@ -69,7 +69,7 @@ def focused(label, expected=0):
 
 try:
     if START_STATUS.strip():
-        raise RuntimeError("non-clean starting checkout")
+        raise RuntimeError("non-clean starting checkout: " + START_STATUS)
     changed = subprocess.check_output(
         ["git", "diff", "--name-only", SPEC["production_base"], "HEAD", "--", "src"],
         text=True)

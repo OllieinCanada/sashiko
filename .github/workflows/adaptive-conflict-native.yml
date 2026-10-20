@@ -13,7 +13,7 @@ concurrency:
   group: adaptive-conflict-native-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  native-candidate:
+  focused-gaps:
     runs-on: ubuntu-24.04
     timeout-minutes: 50
     env:
@@ -39,7 +39,11 @@ jobs:
           /tmp/adaptive-conflict-native-lint/bin/pip install yamllint==1.37.1
           export PATH="/tmp/adaptive-conflict-native-lint/bin:$PATH"
           make check-pr RANGE=HEAD~1..HEAD
-          python3 -m py_compile .github/adaptive-conflict/native.py
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+          ast.parse(Path(".github/adaptive-conflict/native.py").read_text())
+          PY
       - name: Validate native candidate before committing source
         run: |
           export PATH="/tmp/adaptive-conflict-native-lint/bin:$PATH"
