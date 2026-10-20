@@ -1,0 +1,66 @@
+name: Adaptive message snapshot cost validation
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths:
+      - '.github/adaptive-refresh/message-cost.py'
+      - '.github/adaptive-refresh/message-cost.json'
+      - '.github/workflows/adaptive-refresh-message-cost.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: adaptive-message-cost
+  cancel-in-progress: true
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify clean starting checkout
+        run: test -z "$(git status --porcelain)"
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39367721490
+          name: adaptive-optimized-5839f5285c9940af3f2cd4e74b97f51119fffdf1
+          path: input-refresh
+      - run: >-
+          rustup toolchain install stable --profile minimal
+          --component rustfmt --component clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Check audit harness
+        run: |
+          if pgrep -x sashiko; then
+            exit 1
+          fi
+          python3 -m venv /tmp/adaptive-refresh-lint
+          /tmp/adaptive-refresh-lint/bin/pip install yamllint==1.37.1
+          export PATH="/tmp/adaptive-refresh-lint/bin:$PATH"
+          make check-pr RANGE=HEAD~1..HEAD
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+          ast.parse(Path(".github/adaptive-refresh/message-cost.py").read_text())
+          PY
+      - name: Validate message and fingerprint cost reductions
+        run: |
+          export PATH="/tmp/adaptive-refresh-lint/bin:$PATH"
+          python3 .github/adaptive-refresh/message-cost.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adaptive-message-cost-${{ github.sha }}
+          path: message-cost-results/
+          retention-days: 14
+          if-no-files-found: warn

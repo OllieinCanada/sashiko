@@ -1,0 +1,38 @@
+{
+  "base": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+  "tree": "08f7c5f8dfa4bc83af41238cd2fa766fb7de6e92",
+  "hash": {
+    "path": "src/cooldown.rs",
+    "from": "pub fn content_fingerprint(bytes: &[u8]) -> String {\n    use std::fmt::Write as _;\n    let digest = <sha2::Sha256 as sha2::Digest>::digest(bytes);\n    let mut hex = String::with_capacity(digest.len() * 2);\n    for byte in digest {\n        let _ = write!(hex, \"{byte:02x}\");\n    }\n    hex\n}",
+    "to": "pub fn content_fingerprint(bytes: &[u8]) -> String {\n    const HEX: &[u8; 16] = b\"0123456789abcdef\";\n    let digest = <sha2::Sha256 as sha2::Digest>::digest(bytes);\n    let mut hex = String::with_capacity(digest.len() * 2);\n    for byte in digest {\n        hex.push(char::from(HEX[usize::from(byte >> 4)]));\n        hex.push(char::from(HEX[usize::from(byte & 0x0f)]));\n    }\n    hex\n}",
+    "test": "\n    #[test]\n    fn fingerprints_match_standard_sha256_vectors() {\n        for (input, expected) in [\n            (b\"\".as_slice(), \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"),\n            (b\"abc\".as_slice(), \"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\"),\n            (b\"The quick brown fox jumps over the lazy dog\".as_slice(),\n             \"d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592\"),\n        ] {\n            assert_eq!(content_fingerprint(input), expected,\n                       \"fingerprint differs from the standard SHA-256 encoding\");\n        }\n    }\n"
+  },
+  "message": {
+    "path": "src/db.rs",
+    "from": "        // Read the source guard and previous thread in one point lookup. Both\n        // decisions still use the same writer snapshot before any message write.\n        let key =\n            crate::cooldown::message_key(message_id).unwrap_or_else(|_| message_id.to_owned());\n        let old_thread_id = {\n            let query = format!(\n                \"SELECT m.thread_id, m.subject = '(placeholder)',\n                        m.cooldown_source_hash, ({})\n                 FROM messages m WHERE m.message_id = ?\",\n                cooldown::COOLDOWN_OWNER_QUERY\n            );\n            let mut rows = tx\n                .query(\n                    &query,\n                    libsql::params![key.clone(), key.clone(), key, message_id],\n                )\n                .await?;\n            if let Some(row) = rows.next().await? {\n                let old_thread_id = get_optional_integer(&row, 0)?;\n                if let Some(owner) = get_optional_integer(&row, 3)? {",
+    "to": "        // Only an existing message row has a stored source snapshot to compare.\n        // Keep its canonical owner lookup in this same writer transaction.\n        let old_thread_id = {\n            let mut rows = tx\n                .query(\n                    \"SELECT thread_id, subject = '(placeholder)', cooldown_source_hash\n                     FROM messages WHERE message_id = ?\",\n                    libsql::params![message_id],\n                )\n                .await?;\n            if let Some(row) = rows.next().await? {\n                let old_thread_id = get_optional_integer(&row, 0)?;\n                if let Some(owner) = Self::cooldown_owner(&tx, message_id).await? {"
+  },
+  "source_test": "\n    #[tokio::test]\n    async fn test_cooldown_source_guard_precedes_thread_merge() -> Result<()> {\n        let db = database().await?;\n        let active = db.with_cooldown_context(Some(context(\"list@example.test\", \"dev@example.test\")));\n        let (id, old_thread, message) = seed(&active, \"thread-source-guard\", 1).await?;\n        active.create_patch(id, &message, 1, \"diff\").await?;\n        let new_thread = db.create_thread(\"other-root@example.test\", \"other\", 2).await?;\n        let result = db.create_message(\n            &message, new_thread, None, \"victim@example.test\", \"[PATCH] altered\",\n            2, \"changed\", \"list@example.test\", \"\", None, None,\n        ).await;\n        assert!(matches!(result, Err(error) if error.to_string() == \"adaptive source correction quarantined\"),\n                \"source correction was accepted before thread merge\");\n        let mut rows = db.conn.query(\n            \"SELECT m.thread_id,m.author,p.thread_id,p.status\n             FROM messages m JOIN patchsets p ON p.id=?\n             WHERE m.message_id=?\", libsql::params![id, message],\n        ).await?;\n        let row = rows.next().await?.context(\"missing preserved source\")?;\n        assert_eq!(row.get::<i64>(0)?, old_thread);\n        assert_eq!(row.get::<String>(1)?, \"dev@example.test\");\n        assert_eq!(row.get::<i64>(2)?, old_thread);\n        assert_eq!(row.get::<String>(3)?, \"Cooldown blocked\");\n        assert_ne!(old_thread, new_thread);\n        assert_eq!(scalar(&db, \"SELECT COUNT(*) FROM threads\").await?, 2);\n        assert_eq!(scalar(&db, \"SELECT COUNT(*) FROM review_cooldown_events\").await?, 1);\n        Ok(())\n    }\n",
+  "previous_guard_evidence": {
+    "run": 39367721490,
+    "head": "7bbbd266c8c9f427a96be9589a003c44922fb3a7",
+    "mutants": [
+      {
+        "name": "bind_cooldown_source_tx",
+        "status": "KILLED",
+        "oracle": "source binding bypassed the active group"
+      },
+      {
+        "name": "bind_cooldown_patch_tx",
+        "status": "KILLED",
+        "oracle": "patch binding bypassed the active group"
+      },
+      {
+        "name": "complete_patchset_tx",
+        "status": "KILLED",
+        "oracle": "completion bypassed the active group"
+      }
+    ]
+  },
+  "diagnostic_run": 39370018018
+}
