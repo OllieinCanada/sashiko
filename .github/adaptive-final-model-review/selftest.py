@@ -29,6 +29,7 @@ def reset():
     module.remote = remote
     module.REPORT["calls"] = []
     module.REPORT.pop("last_error", None)
+    module.REPORT.pop("provider_failure", None)
     module.RESERVED = Decimal(0)
     module.HALTED = False
     calls.clear()
@@ -109,3 +110,62 @@ with tempfile.TemporaryDirectory() as temporary:
     finally:
         server.shutdown()
         server.server_close()
+
+# Exercise the real remote helper with a fake opener. No network or sleeps.
+class FakeResponse:
+    def __enter__(self):
+        return self
+    def __exit__(self, *_):
+        return False
+    def read(self, maximum):
+        return b'{"totalTokens":100}'
+
+class FakeOpener:
+    def __init__(self):
+        self.timeouts = []
+        self.fail = False
+    def open(self, request, timeout):
+        self.timeouts.append(timeout)
+        if self.fail:
+            raise TimeoutError("DET8_FAKE_PROVIDER_SECRET held-review-output")
+        return FakeResponse()
+
+with tempfile.TemporaryDirectory() as temporary:
+    module.OUT = Path(temporary)
+    # Compile the function from the exact checked module, not a mirrored helper.
+    fresh_spec = importlib.util.spec_from_file_location("transport_controls", Path(__file__).with_name("run.py"))
+    transport = importlib.util.module_from_spec(fresh_spec)
+    fresh_spec.loader.exec_module(transport)
+    transport.OUT = Path(temporary)
+    fake = FakeOpener()
+    transport.OPENER = fake
+    transport.DEADLINE = time.monotonic() + 600
+    transport.remote("countTokens", {})
+    transport.remote("generateContent", {})
+    assert fake.timeouts == [20, 120], fake.timeouts
+    assert transport.CLIENT_TIMEOUT > transport.GENERATION_TIMEOUT
+    transport.DEADLINE = time.monotonic() + 10
+    transport.remote("generateContent", {})
+    assert 1 <= fake.timeouts[-1] <= 10
+    fake.fail = True
+    try:
+        transport.remote("generateContent", {})
+        raise AssertionError("timeout was accepted")
+    except TimeoutError:
+        pass
+    failure = transport.REPORT["provider_failure"]
+    assert failure["action"] == "generateContent"
+    assert failure["error_type"] == "TimeoutError"
+    assert failure["elapsed_seconds"] >= 0
+    assert 1 <= failure["timeout_seconds"] <= 10
+    assert "DET8_FAKE_PROVIDER_SECRET" not in (transport.OUT / "manifest.json").read_text()
+    assert "held-review-output" not in (transport.OUT / "manifest.json").read_text()
+    transport.DEADLINE = time.monotonic() - 1
+    count_before = len(fake.timeouts)
+    try:
+        transport.remote("generateContent", {})
+        raise AssertionError("expired deadline was accepted")
+    except RuntimeError:
+        pass
+    assert len(fake.timeouts) == count_before
+    print("PASS: exact transport timeout selection, remaining deadline and failure redaction")

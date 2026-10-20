@@ -1,10 +1,11 @@
-name: Final-source model budget offline controls
+name: Timeout and model-readiness controls
 'on':
   push:
     branches: [codex/held-series-ci-20261019]
     paths:
       - '.github/adaptive-final-model-review/run.py'
       - '.github/adaptive-final-model-review/selftest.py'
+      - '.github/adaptive-final-model-review/probe.py'
       - '.github/workflows/adaptive-final-model-controls.yml'
   workflow_dispatch:
 permissions:
@@ -26,3 +27,13 @@ jobs:
           make check-pr RANGE=HEAD~1..HEAD
       - name: Offline budget and credential controls only
         run: python3 .github/adaptive-final-model-review/selftest.py
+      - name: Read-only provider model metadata
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: python3 .github/adaptive-final-model-review/probe.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adaptive-timeout-controls-${{ github.sha }}
+          path: model-metadata-probe.json
+          retention-days: 14

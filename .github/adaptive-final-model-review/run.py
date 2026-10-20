@@ -27,13 +27,18 @@ MAX_OUTPUT = 8192
 MAX_CALLS = 24
 MAX_TOTAL_INPUT = 500000
 TIME_LIMIT = 600
+GENERATION_TIMEOUT = 120
+COUNT_TIMEOUT = 20
+CLIENT_TIMEOUT = 130
 OUT = Path.cwd() / "adaptive-model-review-results"
 OUT.mkdir(exist_ok=True)
 REPORT = {
     "status": "NOT_STARTED", "model": MODEL, "maximum_usd_this_attempt": str(LIMIT),
     "maximum_seconds_this_attempt": TIME_LIMIT,
-    "overall_authorization": "one fresh final-source attempt; $1.00, 10 minutes, no automatic follow-up",
+    "overall_authorization": "one user-resumed timeout-corrected attempt; $1.00, 10 minutes, no automatic follow-up",
     "maximum_counted_input_tokens_total": MAX_TOTAL_INPUT,
+    "generation_timeout_seconds": GENERATION_TIMEOUT,
+    "client_timeout_seconds": CLIENT_TIMEOUT,
     "pricing_source": "https://ai.google.dev/gemini-api/docs/pricing",
     "pricing_checked_utc": "2026-10-19", "input_usd_per_million": str(INPUT_PRICE),
     "output_usd_per_million_including_thinking": str(OUTPUT_PRICE),
@@ -68,18 +73,24 @@ def remote(action, payload):
         data=json.dumps(payload).encode(), method="POST",
         headers={"Content-Type": "application/json", "x-goog-api-key": KEY},
     )
+    started = time.monotonic()
+    timeout = min(GENERATION_TIMEOUT if action == "generateContent" else COUNT_TIMEOUT, remaining)
     try:
-        with OPENER.open(req, timeout=min(60, remaining)) as response:
+        with OPENER.open(req, timeout=timeout) as response:
             raw = response.read(8 * 1024 * 1024 + 1)
             if len(raw) > 8 * 1024 * 1024:
                 raise RuntimeError("provider response too large")
             return json.loads(raw)
     except urllib.error.HTTPError as error:
-        REPORT["provider_failure"] = {"action": action, "http_status": error.code}
+        REPORT["provider_failure"] = {"action": action, "http_status": error.code,
+                                      "elapsed_seconds": round(time.monotonic() - started, 3),
+                                      "timeout_seconds": timeout}
         save()
         raise
     except Exception as error:
-        REPORT["provider_failure"] = {"action": action, "error_type": type(error).__name__}
+        REPORT["provider_failure"] = {"action": action, "error_type": type(error).__name__,
+                                      "elapsed_seconds": round(time.monotonic() - started, 3),
+                                      "timeout_seconds": timeout}
         save()
         raise
 
@@ -155,7 +166,9 @@ class Handler(BaseHTTPRequestHandler):
             REPORT["calls"].append(record)
             REPORT["reserved_usd"] = str(RESERVED)
             save()
+            started = time.monotonic()
             response = remote("generateContent", body)
+            record["elapsed_seconds"] = round(time.monotonic() - started, 3)
             usage = response.get("usageMetadata", {})
             record["usage"] = {k: usage.get(k) for k in (
                 "promptTokenCount", "candidatesTokenCount", "thoughtsTokenCount",
@@ -220,7 +233,7 @@ def review(directory, base, head):
     settings = OUT / "review-settings.toml"
     settings.write_text(
         'log_level = "warn"\n[ai]\nprovider = "gemini"\nmodel = "' + MODEL + '"\n'
-        'max_input_tokens = 150000\nmax_interactions = 12\napi_timeout_secs = 65\n'
+        'max_input_tokens = 150000\nmax_interactions = 12\napi_timeout_secs = 130\n'
         'response_cache = false\nlog_turns = false\n'
         '[ai.gemini]\nexplicit_prompt_caching = false\nmax_tokens = 8192\n'
         'base_url = "http://127.0.0.1:' + str(server.server_port) + '"\n'
@@ -259,8 +272,13 @@ def review(directory, base, head):
                     and result.get("partial", False) is False and not result.get("error")
                     and REPORT["calls"] and not REPORT.get("last_error")
                     and len(patches) == int(expected)
-                    and not any(p.get("error") or p.get("partial") for p in patches))
+                    and len({p.get("index") for p in patches}) == len(patches)
+                    and not any(p.get("error") or p.get("partial")
+                                or p.get("status") != "applied"
+                                or p.get("review_status") == "incomplete"
+                                for p in patches))
         REPORT["agent_status"] = result.get("status")
+        REPORT["patches"] = patches
         REPORT["findings"] = result.get("findings", [])
         REPORT["concerns"] = result.get("concerns", [])
         REPORT["status"] = "COMPLETED" if complete else "INCOMPLETE"
