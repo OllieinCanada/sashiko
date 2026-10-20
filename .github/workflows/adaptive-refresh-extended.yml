@@ -61,6 +61,7 @@ jobs:
       matrix:
         phase:
           - performance
+          - deterministic
           - rollback
           - crash
           - conflict

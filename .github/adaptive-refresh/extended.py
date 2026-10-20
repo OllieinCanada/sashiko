@@ -227,7 +227,8 @@ def main():
         finally:
             migration.write_text(original)
     else:
-        folders = {"performance": ("adaptive-baseline-validation", "adaptive-baseline-results"),
+        folders = {"deterministic": ("adaptive-deterministic", "adaptive-deterministic-results"),
+                   "performance": ("adaptive-baseline-validation", "adaptive-baseline-results"),
                    "rollback": ("adaptive-downgrade", "adaptive-downgrade-results"),
                    "clock": ("adaptive-clock", "adaptive-clock-results"),
                    "historical": ("adaptive-historical", "adaptive-historical-results"),
@@ -238,7 +239,7 @@ def main():
         path = SOURCE / ".github" / folder / "run.py"
         text = path.read_text()
         old = "bd59059f1864aea81b11b5de0eb97e5d2ec53667"
-        if MODE in ["rollback", "clock", "historical", "cancel"]:
+        if MODE in ["rollback", "clock", "historical", "cancel", "deterministic"]:
             if text.count(old) != 1:
                 raise RuntimeError("ambiguous original source guard")
             text = text.replace(old, HEAD)
