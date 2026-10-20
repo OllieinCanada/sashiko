@@ -21,7 +21,8 @@
     "ready_for_upstream_pr": false,
     "upstream_pr_opened": false,
     "evidence": ".github/adaptive-upstream-refresh-evidence.json",
-    "model_review_attempt": 39375620121
+    "model_review_attempt": 39375620121,
+    "maintainer_policy_issue": "https://github.com/sashiko-dev/sashiko/issues/717"
   },
   "native": {
     "run": 39370749173,
@@ -4258,12 +4259,20 @@
     "note": "Use pinned workflow and runner script at these commits to reproduce fixtures. Artifacts contain exact commands, environment and full logs; source branch remains after artifact expiry. Review-head source tree equals tested-head source tree."
   },
   "maintainer_posting": {
-    "issue_created": false,
+    "issue_created": true,
     "discussion_enabled": false,
     "connector_error": "403 Resource not accessible by integration",
     "existing_issue_search": "No cooldown issue found at 2026-10-20 05:31 UTC",
     "manual_issue_link": "https://github.com/sashiko-dev/sashiko/issues/new",
     "maintainer_agreement": false,
-    "user_authorized_posting": true
+    "user_authorized_posting": true,
+    "issue_number": 717,
+    "url": "https://github.com/sashiko-dev/sashiko/issues/717",
+    "posted_by": "OllieinCanada",
+    "created_at": "2026-10-20T05:32:27Z",
+    "state": "open",
+    "comments": 0,
+    "connector_creation_succeeded": false,
+    "latest_observation": "Issue 717 is now visible and open; no comments or maintainer agreement."
   }
 }

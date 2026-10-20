@@ -53,12 +53,13 @@ Required completed Sashiko model self-review is still blocked by the
 unresponsive generation request. Provider execution remains disabled rather
 than repeatedly spending against the same failure.
 
-Maintainer policy agreement is also absent. The approved issue posting was
-rejected with HTTP 403, Resource not accessible by integration; Discussions
-are disabled upstream. No cooldown issue was found during this continuation.
-The [prepared policy request](ADAPTIVE_MAINTAINER_POLICY_RFC.md) remains ready
-for the user's GitHub account to submit through
-https://github.com/sashiko-dev/sashiko/issues/new.
+Maintainer policy agreement is also absent. The connector's approved issue
+posting was rejected with HTTP 403, Resource not accessible by integration;
+Discussions are disabled upstream. The user's account subsequently published
+[upstream policy issue 717](https://github.com/sashiko-dev/sashiko/issues/717)
+at 2026-10-20 05:32:27 UTC. It is open with zero comments at final inspection.
+The issue links the prepared RFC and validation evidence. Posting is complete;
+maintainer feedback remains pending. No duplicate issue or discussion is needed.
 
 No new API key is requested: authenticated metadata and token counting work.
 A working provider generation path or a completed maintainer-accepted local
