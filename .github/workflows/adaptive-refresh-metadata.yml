@@ -1,0 +1,36 @@
+name: Check final source commit hygiene
+'on':
+  push:
+    branches: [codex/held-series-ci-20261019]
+    paths:
+      - '.github/adaptive-refresh/metadata.py'
+      - '.github/workflows/adaptive-refresh-metadata.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  metadata:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check audit metadata
+        run: |
+          python3 -m venv /tmp/adaptive-metadata-lint
+          /tmp/adaptive-metadata-lint/bin/pip install yamllint==1.37.1
+          export PATH="/tmp/adaptive-metadata-lint/bin:$PATH"
+          make check-pr RANGE=HEAD~1..HEAD
+      - name: Preserve source trees and fix trailer grouping
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/adaptive-refresh/metadata.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adaptive-review-source-${{ github.sha }}
+          path: review-source-metadata.json
+          retention-days: 14
+          if-no-files-found: warn
