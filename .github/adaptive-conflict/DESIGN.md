@@ -1,7 +1,7 @@
 # Bounded canonical-conflict quarantine (proposal)
 
-Status: design and SQL prototype only; production Rust is unchanged.
-Approval is required before adding this persistence mechanism.
+Status: architecture approved by the user; native candidate validation pending.
+The isolated SQL prototype passed; production source is unchanged on the fork.
 Base runtime: bd59059f1864aea81b11b5de0eb97e5d2ec53667.
 
 ## Problem and invariant
@@ -26,8 +26,9 @@ deletion of owners while staging. No broad author, thread or ID-range block
 is introduced.
 
 The caller detects adaptive participation in a deferred read transaction,
-as the ordinary merge path does today. Read work is outside the SQLite
-writer lock. On detecting an adaptive conflict, roll that transaction back;
+using an explicit deferred helper. Both existing transaction helpers open
+IMMEDIATE transactions; neither is suitable for detection. Read work is
+outside the SQLite writer lock. On detecting an adaptive conflict, roll that transaction back;
 do not execute the old per-owner blocking loop. The late-cover path must also
 use a deferred read transaction for detection. Pure legacy merge behavior is
 outside this replacement and retains its existing transaction semantics.
@@ -56,6 +57,8 @@ after indexed existence checks. Never cascade-delete an unbounded group.
   group. The view alone is insufficient.
 - Recovery drains active groups in bounded batches. Preparing groups abandoned
   by a crashed caller need bounded cleanup, without activating incomplete sets.
+  Preparing groups carry a renewable one-hour lease. Startup and reviewer polling
+  clean only expired preparations, in bounded batches. Group IDs never reuse.
   Concurrent preparation must use distinct group identities and exact members;
   one preparer cannot remove another's group.
 - SQLite serializes activation and claims. A claim committed before activation
@@ -65,6 +68,9 @@ after indexed existence checks. Never cascade-delete an unbounded group.
   outcome as rolling back the original transaction. Cancellation after
   activation leaves the complete group durably protected.
 - Ordinary work between batches must be able to acquire the writer lock.
+  The deferred read holds this handle's transaction mutex; independent database
+  connections can write during detection. It does not guarantee bounded latency
+  for another task sharing that mutex during an unbounded canonical scan.
   Bound database work, not wall-clock duration under arbitrary disk failure.
 - All source changes require make check-pr and native regressions. The SQL
   prototype does not replace libsql/Rust integration or required model review.
