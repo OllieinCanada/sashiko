@@ -1,8 +1,5 @@
 name: One final-source Sashiko review attempt
 'on':
-  push:
-    branches: [codex/held-series-ci-20261019]
-    paths: ['.github/workflows/adaptive-final-model-review.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,6 +9,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   review:
+    # The one final-source attempt timed out. No automatic retry is allowed.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
