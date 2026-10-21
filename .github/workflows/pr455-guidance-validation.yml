@@ -1,0 +1,37 @@
+name: PR455 deterministic replacement validation
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/pr455-guidance-validation-20261021]
+    paths:
+      - .github/pr455/**
+      - .github/workflows/pr455-guidance-validation.yml
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+      CARGO_NET_RETRY: 0
+      CARGO_HTTP_TIMEOUT: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: candidate -> target
+          cache-on-failure: true
+      - name: Apply test-only candidate and run offline Rust checks
+        run: python3 .github/pr455/validate.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr455-validation-${{ github.sha }}
+          path: pr455-results/
+          retention-days: 14
