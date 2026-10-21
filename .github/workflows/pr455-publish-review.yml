@@ -1,14 +1,12 @@
 name: PR455 source publication and one required review
 on:
   workflow_dispatch:
-  push:
-    branches: [codex/pr455-guidance-validation-20261021]
-    paths: [.github/workflows/pr455-publish-review.yml]
 permissions:
   contents: read
   actions: read
 jobs:
   publish:
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     permissions:
@@ -36,6 +34,8 @@ jobs:
           path: source-publication.json
           retention-days: 14
   review:
+    # The single authorized attempt is already running; prevent repeats.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 22
     env:
