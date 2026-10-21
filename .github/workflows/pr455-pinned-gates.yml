@@ -1,11 +1,13 @@
 name: PR455 required checks on repository toolchain
 on:
-  workflow_dispatch:
+  push:
+    branches: [codex/pr455-guidance-validation-20261021]
+    paths: [.github/workflows/pr455-pinned-gates.yml]
 permissions:
   contents: read
 jobs:
   checks:
-    if: ${{ false }}
+    if: ${{ github.run_attempt == 1 }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -59,6 +61,7 @@ jobs:
         working-directory: candidate
         env:
           CARGO_NET_OFFLINE: 'true'
+          CARGO_BIN_EXE_sashiko: ${{ github.workspace }}/target/debug/sashiko
         run: |
           set -o pipefail
           make check-pr RANGE=9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b..HEAD \
@@ -73,7 +76,7 @@ jobs:
           retention-days: 14
   review:
     needs: checks
-    if: ${{ false }}
+    if: ${{ github.run_attempt == 1 }}
     runs-on: ubuntu-24.04
     timeout-minutes: 24
     env:
