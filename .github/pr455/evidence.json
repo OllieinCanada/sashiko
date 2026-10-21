@@ -1,0 +1,844 @@
+{
+  "schema_version": 1,
+  "status": "IMPLEMENTED_TESTS_PASSED_REQUIRED_MODEL_REVIEW_BLOCKED",
+  "base": "9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b",
+  "head": "0eedc1d48af6af589a5be042c007cb27661e8120",
+  "tree": "61bf3d20aa0951348a328704fc6243ce3ed29722",
+  "branch": "test/sashiko-guidance-lifecycle-20261021",
+  "changed_files": [
+    "src/workflows/sashiko_patch_review.rs"
+  ],
+  "production_changes": 0,
+  "insertions": 247,
+  "tests": {
+    "passed": 1085,
+    "failed": 0,
+    "ignored": 2,
+    "focused_passed": 13,
+    "mutants_killed": 4
+  },
+  "native": {
+    "run": 39658748438,
+    "artifact": 12373570308,
+    "report": {
+      "status": "VALIDATED_WITH_UPSTREAM_CLIPPY_FAILURE",
+      "base": "9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b",
+      "checks": [
+        {
+          "name": "clone",
+          "command": [
+            "git",
+            "clone",
+            "--no-checkout",
+            "https://github.com/sashiko-dev/sashiko.git",
+            "/home/runner/work/sashiko/sashiko/candidate"
+          ],
+          "exit": 0,
+          "seconds": 1.617
+        },
+        {
+          "name": "apply-checked-patch",
+          "command": [
+            "git",
+            "apply",
+            "/home/runner/work/sashiko/sashiko/prior-validation/candidate.patch"
+          ],
+          "exit": 0,
+          "seconds": 0.004
+        },
+        {
+          "name": "dependencies",
+          "command": [
+            "cargo",
+            "fetch",
+            "--locked"
+          ],
+          "exit": 0,
+          "seconds": 2.92
+        },
+        {
+          "name": "format-check",
+          "command": [
+            "cargo",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "exit": 0,
+          "seconds": 3.022
+        },
+        {
+          "name": "minimal-clippy",
+          "command": [
+            "cargo",
+            "clippy",
+            "--offline",
+            "--all-targets",
+            "--no-default-features",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "exit": 0,
+          "seconds": 82.063
+        },
+        {
+          "name": "cache-clippy",
+          "command": [
+            "cargo",
+            "clippy",
+            "--offline",
+            "--all-targets",
+            "--no-default-features",
+            "--features",
+            "cache",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "exit": 0,
+          "seconds": 41.124
+        },
+        {
+          "name": "full-suite",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--all-features"
+          ],
+          "exit": 0,
+          "seconds": 60.309
+        },
+        {
+          "name": "diff-check",
+          "command": [
+            "git",
+            "diff",
+            "--check"
+          ],
+          "exit": 0,
+          "seconds": 0.008
+        },
+        {
+          "name": "commit",
+          "command": [
+            "git",
+            "commit",
+            "-s",
+            "-F",
+            "/home/runner/work/sashiko/sashiko/pr455-results/commit-message.txt"
+          ],
+          "exit": 0,
+          "seconds": 0.016
+        },
+        {
+          "name": "final-signoffs",
+          "command": [
+            "make",
+            "sob",
+            "RANGE=9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b..HEAD"
+          ],
+          "exit": 0,
+          "seconds": 0.036
+        },
+        {
+          "name": "export-bundle",
+          "command": [
+            "git",
+            "bundle",
+            "create",
+            "/home/runner/work/sashiko/sashiko/pr455-results/candidate.bundle",
+            "HEAD",
+            "^9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b"
+          ],
+          "exit": 0,
+          "seconds": 0.016
+        }
+      ],
+      "provider_calls": 0,
+      "pr_opened": false,
+      "reused_validation_run": 39657476345,
+      "upstream_clippy": {
+        "same_exact_unique_diagnostics": true,
+        "unique_errors": [
+          {
+            "code": "clippy::result_large_err",
+            "message": "the `Err`-variant returned from this function is very large",
+            "spans": [
+              [
+                "src/server.rs",
+                1679,
+                6
+              ]
+            ]
+          },
+          {
+            "code": "clippy::result_large_err",
+            "message": "the `Err`-variant returned from this function is very large",
+            "spans": [
+              [
+                "src/server.rs",
+                2216,
+                6
+              ]
+            ]
+          },
+          {
+            "code": "clippy::result_large_err",
+            "message": "the `Err`-variant returned from this function is very large",
+            "spans": [
+              [
+                "src/server.rs",
+                438,
+                6
+              ]
+            ]
+          },
+          {
+            "code": "clippy::result_large_err",
+            "message": "the `Err`-variant returned from this function is very large",
+            "spans": [
+              [
+                "src/server.rs",
+                6284,
+                6
+              ]
+            ]
+          }
+        ],
+        "make_check_pr_exit": 2,
+        "note": "Strict all-feature lint remains failed on untouched main and candidate; no lint waiver or production change."
+      },
+      "reused_checks": [
+        {
+          "name": "clone",
+          "command": [
+            "git",
+            "clone",
+            "--no-checkout",
+            "https://github.com/sashiko-dev/sashiko.git",
+            "/home/runner/work/sashiko/sashiko/candidate"
+          ],
+          "exit": 0,
+          "seconds": 2.77
+        },
+        {
+          "name": "dependencies",
+          "command": [
+            "cargo",
+            "fetch",
+            "--locked"
+          ],
+          "exit": 0,
+          "seconds": 2.218
+        },
+        {
+          "name": "format",
+          "command": [
+            "cargo",
+            "fmt",
+            "--all"
+          ],
+          "exit": 0,
+          "seconds": 0.665
+        },
+        {
+          "name": "format-check",
+          "command": [
+            "cargo",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "exit": 0,
+          "seconds": 0.615
+        },
+        {
+          "name": "targeted-positive",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--all-features",
+            "--lib",
+            "workflows::sashiko_patch_review::tests::",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 0,
+          "seconds": 26.833
+        },
+        {
+          "name": "mutant-missing-selected-guides",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--all-features",
+            "--lib",
+            "test_bundled_guidance_reaches_analysis_and_finding_report",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 101,
+          "seconds": 26.935
+        },
+        {
+          "name": "mutant-reversed-selected-guides",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--all-features",
+            "--lib",
+            "test_bundled_guidance_reaches_analysis_and_finding_report",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 101,
+          "seconds": 26.226
+        },
+        {
+          "name": "mutant-finding-discarded-before-report",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--all-features",
+            "--lib",
+            "test_bundled_guidance_reaches_analysis_and_finding_report",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 101,
+          "seconds": 26.076
+        },
+        {
+          "name": "mutant-unselected-guide-injected",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--all-features",
+            "--lib",
+            "test_unselected_and_missing_guidance_stays_out_of_analysis",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 101,
+          "seconds": 25.426
+        },
+        {
+          "name": "restored-targeted",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--all-features",
+            "--lib",
+            "workflows::sashiko_patch_review::tests::"
+          ],
+          "exit": 0,
+          "seconds": 25.671
+        },
+        {
+          "name": "required-checks",
+          "command": [
+            "make",
+            "check-pr",
+            "RANGE=HEAD..HEAD"
+          ],
+          "exit": 2,
+          "seconds": 83.004
+        },
+        {
+          "name": "baseline-clippy",
+          "command": [
+            "cargo",
+            "clippy",
+            "--offline",
+            "--all-targets",
+            "--all-features",
+            "--message-format=json",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "exit": 101,
+          "seconds": 14.647
+        },
+        {
+          "name": "candidate-clippy",
+          "command": [
+            "cargo",
+            "clippy",
+            "--offline",
+            "--all-targets",
+            "--all-features",
+            "--message-format=json",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "exit": 101,
+          "seconds": 14.747
+        }
+      ],
+      "mutants": [
+        {
+          "name": "missing-selected-guides",
+          "runtime_regression_detected": true
+        },
+        {
+          "name": "reversed-selected-guides",
+          "runtime_regression_detected": true
+        },
+        {
+          "name": "finding-discarded-before-report",
+          "runtime_regression_detected": true
+        },
+        {
+          "name": "unselected-guide-injected",
+          "runtime_regression_detected": true
+        }
+      ],
+      "candidate_patch_sha256": "106ba68ed2fa16348145c242bb073602392f99db876ca38c6b17bb4d9acc0d7d",
+      "source_sha256": "785d2db3f107d30874584ec44c5233903c6de0b20ae366b5f671eaaa234227f5",
+      "production_prefix_unchanged": true,
+      "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+      "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+      "suite_summaries": [
+        "test result: ok. 1008 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 4.86s",
+        "test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s",
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s"
+      ],
+      "head": "0eedc1d48af6af589a5be042c007cb27661e8120",
+      "tree": "61bf3d20aa0951348a328704fc6243ce3ed29722",
+      "changed_files": [
+        "src/workflows/sashiko_patch_review.rs"
+      ],
+      "diff_stat": "src/workflows/sashiko_patch_review.rs | 247 ++++++++++++++++++++++++++++++++++\n 1 file changed, 247 insertions(+)"
+    }
+  },
+  "mutation_and_all_features_lint": {
+    "run": 39657476345,
+    "artifact": 12372497099,
+    "report": {
+      "status": "FAILED",
+      "base": "9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b",
+      "checks": [
+        {
+          "name": "clone",
+          "command": [
+            "git",
+            "clone",
+            "--no-checkout",
+            "https://github.com/sashiko-dev/sashiko.git",
+            "/home/runner/work/sashiko/sashiko/candidate"
+          ],
+          "exit": 0,
+          "seconds": 2.77
+        },
+        {
+          "name": "dependencies",
+          "command": [
+            "cargo",
+            "fetch",
+            "--locked"
+          ],
+          "exit": 0,
+          "seconds": 2.218
+        },
+        {
+          "name": "format",
+          "command": [
+            "cargo",
+            "fmt",
+            "--all"
+          ],
+          "exit": 0,
+          "seconds": 0.665
+        },
+        {
+          "name": "format-check",
+          "command": [
+            "cargo",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "exit": 0,
+          "seconds": 0.615
+        },
+        {
+          "name": "targeted-positive",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--all-features",
+            "--lib",
+            "workflows::sashiko_patch_review::tests::",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 0,
+          "seconds": 26.833
+        },
+        {
+          "name": "mutant-missing-selected-guides",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--all-features",
+            "--lib",
+            "test_bundled_guidance_reaches_analysis_and_finding_report",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 101,
+          "seconds": 26.935
+        },
+        {
+          "name": "mutant-reversed-selected-guides",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--all-features",
+            "--lib",
+            "test_bundled_guidance_reaches_analysis_and_finding_report",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 101,
+          "seconds": 26.226
+        },
+        {
+          "name": "mutant-finding-discarded-before-report",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--all-features",
+            "--lib",
+            "test_bundled_guidance_reaches_analysis_and_finding_report",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 101,
+          "seconds": 26.076
+        },
+        {
+          "name": "mutant-unselected-guide-injected",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--all-features",
+            "--lib",
+            "test_unselected_and_missing_guidance_stays_out_of_analysis",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 101,
+          "seconds": 25.426
+        },
+        {
+          "name": "restored-targeted",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--all-features",
+            "--lib",
+            "workflows::sashiko_patch_review::tests::"
+          ],
+          "exit": 0,
+          "seconds": 25.671
+        },
+        {
+          "name": "required-checks",
+          "command": [
+            "make",
+            "check-pr",
+            "RANGE=HEAD..HEAD"
+          ],
+          "exit": 2,
+          "seconds": 83.004
+        },
+        {
+          "name": "baseline-clippy",
+          "command": [
+            "cargo",
+            "clippy",
+            "--offline",
+            "--all-targets",
+            "--all-features",
+            "--message-format=json",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "exit": 101,
+          "seconds": 14.647
+        },
+        {
+          "name": "candidate-clippy",
+          "command": [
+            "cargo",
+            "clippy",
+            "--offline",
+            "--all-targets",
+            "--all-features",
+            "--message-format=json",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "exit": 101,
+          "seconds": 14.747
+        }
+      ],
+      "mutants": [
+        {
+          "name": "missing-selected-guides",
+          "runtime_regression_detected": true
+        },
+        {
+          "name": "reversed-selected-guides",
+          "runtime_regression_detected": true
+        },
+        {
+          "name": "finding-discarded-before-report",
+          "runtime_regression_detected": true
+        },
+        {
+          "name": "unselected-guide-injected",
+          "runtime_regression_detected": true
+        }
+      ],
+      "provider_calls": 0,
+      "pr_opened": false,
+      "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+      "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+      "upstream_clippy": {
+        "same_exact_diagnostics": false,
+        "errors": [
+          {
+            "code": "clippy::result_large_err",
+            "message": "the `Err`-variant returned from this function is very large",
+            "spans": [
+              [
+                "src/server.rs",
+                1679,
+                6
+              ]
+            ]
+          },
+          {
+            "code": "clippy::result_large_err",
+            "message": "the `Err`-variant returned from this function is very large",
+            "spans": [
+              [
+                "src/server.rs",
+                1679,
+                6
+              ]
+            ]
+          },
+          {
+            "code": "clippy::result_large_err",
+            "message": "the `Err`-variant returned from this function is very large",
+            "spans": [
+              [
+                "src/server.rs",
+                2216,
+                6
+              ]
+            ]
+          },
+          {
+            "code": "clippy::result_large_err",
+            "message": "the `Err`-variant returned from this function is very large",
+            "spans": [
+              [
+                "src/server.rs",
+                2216,
+                6
+              ]
+            ]
+          },
+          {
+            "code": "clippy::result_large_err",
+            "message": "the `Err`-variant returned from this function is very large",
+            "spans": [
+              [
+                "src/server.rs",
+                438,
+                6
+              ]
+            ]
+          },
+          {
+            "code": "clippy::result_large_err",
+            "message": "the `Err`-variant returned from this function is very large",
+            "spans": [
+              [
+                "src/server.rs",
+                438,
+                6
+              ]
+            ]
+          },
+          {
+            "code": "clippy::result_large_err",
+            "message": "the `Err`-variant returned from this function is very large",
+            "spans": [
+              [
+                "src/server.rs",
+                6284,
+                6
+              ]
+            ]
+          },
+          {
+            "code": "clippy::result_large_err",
+            "message": "the `Err`-variant returned from this function is very large",
+            "spans": [
+              [
+                "src/server.rs",
+                6284,
+                6
+              ]
+            ]
+          }
+        ],
+        "required_check_exit": 2
+      },
+      "error": "required checks failed without exact known-baseline attribution"
+    }
+  },
+  "publication": {
+    "run": 39659481289,
+    "job": 119428430810,
+    "status": "PASS",
+    "force_push": false
+  },
+  "model_review": {
+    "run": 39659481289,
+    "job": 119428431387,
+    "artifact": 12373351714,
+    "report": {
+      "status": "INCOMPLETE",
+      "model": "gemini-3.6-flash",
+      "maximum_usd_this_attempt": "1.00",
+      "maximum_seconds_this_attempt": 600,
+      "overall_authorization": "one explicitly authorized PR455 replacement self-review; $1.00, 10 minutes, no automatic follow-up",
+      "maximum_counted_input_tokens_total": 500000,
+      "generation_timeout_seconds": 180,
+      "client_timeout_seconds": 190,
+      "pricing_source": "https://ai.google.dev/gemini-api/docs/pricing",
+      "pricing_checked_utc": "2026-10-19",
+      "input_usd_per_million": "0.75",
+      "output_usd_per_million_including_thinking": "3.75",
+      "reserved_usd": "0.035577",
+      "calls": [
+        {
+          "number": 1,
+          "counted_input_tokens": 4428,
+          "reserved_input_tokens": 6476,
+          "maximum_output_tokens": 8192,
+          "reserved_usd": "0.035577",
+          "status": "DISPATCHED"
+        }
+      ],
+      "limitations": [
+        "Model review is advisory; deterministic checks remain required.",
+        "A timeout, exhausted budget, partial result or missing patch result is not a clean review."
+      ],
+      "base": "9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b",
+      "head": "0eedc1d48af6af589a5be042c007cb27661e8120",
+      "command": [
+        "/home/runner/work/sashiko/sashiko/target/debug/sashiko",
+        "--project",
+        "sashiko",
+        "review",
+        "--settings",
+        "/home/runner/work/sashiko/sashiko/pr455-model-review-results/review-settings.toml",
+        "--agent",
+        "9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b..0eedc1d48af6af589a5be042c007cb27661e8120"
+      ],
+      "provider_failure": {
+        "action": "generateContent",
+        "http_status": 503,
+        "elapsed_seconds": 0.551,
+        "timeout_seconds": 180
+      },
+      "last_error": "provider proxy refused or failed request",
+      "agent_status": "error",
+      "patches": [
+        {
+          "index": 1,
+          "method": "current-tree",
+          "review_error": "Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n\nCaused by:\n    0: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}\n    1: Gemini API error (400 Bad Request) (reason: Review request stopped by bounded proxy): {\"error\":{\"code\":400,\"message\":\"Review request stopped by bounded proxy\"}}",
+          "review_status": "incomplete",
+          "status": "present",
+          "subject": "test: cover Sashiko guidance propagation and finding lifecycle"
+        }
+      ],
+      "findings": [],
+      "concerns": [],
+      "agent_sha256": "d9cba2b4312d920d5a74592f7c56098a92c89dc443043ee4e8fc53fc0e929180",
+      "error": "model review did not complete all patches"
+    },
+    "automatic_execution_disabled": true,
+    "disabled_at": "3cd18461b42af5eb09488ca80dfbb8d23a72f20c",
+    "attempts_authorized": 1,
+    "attempts_run": 1,
+    "actual_billing": "unknown; conservative reservation is not billing"
+  },
+  "references": {
+    "pr455": "closed, unmerged",
+    "pr447": "open; not a dependency",
+    "pr467": "open; not a dependency",
+    "feedback": "https://github.com/sashiko-dev/sashiko/pull/455#issuecomment-6158258696"
+  },
+  "negative_history": [
+    {
+      "run": 39656044400,
+      "status": "CANCELLED",
+      "reason": "Superseded fixture before proper stage-exclusive guide selection."
+    },
+    {
+      "run": 39656216662,
+      "status": "FAILED_TEST_ORACLE",
+      "reason": "One new test incorrectly assumed core-guide absolute placement. Twelve other focused tests passed. Fixed to assert selected-guide order."
+    },
+    {
+      "run": 39656892917,
+      "status": "CANCELLED",
+      "reason": "Audit controls triggered a redundant native restart. Focused tests and all four mutations had passed; workflow triggers were narrowed."
+    },
+    {
+      "run": 39657476345,
+      "status": "FAILED_HARNESS_COMPARISON",
+      "reason": "Compiler emitted each upstream lint for library and test builds; harness counted eight diagnostics instead of four unique failures. Exact duplicate-aware attribution and remaining checks completed in run 39658748438."
+    }
+  ],
+  "limitations": [
+    "Local shell could not start: bwrap reported No space left on device creating /workspace/.git. All successful Rust commands ran in isolated GitHub Actions Ubuntu 24.04 clones.",
+    "Strict all-feature Clippy and make check-pr failed with the same four result_large_err diagnostics in untouched src/server.rs on base and candidate. No suppression or unrelated production fix was introduced.",
+    "New tests begin at resolved ProjectId::Sashiko and the production project_prompts_path selector; existing main.rs CLI tests cover --project parsing/precedence. No new CLI subprocess harness was added.",
+    "Provider payload assertions inspect actual AiRequest values crossing AiProvider::generate_content, not provider-specific HTTP serialization.",
+    "No live provider is used by the regression suite. The separate, explicitly authorized required self-review attempted one generation and failed with HTTP 503.",
+    "Required Sashiko self-review is incomplete; an empty finding list from the errored review is not a clean review. No upstream PR was created."
+  ],
+  "patch_url": "https://github.com/OllieinCanada/sashiko/commit/0eedc1d48af6af589a5be042c007cb27661e8120.patch"
+}

@@ -1,0 +1,36 @@
+name: PR455 final evidence checks
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/pr455-guidance-validation-20261021]
+    paths:
+      - .github/pr455/STATUS.md
+      - .github/pr455/evidence.json
+      - .github/pr455/verify_final.py
+      - .github/workflows/pr455-final-evidence.yml
+permissions:
+  contents: read
+jobs:
+  metadata:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Audit metadata checks
+        run: |
+          python3 -m venv /tmp/pr455-audit-lint
+          /tmp/pr455-audit-lint/bin/pip install yamllint==1.37.1
+          export PATH="/tmp/pr455-audit-lint/bin:$PATH"
+          make check-pr RANGE=HEAD~1..HEAD
+          python3 -m py_compile .github/pr455/validate.py
+      - name: Verify tested source and disabled provider execution
+        run: /tmp/pr455-audit-lint/bin/python .github/pr455/verify_final.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr455-final-evidence-${{ github.sha }}
+          path: pr455-final-metadata.json
+          retention-days: 14

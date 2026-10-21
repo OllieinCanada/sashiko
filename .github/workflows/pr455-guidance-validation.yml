@@ -1,11 +1,6 @@
 name: PR455 deterministic replacement validation
 on:
   workflow_dispatch:
-  push:
-    branches: [codex/pr455-guidance-validation-20261021]
-    paths:
-      - .github/pr455/test_additions.txt
-      - .github/pr455/validate.py
 permissions:
   contents: read
   actions: write

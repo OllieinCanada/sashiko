@@ -119,7 +119,8 @@ try:
                          for span in message["spans"] if span["is_primary"]]
                 found.append({"code": (message.get("code") or {}).get("code"),
                               "message": message["message"], "spans": spans})
-            return sorted(found, key=lambda item: json.dumps(item, sort_keys=True))
+            unique = {json.dumps(item, sort_keys=True): item for item in found}
+            return [unique[key] for key in sorted(unique)]
         baseline_errors = errors(baseline_log)
         candidate_errors = errors(candidate_log)
         known_baseline = (
