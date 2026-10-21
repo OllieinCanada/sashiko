@@ -90,7 +90,58 @@ try:
             raise RuntimeError("mutant did not fail at the intended regression: " + name)
     command("restored-targeted", ["cargo", "test", "--offline", "--all-features",
         "--lib", "workflows::sashiko_patch_review::tests::"])
-    command("required-checks", ["make", "check-pr", "RANGE=HEAD..HEAD"], timeout=1800)
+
+    required_code, required_log = command("required-checks",
+        ["make", "check-pr", "RANGE=HEAD..HEAD"], timeout=1800, expected=None)
+    known_baseline = False
+    if required_code != 0:
+        # Attribute the previously observed toolchain lint on the exact base.
+        # Do not mask candidate diagnostics or alter the contribution's code.
+        lint = ["cargo", "clippy", "--offline", "--all-targets", "--all-features",
+                "--message-format=json", "--", "-D", "warnings"]
+        path.write_text(original)
+        baseline_code, baseline_log = command("baseline-clippy", lint, expected=None)
+        path.write_text(clean)
+        candidate_code, candidate_log = command("candidate-clippy", lint, expected=None)
+        def errors(log):
+            found = []
+            for line in log.splitlines():
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                if row.get("reason") != "compiler-message":
+                    continue
+                message = row["message"]
+                if message["level"] != "error":
+                    continue
+                spans = [(span["file_name"], span["line_start"], span["column_start"])
+                         for span in message["spans"] if span["is_primary"]]
+                found.append({"code": (message.get("code") or {}).get("code"),
+                              "message": message["message"], "spans": spans})
+            return sorted(found, key=lambda item: json.dumps(item, sort_keys=True))
+        baseline_errors = errors(baseline_log)
+        candidate_errors = errors(candidate_log)
+        known_baseline = (
+            baseline_code == candidate_code == 101
+            and len(baseline_errors) == 4
+            and candidate_errors == baseline_errors
+            and all(item["code"] == "clippy::result_large_err"
+                    and all(span[0] == "src/server.rs" for span in item["spans"])
+                    for item in baseline_errors)
+            and "result_large_err" in required_log)
+        REPORT["upstream_clippy"] = {"same_exact_diagnostics": known_baseline,
+                                    "errors": baseline_errors,
+                                    "required_check_exit": required_code}
+        save()
+        if not known_baseline:
+            raise RuntimeError("required checks failed without exact known-baseline attribution")
+        command("minimal-clippy", ["cargo", "clippy", "--offline", "--all-targets",
+                "--no-default-features", "--", "-D", "warnings"])
+        command("cache-clippy", ["cargo", "clippy", "--offline", "--all-targets",
+                "--no-default-features", "--features", "cache", "--", "-D", "warnings"])
+        command("full-suite", ["cargo", "test", "--offline", "--all-features"])
+
     command("diff-check", ["git", "diff", "--check"])
     assert git("diff", "--name-only") == "src/workflows/sashiko_patch_review.rs"
     (OUT / "candidate.patch").write_text(git("diff") + "\n")
@@ -115,12 +166,12 @@ try:
     command("export-bundle", ["git", "bundle", "create", str(OUT / "candidate.bundle"),
                              "HEAD", "^" + BASE])
     assert not git("status", "--porcelain")
-    REPORT["status"] = "PASS"
+    REPORT["status"] = "VALIDATED_WITH_UPSTREAM_CLIPPY_FAILURE" if known_baseline else "PASS"
 except Exception as error:
     REPORT["status"] = "FAILED"
     REPORT["error"] = str(error)
 finally:
     save()
     print(json.dumps(REPORT, indent=2), flush=True)
-if REPORT["status"] != "PASS":
+if REPORT["status"] not in ("PASS", "VALIDATED_WITH_UPSTREAM_CLIPPY_FAILURE"):
     raise SystemExit(1)

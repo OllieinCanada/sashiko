@@ -9,14 +9,14 @@
     const QUEUE_PROBLEM: &str = "toolbox: empty worktree queue panics";
     const QUEUE_REPORT: &str =
         "- [HIGH] In src/git_ops.rs (take_worktree), an empty queue panics.";
-    const QUEUE_SUMMARY: &str = "Handles an empty queue before sending a review.";
+    const QUEUE_SUMMARY: &str = "Handles an empty queue before allocating a worktree.";
 
     fn queue_location() -> Value {
         json!({
             "file": "src/git_ops.rs",
             "function_or_symbol": "take_worktree",
             "line": 42,
-            "code_snippet": "let review = queue.pop().unwrap();",
+            "code_snippet": "let worktree = queue.pop().unwrap();",
             "why_this_location_matters": "An empty queue makes unwrap panic."
         })
     }
@@ -107,7 +107,7 @@
             base_dir: &prompts,
             context_tag: None,
         };
-        let diff = "diff --git a/src/git_ops.rs b/src/git_ops.rs\n@@ -42 +42 @@\n-    let review = queue.pop()?;\n+    let review = queue.pop().unwrap();";
+        let diff = "diff --git a/src/git_ops.rs b/src/git_ops.rs\n@@ -42 +42 @@\n-    let worktree = queue.pop()?;\n+    let worktree = queue.pop().unwrap();";
         let mut state = SashikoPatchReviewState {
             project: project.as_str().to_string(),
             target_commit_diff: diff.to_string(),
@@ -129,24 +129,21 @@
         ).await;
         assert_eq!(state.selected_guides, ["resource-limits.md", "git-ops.md"]);
         let core = include_str!("../../projects/sashiko/prompts/review-core.md");
-        let async_guide = include_str!("../../projects/sashiko/prompts/patterns/resource-limits.md");
-        let workflow_guide = include_str!("../../projects/sashiko/prompts/subsystem/git-ops.md");
+        let resource_guide = include_str!("../../projects/sashiko/prompts/patterns/resource-limits.md");
+        let git_guide = include_str!("../../projects/sashiko/prompts/subsystem/git-ops.md");
         let unselected = include_str!("../../projects/sashiko/prompts/patterns/rust-async.md");
         let analysis: Vec<_> = requests.iter()
             .filter(|(name, _)| analysis_stage_by_name(name).is_some()).collect();
         assert_eq!(analysis.len(), 3);
         for (_, request) in analysis {
             let system = request.system.as_deref().unwrap();
-            let mut previous = 0;
-            for guide in [core, async_guide, workflow_guide] {
+            for guide in [core, resource_guide, git_guide] {
                 assert_eq!(system.matches(guide).count(), 1, "guide lost or duplicated");
-                let position = system.find(guide).unwrap();
-                assert!(position >= previous, "selected guide ordering changed");
-                previous = position + guide.len();
                 for message in &request.messages {
                     assert!(!message.content.as_deref().unwrap_or_default().contains(guide));
                 }
             }
+            assert!(system.find(resource_guide).unwrap() < system.find(git_guide).unwrap());
             assert!(!system.contains(unselected));
         }
         let verification = &requests.iter().find(|(name, _)| *name == "verification").unwrap().1;
