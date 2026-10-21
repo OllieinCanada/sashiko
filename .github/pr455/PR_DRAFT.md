@@ -1,65 +1,50 @@
 ## Summary
 
-Adds two deterministic regression tests for the first-party --project sashiko
-review path using installed bundled prompts and an in-process recording provider.
+Adds two deterministic regression tests connecting existing first-party
+--project sashiko guidance, analysis requests, verification and reporting.
 
 ## Motivation
 
 Retains the test-related value of closed #455, following Kees Cook's feedback
-about the existing first-party profile. Production functionality already exists;
-the remaining gap is proving selected guidance reaches provider requests and a
-nonempty finding continues from analysis through verification into reporting.
-
-No production code, prompts, dependencies or workflow architecture change.
-This does not require #447 or #467.
+about the existing first-party profile. No production code, prompts, dependencies
+or workflow architecture change. This does not depend on #447 or #467.
 
 ## Coverage
 
 - Complete bundled core and selected guide contents reach actual analysis
-  AiRequest payloads once, with selected-guide order preserved.
-- The real pre-screen keeps eligible guides and filters stage-exclusive guides;
-  unselected and missing optional guides stay out of analysis.
-- A nonempty concern reaches verification, retains severity, source lineage,
-  stage and source-location fields, and appears as structured data in the report
-  provider request and in the final plain-text report.
-- A clean review skips verification/report and retains its summary.
+  AiRequest payloads once, preserving selected-guide order.
+- Prescreening filters stage-exclusive guides; unselected and missing optional
+  guides stay out of analysis.
+- A nonempty concern reaches verification, preserves structured severity,
+  lineage, stage and location fields, and reaches the report request and output.
+- Clean reviews skip verification/report and retain their summary.
 
-Existing CLI project parsing/precedence and bundle integrity tests cover their
-respective seams. The new tests start at the resolved Sashiko project and call
-the actual production bundle selector; they do not add another CLI harness.
+Existing CLI tests cover project parsing/precedence. The new tests begin at
+ProjectId::Sashiko, use the production bundle selector and in-process providers,
+and make no external provider calls.
 
 ## Validation
 
-Exact source: 0eedc1d48af6af589a5be042c007cb27661e8120
+Source: 0eedc1d48af6af589a5be042c007cb27661e8120
 Base: 9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b
-Environment: Ubuntu 24.04, rustc 1.99.1, Cargo 1.99.1, build jobs 2.
 
-Passed:
+Passed make check-pr RANGE=9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b..HEAD
+on Ubuntu 24.04 with repository-pinned Rust/Cargo 1.90.0, after locked dependency
+fetching and with offline Cargo execution:
 
-- cargo fmt --all -- --check
-- cargo test --offline --all-features --lib workflows::sashiko_patch_review::tests::
-  (13 tests)
-- cargo test --offline --all-features
-  (1085 passed, zero failed, two ignored)
-- cargo clippy --offline --all-targets --no-default-features -- -D warnings
-- cargo clippy --offline --all-targets --no-default-features --features cache -- -D warnings
-- Signed-off-by and git diff --check
-- Four compiled mutations failed the intended regression assertions:
-  dropped selected guides, reversed guide order, finding discarded before
-  reporting, and an unselected guide injected into requests.
+- Formatting and Clippy across all-feature, minimal and cache profiles
+- 1085 tests passed, zero failed, two ignored
+- Signed-off-by, git diff --check and clean source checkout
 
-Not passed:
+Earlier execution passed all 13 focused workflow tests. Four compiled mutations
+failed the intended assertions for missing/reversed guidance, dropped findings
+and unintended guide injection. The candidate source hash is unchanged.
 
-- Strict all-feature Clippy and make check-pr fail on four unchanged
-  result_large_err diagnostics in src/server.rs. The exact untouched base and
-  candidate produce identical diagnostic codes, messages and locations.
-  No lint waiver or unrelated production fix was added.
-- Required Sashiko agent self-review was attempted once with a bounded budget.
-  The provider returned HTTP 503 on its first generation; no review completed.
-  Further execution is disabled. This draft is not submitted while that gate
-  remains outstanding.
+Required separate Sashiko agent review remains blocked: the additional authorized
+attempt's first generation returned HTTP 503. No clean review is claimed and this
+prepared description remains unsubmitted while that gate is outstanding.
 
-[Reproducible validation and scope](https://github.com/OllieinCanada/sashiko/blob/codex/pr455-guidance-validation-20261021/.github/pr455/STATUS.md)
+[Reproducible evidence and limitations](https://github.com/OllieinCanada/sashiko/blob/codex/pr455-guidance-validation-20261021/.github/pr455/STATUS.md)
 
 ## References
 
