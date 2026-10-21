@@ -1,13 +1,6 @@
 name: PR455 final evidence checks
 on:
   workflow_dispatch:
-  push:
-    branches: [codex/pr455-guidance-validation-20261021]
-    paths:
-      - .github/pr455/STATUS.md
-      - .github/pr455/evidence.json
-      - .github/pr455/verify_final.py
-      - .github/workflows/pr455-final-evidence.yml
 permissions:
   contents: read
 jobs:
