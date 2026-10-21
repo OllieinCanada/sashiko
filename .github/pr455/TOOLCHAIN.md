@@ -31,9 +31,18 @@ then runs make check-pr RANGE=9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b..HEAD
 with CARGO_NET_OFFLINE=true in a clean clone of the exact published commit.
 It checks the full source hash, production prefix, tree and current upstream.
 
-At the time this investigation note was written the pinned checks were still
-running. No passing result or completed model review is claimed here.
-The separate review runs only after the required checks pass. It reuses the
-previously tested dollar, time, request and completion controls, with a fresh
-maximum of one dollar and ten minutes. No automatic follow-up is authorized.
-Future execution was disabled at 6322c18e712034a4bcc47e2e65881804d7542166.
+The corrected pinned run 39673050262 passed the full make check-pr suite:
+formatting, all three strict Clippy profiles, 1085 tests passed, zero failed,
+two ignored, Signed-off-by and clean/diff checks. No server changes or waiver
+were needed. Exact source stayed at 0eedc1d48af6af589a5be042c007cb27661e8120.
+
+The first pinned run 39671889391 exposed a harness target-directory mismatch
+in three existing CLI tests; all lint profiles and both new tests passed.
+The corrected run supplied the existing CARGO_BIN_EXE_sashiko override for the
+shared target path, without changing repository source. Its full results:
+https://github.com/OllieinCanada/sashiko/actions/runs/39673050262
+
+The additional bounded self-review ran only after the required checks passed.
+Its first generation returned HTTP 503 after 0.584 seconds and stopped the
+proxy. Required review remains incomplete. No further calls are scheduled.
+Future execution is disabled at 3f4156d62978380c1088a5476be251a118c4ba22.
