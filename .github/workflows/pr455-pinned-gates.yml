@@ -1,0 +1,136 @@
+name: PR455 required checks on repository toolchain
+on:
+  push:
+    branches: [codex/pr455-guidance-validation-20261021]
+    paths: [.github/workflows/pr455-pinned-gates.yml]
+permissions:
+  contents: read
+jobs:
+  checks:
+    if: ${{ github.run_attempt == 1 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RUSTUP_TOOLCHAIN: '1.90.0'
+      CARGO_BUILD_JOBS: 2
+      CARGO_NET_RETRY: 0
+      CARGO_HTTP_TIMEOUT: 20
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install 1.90.0 --profile minimal --component rustfmt,clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: OllieinCanada/sashiko
+          ref: 0eedc1d48af6af589a5be042c007cb27661e8120
+          fetch-depth: 0
+          persist-credentials: false
+          path: candidate
+      - name: Verify exact candidate and unchanged upstream
+        working-directory: candidate
+        run: |
+          python3 - <<'PY'
+          import hashlib, subprocess
+          from pathlib import Path
+          def git(*a):
+              return subprocess.check_output(["git", *a], text=True).strip()
+          base = "9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b"
+          assert git("rev-parse", "HEAD") == "0eedc1d48af6af589a5be042c007cb27661e8120"
+          assert git("rev-parse", "HEAD^{tree}") == "61bf3d20aa0951348a328704fc6243ce3ed29722"
+          assert git("diff", "--name-only", base, "HEAD") == "src/workflows/sashiko_patch_review.rs"
+          text = Path("src/workflows/sashiko_patch_review.rs").read_bytes()
+          assert hashlib.sha256(text).hexdigest() == "785d2db3f107d30874584ec44c5233903c6de0b20ae366b5f671eaaa234227f5"
+          original = git("show", base + ":src/workflows/sashiko_patch_review.rs")
+          assert original.split("#[cfg(test)]", 1)[0] == text.decode().split("#[cfg(test)]", 1)[0]
+          assert not git("status", "--porcelain")
+          assert git("ls-remote", "https://github.com/sashiko-dev/sashiko.git", "refs/heads/main").split()[0] == base
+          assert 'channel = "1.90.0"' in Path("rust-toolchain.toml").read_text()
+          assert subprocess.run(["pgrep", "-x", "sashiko"], stdout=subprocess.DEVNULL).returncode != 0
+          PY
+          rustc --version
+          cargo --version
+      - name: Fetch locked dependencies
+        working-directory: candidate
+        run: cargo fetch --locked
+      - name: Required check-pr with regression execution offline
+        working-directory: candidate
+        env:
+          CARGO_NET_OFFLINE: 'true'
+        run: |
+          set -o pipefail
+          make check-pr RANGE=9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b..HEAD \
+            2>&1 | tee ../pinned-check-pr.log
+          git diff --check
+          test -z "$(git status --porcelain)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr455-pinned-checks-${{ github.sha }}
+          path: pinned-check-pr.log
+          retention-days: 14
+  review:
+    needs: checks
+    if: ${{ github.run_attempt == 1 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+      CARGO_NET_RETRY: 0
+      CARGO_HTTP_TIMEOUT: 20
+      SASHIKO_REVIEW_MODEL: gemini-3.6-flash
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Offline budget and completion controls
+        run: python3 .github/pr455/model/selftest.py
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: OllieinCanada/sashiko
+          ref: 0eedc1d48af6af589a5be042c007cb27661e8120
+          fetch-depth: 0
+          persist-credentials: false
+          path: candidate
+      - name: Verify reviewed tree
+        working-directory: candidate
+        run: |
+          test "$(git rev-parse HEAD^{tree})" = 61bf3d20aa0951348a328704fc6243ce3ed29722
+          test -z "$(git status --porcelain)"
+          if pgrep -x sashiko; then exit 1; fi
+          cargo fetch --locked
+      - name: One additional authorized self-review, maximum one dollar and ten minutes
+        timeout-minutes: 20
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          CARGO_NET_OFFLINE: 'true'
+        run: |
+          python3 .github/pr455/model_probe.py
+          python3 .github/pr455/model/run.py "$PWD/candidate" \
+            9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b \
+            0eedc1d48af6af589a5be042c007cb27661e8120
+      - name: Record bounded outcome without another attempt
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("pr455-model-review-results/manifest.json")
+          if p.exists():
+              print(json.dumps(json.loads(p.read_text()), indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr455-additional-review-${{ github.sha }}
+          path: pr455-model-review-results/
+          retention-days: 14
