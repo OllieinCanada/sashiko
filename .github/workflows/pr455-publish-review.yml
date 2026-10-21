@@ -1,0 +1,93 @@
+name: PR455 source publication and one required review
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/pr455-guidance-validation-20261021]
+    paths: [.github/workflows/pr455-publish-review.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39658748438
+          name: pr455-remaining-edea1e47700474fbf204e2a3e1499c6b02760ae0
+          path: native-artifact
+      - run: python3 .github/pr455/review_prepare.py
+      - name: Publish isolated signed-off source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/pr455/publish.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr455-source-${{ github.sha }}
+          path: source-publication.json
+          retention-days: 14
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+      CARGO_NET_RETRY: 0
+      CARGO_HTTP_TIMEOUT: 20
+      SASHIKO_REVIEW_MODEL: gemini-3.6-flash
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Offline model-budget controls
+        run: python3 .github/pr455/model/selftest.py
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39658748438
+          name: pr455-remaining-edea1e47700474fbf204e2a3e1499c6b02760ae0
+          path: native-artifact
+      - run: python3 .github/pr455/review_prepare.py
+      - name: Fetch local-review build dependencies
+        working-directory: /tmp/pr455-model-source
+        run: cargo fetch --locked
+      - name: One bounded self-review after deterministic validation
+        timeout-minutes: 16
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          CARGO_NET_OFFLINE: 'true'
+        run: |
+          python3 .github/pr455/model_probe.py
+          head_sha="$(python3 -c 'import json; print(json.load(open("native-artifact/manifest.json"))["head"])')"
+          python3 .github/pr455/model/run.py /tmp/pr455-model-source \
+            9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b "$head_sha"
+      - name: Record review outcome without retrying
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("pr455-model-review-results/manifest.json")
+          if path.exists():
+              print(json.dumps(json.loads(path.read_text()), indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr455-model-review-${{ github.sha }}
+          path: pr455-model-review-results/
+          retention-days: 14
