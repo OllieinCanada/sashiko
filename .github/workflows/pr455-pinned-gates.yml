@@ -1,13 +1,11 @@
 name: PR455 required checks on repository toolchain
 on:
-  push:
-    branches: [codex/pr455-guidance-validation-20261021]
-    paths: [.github/workflows/pr455-pinned-gates.yml]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
   checks:
-    if: ${{ github.run_attempt == 1 }}
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -76,7 +74,7 @@ jobs:
           retention-days: 14
   review:
     needs: checks
-    if: ${{ github.run_attempt == 1 }}
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 24
     env:
