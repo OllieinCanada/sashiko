@@ -1,0 +1,43 @@
+name: PR455 remaining checks on exact candidate
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/pr455-guidance-validation-20261021]
+    paths:
+      - .github/pr455/resume.py
+      - .github/workflows/pr455-remaining-validation.yml
+permissions:
+  contents: read
+  actions: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_BUILD_JOBS: 2
+      CARGO_NET_RETRY: 0
+      CARGO_HTTP_TIMEOUT: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39657476345
+          name: pr455-validation-5f8fc0c2c037b44144d6fb623a9826d7bbf91f5c
+          path: prior-validation
+      - name: Validate identical evidence and finish offline checks
+        run: python3 .github/pr455/resume.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr455-remaining-${{ github.sha }}
+          path: pr455-results/
+          retention-days: 14
