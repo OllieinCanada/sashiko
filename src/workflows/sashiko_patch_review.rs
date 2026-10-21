@@ -1877,4 +1877,251 @@ mod tests {
             "Sashiko post-verification stage must enforce symmetrical proof bar and all-callers verification"
         );
     }
+
+    /// Records the actual provider boundary rather than rendering prompts separately.
+    struct GuidanceProvider {
+        selected: Vec<&'static str>,
+        emit_finding: bool,
+        requests: std::sync::Mutex<Vec<(&'static str, crate::ai::AiRequest)>>,
+    }
+
+    const QUEUE_PROBLEM: &str = "toolbox: empty worktree queue panics";
+    const QUEUE_REPORT: &str = "- [HIGH] In src/git_ops.rs (take_worktree), an empty queue panics.";
+    const QUEUE_SUMMARY: &str = "Handles an empty queue before allocating a worktree.";
+
+    fn queue_location() -> Value {
+        json!({
+            "file": "src/git_ops.rs",
+            "function_or_symbol": "take_worktree",
+            "line": 42,
+            "code_snippet": "let worktree = queue.pop().unwrap();",
+            "why_this_location_matters": "An empty queue makes unwrap panic."
+        })
+    }
+
+    #[async_trait::async_trait]
+    impl crate::ai::AiProvider for GuidanceProvider {
+        async fn generate_content(
+            &self,
+            request: crate::ai::AiRequest,
+        ) -> anyhow::Result<crate::ai::AiResponse> {
+            let user = request.messages[0].content.as_deref().unwrap();
+            let (stage, content) = if user.contains("<subsystem_guide_index>") {
+                (
+                    "pre-screen",
+                    json!({"selected_prompts": self.selected}).to_string(),
+                )
+            } else if request.system.as_deref().is_some_and(|s| {
+                s.starts_with("You are an AI assistant planning a Sashiko patch review.")
+            }) {
+                ("planning", json!({"relevant_stages": []}).to_string())
+            } else if let Some(stage) = ANALYSIS_STAGES
+                .iter()
+                .find(|stage| user.starts_with(stage.instruction))
+            {
+                let concerns = if stage.name == "implementation" && self.emit_finding {
+                    vec![json!({
+                        "description": QUEUE_PROBLEM,
+                        "reasoning": "The modified worktree allocator unwraps pop even when the queue is empty.",
+                        "preexisting": false,
+                        "locations": [queue_location()]
+                    })]
+                } else {
+                    vec![]
+                };
+                (
+                    stage.name,
+                    json!({"concerns": concerns, "dismissed_concerns": []}).to_string(),
+                )
+            } else if user.starts_with(STAGE_VERIFICATION_INSTRUCTION) {
+                (
+                    "verification",
+                    json!({
+                        "findings": [{
+                            "source_ids": ["C1"],
+                            "problem": QUEUE_PROBLEM,
+                            "severity": "High",
+                            "severity_explanation": "An empty queue crashes worktree allocation.",
+                            "preexisting": false,
+                            "locations": [queue_location()]
+                        }],
+                        "hard_cases": [],
+                        "dismissed_concerns": []
+                    })
+                    .to_string(),
+                )
+            } else if user.starts_with(STAGE_REPORT_INSTRUCTION) {
+                ("report", QUEUE_REPORT.to_string())
+            } else if user.starts_with(STAGE_SUMMARY_INSTRUCTION) {
+                ("summary", QUEUE_SUMMARY.to_string())
+            } else {
+                anyhow::bail!("unexpected provider request");
+            };
+            self.requests.lock().unwrap().push((stage, request));
+            Ok(crate::ai::AiResponse {
+                content: Some(content),
+                thought: None,
+                thought_signature: None,
+                tool_calls: None,
+                usage: None,
+                truncated: false,
+            })
+        }
+
+        fn get_capabilities(&self) -> crate::ai::ProviderCapabilities {
+            crate::ai::ProviderCapabilities {
+                model_name: "recording-guidance".to_string(),
+                context_window_size: 1_000_000,
+            }
+        }
+    }
+
+    async fn run_guidance_workflow(
+        selected: Vec<&'static str>,
+        emit_finding: bool,
+    ) -> (
+        SashikoPatchReviewState,
+        Vec<(&'static str, crate::ai::AiRequest)>,
+    ) {
+        let temp = tempfile::tempdir().unwrap();
+        let project = crate::project::ProjectId::Sashiko;
+        let prompts = crate::prompt_bundle::project_prompts_path(project).unwrap();
+        let provider = std::sync::Arc::new(GuidanceProvider {
+            selected,
+            emit_finding,
+            requests: std::sync::Mutex::new(Vec::new()),
+        });
+        let env = crate::workflow::stage::WorkflowEnv {
+            provider: provider.clone(),
+            tools: std::sync::Arc::new(crate::toolbox::ToolBox::new(
+                temp.path().to_path_buf(),
+                None,
+            )),
+            base_dir: &prompts,
+            context_tag: None,
+        };
+        let diff = "diff --git a/src/git_ops.rs b/src/git_ops.rs\n@@ -42 +42 @@\n-    let worktree = queue.pop()?;\n+    let worktree = queue.pop().unwrap();";
+        let mut state = SashikoPatchReviewState {
+            project: project.as_str().to_string(),
+            target_commit_diff: diff.to_string(),
+            target_commit_diff_only: diff.to_string(),
+            ..Default::default()
+        };
+        crate::workflow::WorkflowEngine::execute(
+            &build_sashiko_patch_review_workflow_with_options(1, 0.0),
+            &env,
+            &mut state,
+            None,
+        )
+        .await
+        .unwrap();
+        let requests = provider.requests.lock().unwrap().clone();
+        (state, requests)
+    }
+
+    #[tokio::test]
+    async fn test_bundled_guidance_reaches_analysis_and_finding_report() {
+        let (state, requests) = run_guidance_workflow(
+            vec!["resource-limits.md", "rust-async.md", "git-ops.md"],
+            true,
+        )
+        .await;
+        assert_eq!(state.selected_guides, ["resource-limits.md", "git-ops.md"]);
+        let core = include_str!("../../projects/sashiko/prompts/review-core.md");
+        let resource_guide =
+            include_str!("../../projects/sashiko/prompts/patterns/resource-limits.md");
+        let git_guide = include_str!("../../projects/sashiko/prompts/subsystem/git-ops.md");
+        let unselected = include_str!("../../projects/sashiko/prompts/patterns/rust-async.md");
+        let analysis: Vec<_> = requests
+            .iter()
+            .filter(|(name, _)| analysis_stage_by_name(name).is_some())
+            .collect();
+        assert_eq!(analysis.len(), 3);
+        for (_, request) in analysis {
+            let system = request.system.as_deref().unwrap();
+            for guide in [core, resource_guide, git_guide] {
+                assert_eq!(system.matches(guide).count(), 1, "guide lost or duplicated");
+                for message in &request.messages {
+                    assert!(
+                        !message
+                            .content
+                            .as_deref()
+                            .unwrap_or_default()
+                            .contains(guide)
+                    );
+                }
+            }
+            assert!(system.find(resource_guide).unwrap() < system.find(git_guide).unwrap());
+            assert!(!system.contains(unselected));
+        }
+        let verification = &requests
+            .iter()
+            .find(|(name, _)| *name == "verification")
+            .unwrap()
+            .1;
+        let input = verification.messages[0].content.as_deref().unwrap();
+        assert!(input.contains(QUEUE_PROBLEM));
+        assert!(input.contains("queue.pop().unwrap()"));
+        assert_eq!(state.findings.len(), 1);
+        let finding = &state.findings[0];
+        assert_eq!(finding["problem"], QUEUE_PROBLEM);
+        assert_eq!(finding["severity"], "High");
+        assert_eq!(finding["preexisting"], false);
+        assert_eq!(finding["source_ids"], json!(["C1"]));
+        assert_eq!(finding["stages"], json!(["implementation"]));
+        assert_eq!(finding["locations"], json!([queue_location()]));
+        let report = &requests
+            .iter()
+            .find(|(name, _)| *name == "report")
+            .unwrap()
+            .1;
+        let reported: Value = serde_json::from_str(
+            report.messages[0]
+                .content
+                .as_deref()
+                .unwrap()
+                .split_once("\nFindings:\n")
+                .unwrap()
+                .1
+                .split("\n\nReturn strictly plain text")
+                .next()
+                .unwrap()
+                .trim(),
+        )
+        .unwrap();
+        assert_eq!(reported, json!([finding]));
+        assert_eq!(state.review_inline, QUEUE_REPORT);
+        assert_eq!(state.summary, QUEUE_SUMMARY);
+    }
+
+    #[tokio::test]
+    async fn test_unselected_and_missing_guidance_stays_out_of_analysis() {
+        for selected in [vec![], vec!["missing-regression-guide.md"]] {
+            let (state, requests) = run_guidance_workflow(selected.clone(), false).await;
+            assert_eq!(state.selected_guides, selected);
+            let analysis: Vec<_> = requests
+                .iter()
+                .filter(|(name, _)| analysis_stage_by_name(name).is_some())
+                .collect();
+            assert_eq!(analysis.len(), 3);
+            for (_, request) in analysis {
+                let system = request.system.as_deref().unwrap();
+                for guide in [
+                    include_str!("../../projects/sashiko/prompts/patterns/resource-limits.md"),
+                    include_str!("../../projects/sashiko/prompts/subsystem/git-ops.md"),
+                ] {
+                    assert!(!system.contains(guide));
+                }
+                assert!(!system.contains("missing-regression-guide.md"));
+            }
+            assert!(state.findings.is_empty());
+            assert!(state.review_inline.is_empty());
+            assert!(
+                !requests
+                    .iter()
+                    .any(|(name, _)| *name == "verification" || *name == "report")
+            );
+            assert_eq!(state.summary, QUEUE_SUMMARY);
+        }
+    }
 }
