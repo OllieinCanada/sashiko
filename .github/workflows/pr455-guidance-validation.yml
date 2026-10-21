@@ -8,6 +8,10 @@ on:
       - .github/workflows/pr455-guidance-validation.yml
 permissions:
   contents: read
+  actions: write
+concurrency:
+  group: pr455-guidance-validation
+  cancel-in-progress: true
 jobs:
   tests:
     runs-on: ubuntu-24.04
@@ -22,10 +26,31 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Cancel superseded fixture run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error
+          root = "https://api.github.com/repos/OllieinCanada/sashiko"
+          headers = {"Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                     "Accept": "application/vnd.github+json"}
+          url = root + "/actions/runs/39656044400"
+          with urllib.request.urlopen(urllib.request.Request(url, headers=headers)) as r:
+              run = json.load(r)
+          assert run["head_sha"] == "57ca065e5df4c8873d8c0c1874b5286acab7d6a3"
+          if run["status"] != "completed":
+              req = urllib.request.Request(url + "/cancel", method="POST", headers=headers)
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      print("Superseded fixture run cancellation:", r.status)
+              except urllib.error.HTTPError as e:
+                  if e.code not in (409, 422):
+                      raise
+          PY
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: candidate -> target
           cache-on-failure: true
       - name: Apply test-only candidate and run offline Rust checks
         run: python3 .github/pr455/validate.py

@@ -6,15 +6,15 @@
         requests: std::sync::Mutex<Vec<(&'static str, crate::ai::AiRequest)>>,
     }
 
-    const QUEUE_PROBLEM: &str = "reviewer: empty queue panics in send_review";
+    const QUEUE_PROBLEM: &str = "toolbox: empty worktree queue panics";
     const QUEUE_REPORT: &str =
-        "- [HIGH] In src/worker/email.rs (send_review), an empty queue panics.";
+        "- [HIGH] In src/git_ops.rs (take_worktree), an empty queue panics.";
     const QUEUE_SUMMARY: &str = "Handles an empty queue before sending a review.";
 
     fn queue_location() -> Value {
         json!({
-            "file": "src/worker/email.rs",
-            "function_or_symbol": "send_review",
+            "file": "src/git_ops.rs",
+            "function_or_symbol": "take_worktree",
             "line": 42,
             "code_snippet": "let review = queue.pop().unwrap();",
             "why_this_location_matters": "An empty queue makes unwrap panic."
@@ -40,7 +40,7 @@
                 let concerns = if stage.name == "implementation" && self.emit_finding {
                     vec![json!({
                         "description": QUEUE_PROBLEM,
-                        "reasoning": "The modified worker unwraps pop even when the queue is empty.",
+                        "reasoning": "The modified worktree allocator unwraps pop even when the queue is empty.",
                         "preexisting": false,
                         "locations": [queue_location()]
                     })]
@@ -54,7 +54,7 @@
                         "source_ids": ["C1"],
                         "problem": QUEUE_PROBLEM,
                         "severity": "High",
-                        "severity_explanation": "An empty queue crashes the review worker.",
+                        "severity_explanation": "An empty queue crashes worktree allocation.",
                         "preexisting": false,
                         "locations": [queue_location()]
                     }],
@@ -107,7 +107,7 @@
             base_dir: &prompts,
             context_tag: None,
         };
-        let diff = "diff --git a/src/worker/email.rs b/src/worker/email.rs\n@@ -42 +42 @@\n-    let review = queue.pop()?;\n+    let review = queue.pop().unwrap();";
+        let diff = "diff --git a/src/git_ops.rs b/src/git_ops.rs\n@@ -42 +42 @@\n-    let review = queue.pop()?;\n+    let review = queue.pop().unwrap();";
         let mut state = SashikoPatchReviewState {
             project: project.as_str().to_string(),
             target_commit_diff: diff.to_string(),
@@ -125,13 +125,13 @@
     #[tokio::test]
     async fn test_bundled_guidance_reaches_analysis_and_finding_report() {
         let (state, requests) = run_guidance_workflow(
-            vec!["rust-async.md", "workflow-engine.md"], true,
+            vec!["resource-limits.md", "rust-async.md", "git-ops.md"], true,
         ).await;
-        assert_eq!(state.selected_guides, ["rust-async.md", "workflow-engine.md"]);
+        assert_eq!(state.selected_guides, ["resource-limits.md", "git-ops.md"]);
         let core = include_str!("../../projects/sashiko/prompts/review-core.md");
-        let async_guide = include_str!("../../projects/sashiko/prompts/patterns/rust-async.md");
-        let workflow_guide = include_str!("../../projects/sashiko/prompts/subsystem/workflow-engine.md");
-        let unselected = include_str!("../../projects/sashiko/prompts/subsystem/email-policy.md");
+        let async_guide = include_str!("../../projects/sashiko/prompts/patterns/resource-limits.md");
+        let workflow_guide = include_str!("../../projects/sashiko/prompts/subsystem/git-ops.md");
+        let unselected = include_str!("../../projects/sashiko/prompts/patterns/rust-async.md");
         let analysis: Vec<_> = requests.iter()
             .filter(|(name, _)| analysis_stage_by_name(name).is_some()).collect();
         assert_eq!(analysis.len(), 3);
@@ -183,8 +183,8 @@
             for (_, request) in analysis {
                 let system = request.system.as_deref().unwrap();
                 for guide in [
-                    include_str!("../../projects/sashiko/prompts/patterns/rust-async.md"),
-                    include_str!("../../projects/sashiko/prompts/subsystem/workflow-engine.md"),
+                    include_str!("../../projects/sashiko/prompts/patterns/resource-limits.md"),
+                    include_str!("../../projects/sashiko/prompts/subsystem/git-ops.md"),
                 ] {
                     assert!(!system.contains(guide));
                 }

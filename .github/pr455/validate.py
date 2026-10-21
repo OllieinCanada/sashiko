@@ -10,6 +10,7 @@ ROOT = Path.cwd()
 SOURCE = ROOT / "candidate"
 OUT = ROOT / "pr455-results"
 OUT.mkdir()
+os.environ["CARGO_TARGET_DIR"] = str(ROOT / "target")
 BASE = "9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b"
 BRANCH = "test/sashiko-guidance-lifecycle-20261021"
 REPORT = {"status": "RUNNING", "base": BASE, "checks": [], "mutants": [],
@@ -56,6 +57,7 @@ try:
     os.environ["CARGO_NET_OFFLINE"] = "true"
     command("format", ["cargo", "fmt", "--all"])
     command("format-check", ["cargo", "fmt", "--all", "--", "--check"])
+    (OUT / "candidate.patch").write_text(git("diff") + "\n")
     command("targeted-positive", ["cargo", "test", "--offline", "--all-features",
         "--lib", "workflows::sashiko_patch_review::tests::", "--", "--nocapture"])
     clean = path.read_text()
@@ -72,7 +74,7 @@ try:
        "test_bundled_guidance_reaches_analysis_and_finding_report"),
       ("unselected-guide-injected",
        '.include_file("review-core.md")',
-       '.include_file("review-core.md").include_file("patterns/rust-async.md")',
+       '.include_file("review-core.md").include_file("patterns/resource-limits.md")',
        "test_unselected_and_missing_guidance_stays_out_of_analysis"),
     ]
     for name, old, new, test in mutants:
