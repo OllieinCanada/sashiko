@@ -1,104 +1,120 @@
 # PR455 test-only replacement
 
-Implementation is complete and published; required model self-review is blocked.
-No upstream PR has been opened.
+The full required suite passes on repository-pinned Rust 1.90.0. A completed
+Sashiko model self-review is the only remaining gate. No upstream PR is open.
 
 - Branch: test/sashiko-guidance-lifecycle-20261021
 - Commit: 0eedc1d48af6af589a5be042c007cb27661e8120
 - Tree: 61bf3d20aa0951348a328704fc6243ce3ed29722
-- Base: 9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b
-- Changed file: src/workflows/sashiko_patch_review.rs (247 test-only insertions)
-- [Download the completed patch](https://github.com/OllieinCanada/sashiko/commit/0eedc1d48af6af589a5be042c007cb27661e8120.patch)
+- Base/current upstream: 9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b
+- Changed file: src/workflows/sashiko_patch_review.rs, 247 test-only insertions
+- [Completed patch](https://github.com/OllieinCanada/sashiko/commit/0eedc1d48af6af589a5be042c007cb27661e8120.patch)
 - [Prepared PR description](PR_DRAFT.md)
 - Required title: test: cover Sashiko guidance propagation and finding lifecycle
 
 ## Engineering summary
 
-Current main already contains first-party project selection, embedded and
-installed Sashiko guidance, selected-guide loading, analysis, verification and
-reporting. Existing tests cover CLI selection, bundle integrity, generic prompt
-rendering, verification/reducer behavior and output validators separately.
+Current main already implements first-party project selection, bundled guides,
+analysis, verification and reporting. Existing tests cover those seams separately.
 
-Two new workflow tests connect those seams at the actual AiProvider request
-boundary. They call project_prompts_path(ProjectId::Sashiko), execute the existing
-complete workflow with a recording provider, compare complete bundled guide
-contents and selected order, inspect nonempty verification/report inputs and
-final structured fields, and check unselected/missing guidance and clean output.
-No duplicated profile, optional context injection, dependency or production
-architecture is introduced. [Coverage mapping](COVERAGE.md).
+Two new deterministic workflow tests inspect actual AiProvider request payloads:
+complete bundled guide contents, selection/order, exclusion of unselected or
+missing guides, a nonempty concern reaching verification, structured finding
+fields reaching reporting, final report output, and clean-review short-circuiting.
+No production code, prompts, dependencies or architecture change.
+[Coverage mapping](COVERAGE.md).
 
-Four independently compiled mutations trigger real assertion failures. The same
-candidate patch/source hash is carried between the mutation and full-suite jobs;
-the tests are not re-certified by merely renaming a commit.
+The tests start at resolved ProjectId::Sashiko and call the production bundle
+selector. Existing CLI tests cover parsing/precedence. Request assertions inspect
+AiRequest values rather than provider-specific HTTP serialization.
 
-## Actual executed checks
+## Required validation: passed
 
-| Command | Outcome |
+[Run 39673050262](https://github.com/OllieinCanada/sashiko/actions/runs/39673050262),
+checks job 119475643745, executed on the exact source above using Ubuntu 24.04,
+rustc 1.90.0 (1159e78c4 2025-09-14), Cargo 1.90.0 and two build jobs.
+
+After cargo fetch --locked, it executed:
+make check-pr RANGE=9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b..HEAD
+
+RUSTUP_TOOLCHAIN=1.90.0 and CARGO_NET_OFFLINE=true were set. The hosted shared
+target directory was supplied through the existing CLI helper's supported
+CARGO_BIN_EXE_sashiko override. No provider secret was available to the tests.
+
+| Check | Result |
 | --- | --- |
+| Signed-off-by validation | Passed |
 | cargo fmt --all -- --check | Passed |
-| cargo test --offline --all-features --lib workflows::sashiko_patch_review::tests:: | 13 passed |
-| cargo test --offline --all-features | 1008 library + 47 main + 7 CLI + 23 integration = 1085 passed; zero failed; two ignored |
-| cargo clippy --offline --all-targets --no-default-features -- -D warnings | Passed |
-| cargo clippy --offline --all-targets --no-default-features --features cache -- -D warnings | Passed |
-| make check-pr RANGE=HEAD..HEAD on the uncommitted candidate | Failed at strict all-feature Clippy |
-| cargo clippy --offline --all-targets --all-features --message-format=json -- -D warnings | Same four unique result_large_err failures on untouched base and candidate |
-| make sob RANGE=9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b..HEAD | Passed after native signed-off commit |
-| git diff --check | Passed |
+| cargo clippy --all-targets --all-features -- -D warnings | Passed |
+| cargo clippy --all-targets --no-default-features -- -D warnings | Passed |
+| cargo clippy --all-targets --no-default-features --features cache -- -D warnings | Passed |
+| cargo test --all-features | 1008 library + 47 main + 7 CLI + 23 integration = 1085 passed; zero failed; two ignored |
+| git diff --check and clean source checkout | Passed |
 
-Strict all-feature errors are at src/server.rs:438, :1679, :2216 and :6284.
-Both library and test compilations emit them, yielding eight raw messages but
-four unique diagnostics. Exact base/candidate comparison accounts for this;
-the failures remain failures. No source suppression was added.
+[Exact check log artifact](https://github.com/OllieinCanada/sashiko/actions/runs/39673050262/artifacts/12380693878).
+Tree/hash and the unchanged production prefix were checked before execution;
+the checkout stayed clean afterward. Source SHA256:
+785d2db3f107d30874584ec44c5233903c6de0b20ae366b5f671eaaa234227f5.
 
-Executed environment: GitHub Actions Ubuntu 24.04, rustc
-1.99.1 (58cf8f9c3 2026-10-13), Cargo 1.99.1, CARGO_BUILD_JOBS=2.
-Dependencies were fetched with cargo fetch --locked; regression execution then
-used CARGO_NET_OFFLINE=true / --offline. The regression suite used no credentials
-or external provider API calls. Local execution was unavailable because bwrap
-reported No space left on device creating /workspace/.git.
+## Earlier results and corrected assessments
 
-- [Focused tests, mutations and baseline diagnostics](https://github.com/OllieinCanada/sashiko/actions/runs/39657476345/artifacts/12372497099)
-- [Full suite, profiles, native patch and source bundle](https://github.com/OllieinCanada/sashiko/actions/runs/39658748438/artifacts/12373570308)
-- [Publication and one authorized review](https://github.com/OllieinCanada/sashiko/actions/runs/39659481289)
-- [Model outcome](https://github.com/OllieinCanada/sashiko/actions/runs/39659481289/artifacts/12373351714)
-- [Structured evidence](evidence.json)
+Earlier supplemental checks selected Rust 1.99.1 explicitly, bypassing the
+repository pin. Newer Clippy reports four async result_large_err diagnostics
+in unchanged server code on both upstream and candidate. Those negative results
+remain documented; they do not require a server fix, suppression or waiver for
+the now-passing prescribed suite. [Toolchain investigation](TOOLCHAIN.md).
 
-## Separate required model review
+The first pinned run passed every lint profile and 1082 tests, but three existing
+CLI tests could not find the binary in the harness's shared target directory.
+The corrected run used the existing helper's binary override and passed all
+1085 tests, without source changes. That first review job was skipped: zero calls.
 
-The user explicitly authorized one bounded self-review while keeping tests
-offline. Gemini 3.6 Flash was attempted at a $1/600-second ceiling, 24 requests,
-500000 aggregate counted input tokens and 8192 maximum output tokens per request.
-The offline budget/timeout/redaction/completion controls passed first.
+Earlier Rust 1.99.1 execution passed 13 focused workflow tests, the full suite
+and four compiled mutations. Intended regression assertions failed when selected
+guidance was dropped, selected order reversed, verified findings discarded, or
+unselected guidance injected. The source patch/hash matches the published commit.
 
-Authenticated metadata and countTokens succeeded. The first generateContent
-returned HTTP 503 after 0.551 seconds. The proxy stopped immediately; the agent
-reported the single patch incomplete. Empty findings/concerns are not a clean
-review. The conservative reservation is $0.035577; actual billing is unknown.
-Future workflow execution was disabled at
-3cd18461b42af5eb09488ca80dfbb8d23a72f20c. No retry is scheduled.
+- [Focused tests, mutations and supplemental lint diagnostics](https://github.com/OllieinCanada/sashiko/actions/runs/39657476345/artifacts/12372497099)
+- [Earlier full suite and native source bundle](https://github.com/OllieinCanada/sashiko/actions/runs/39658748438/artifacts/12373570308)
+- [First pinned run with harness failures](https://github.com/OllieinCanada/sashiko/actions/runs/39671889391/artifacts/12380267886)
+- [Structured evidence and negative history](evidence.json)
 
-AGENTS.md requires the local agent loop before opening/updating a PR:
-"Fix any valid findings, amend or commit, and re-verify until both
-make check-pr and the local self-review pass cleanly."
+## Required model review: blocked
+
+The additional authorized self-review ran after make check-pr passed. Native
+Sashiko --project sashiko review --agent targeted the exact base..head range.
+The separate minimal review binary used Rust 1.99.1; it did not change the
+reviewed source or offline regression environment.
+
+Offline budget, timeout, redaction and completion controls passed. Authenticated
+metadata and token counting succeeded. The first Gemini 3.6 Flash generation
+returned HTTP 503 after 0.584 seconds. The proxy stopped immediately. The patch
+remains incomplete; empty findings/concerns do not establish a clean review.
+
+This attempt was capped at one dollar and ten minutes. Its conservative
+reservation was $0.035577; actual billing is unknown. Both explicitly authorized
+attempts have now failed at first-generation HTTP 503. No further calls are
+authorized or scheduled. Future execution was disabled at
+3f4156d62978380c1088a5476be251a118c4ba22; older provider workflows remain disabled.
+
+[Latest model artifact](https://github.com/OllieinCanada/sashiko/actions/runs/39673050262/artifacts/12381865089).
+
+AGENTS.md requires: "Fix any valid findings, amend or commit, and re-verify
+until both make check-pr and the local self-review pass cleanly."
 [Exact instructions](https://github.com/sashiko-dev/sashiko/blob/9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b/AGENTS.md).
-Neither the model failure nor known upstream lint failures is silently waived.
 
-## Exact remaining steps
+## Remaining work
 
-1. Recheck current main and the four upstream all-feature Clippy diagnostics.
-   Refresh/revalidate the test patch if upstream changes. Keep unrelated server
-   fixes outside this contribution.
-2. When a working provider generation path is available, configure it securely
-   and complete the required local command from the source checkout:
-   sashiko --project sashiko review --agent 9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b..HEAD
-   Resolve valid findings and repeat applicable checks/review under an explicit
-   budget. No further calls are authorized or scheduled by this handoff.
-3. Open the PR using the required title and the prepared description after the
-   repository review/check requirements are satisfied. PR creation was not
-   attempted while self-review was incomplete. Do not reopen #455 or merge.
+1. Complete the required review through a working provider generation path under
+   a newly authorized bounded attempt. Resolve valid findings and revalidate
+   affected code if any change is needed.
+2. Recheck upstream immediately before publication; refresh only if it moved.
+3. Open the new PR using the prepared title/body. Do not reopen #455 or merge.
 
-To reproduce the deterministic checks, clone the source branch, run
-cargo fetch --locked if dependencies are not cached, then run the commands in
-the table (using RANGE=9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b..HEAD for make check-pr
-in the committed source checkout). The source branch and commit patch remain
-available after hosted log/artifact retention expires.
+To reproduce locally, honor rust-toolchain.toml, run cargo fetch --locked and
+then CARGO_NET_OFFLINE=true make check-pr
+RANGE=9d2bf58b17817b2cb4719fd4e1a14ca755b0dd6b..HEAD.
+A normal clone uses its own target directory and does not need the hosted binary
+override. Local execution in this chat remains unavailable because bwrap reports
+No space left on device creating /workspace/.git. All successful Rust checks
+ran in isolated hosted source checkouts.
