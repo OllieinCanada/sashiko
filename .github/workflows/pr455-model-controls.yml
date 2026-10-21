@@ -1,0 +1,20 @@
+name: PR455 model review offline controls
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/pr455-guidance-validation-20261021]
+    paths:
+      - .github/pr455/model/**
+      - .github/workflows/pr455-model-controls.yml
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Free budget, timeout and completion guards
+        run: python3 .github/pr455/model/selftest.py
